@@ -11,6 +11,10 @@ WHERE u.id = $1
 	AND um.id = $2
 	AND m.id = $3
 	AND s.id = $4
+	AND u.deleted_at IS NULL
+	AND um.deleted_at IS NULL
+	AND m.deleted_at IS NULL
+	AND s.deleted_at IS NULL
 `
 
 const loadTargetSQL = `
@@ -19,9 +23,10 @@ SELECT
 	COALESCE(r.display_name, ''), COALESCE(r.visibility, ''), COALESCE(r.status, ''), r.metadata,
 	g.id, g.space_id, g.path, g.status
 FROM resources r
-LEFT JOIN groups g ON g.id = r.group_id
+LEFT JOIN groups g ON g.id = r.group_id AND g.deleted_at IS NULL
 WHERE r.resource_type = $1
 	AND r.id = $2
+	AND r.deleted_at IS NULL
 `
 
 const loadResourceRegistrationSQL = `
@@ -141,10 +146,17 @@ FROM member_roles mr
 JOIN roles r ON r.id = mr.role_id
 JOIN role_permissions rp ON rp.role_id = r.id
 JOIN permissions p ON p.id = rp.permission_id
-LEFT JOIN groups g ON g.id = mr.scope_anchor_group_id
+LEFT JOIN groups g ON g.id = mr.scope_anchor_group_id AND g.deleted_at IS NULL
 WHERE mr.member_id = $1
 	AND p.resource = $2
 	AND p.action = $3
+	AND mr.status = 'active'
+	AND mr.deleted_at IS NULL
+	AND r.status = 'active'
+	AND r.deleted_at IS NULL
+	AND rp.deleted_at IS NULL
+	AND p.status = 'active'
+	AND p.deleted_at IS NULL
 ORDER BY r.key, p.resource, p.action, p.scope
 `
 
@@ -161,8 +173,10 @@ INSERT INTO audit_logs (
 	decision,
 	deny_code,
 	trace,
-	request_id
+	request_id,
+	ip_address,
+	user_agent
 ) VALUES (
-	$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NULLIF($12, '')
+	$1, $2, NULLIF($3, ''), NULLIF($4, ''), NULLIF($5, ''), $6, $7, $8, $9, $10, $11, NULLIF($12, ''), NULLIF($13, ''), NULLIF($14, '')
 )
 `

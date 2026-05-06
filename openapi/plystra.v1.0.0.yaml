@@ -1,226 +1,209 @@
 openapi: 3.1.0
 info:
   title: Plystra Core API
-  version: 1.0.0-dev
-  description: Pre-1.0 Plystra Core API contract for system, authorization, audit, resource registry, and plugin metadata.
+  version: 1.0.0
+  description: Stable self-hosted Plystra Core API for identity, authorization, resources, and audit.
 servers:
   - url: http://localhost:8080
-paths:
-  /api/v1/system/health:
-    get:
-      summary: Health check
-      responses:
-        "200":
-          description: Service is alive
-  /api/v1/system/ready:
-    get:
-      summary: Readiness check
-      responses:
-        "200":
-          description: Service is ready
-        "503":
-          description: Service is not ready
-  /api/v1/system/version:
-    get:
-      summary: Version metadata
-      responses:
-        "200":
-          description: Core version and compatibility metadata
-  /api/v1/auth/login:
-    post:
-      summary: Create a user session
-      responses:
-        "200":
-          description: Access token, refresh token, and actor context
-        "401":
-          description: Invalid credentials
-  /api/v1/auth/logout:
-    post:
-      summary: Revoke the current session
-      responses:
-        "200":
-          description: Logout result
-  /api/v1/auth/refresh:
-    post:
-      summary: Rotate an access token from a refresh token
-      responses:
-        "200":
-          description: New access token
-        "401":
-          description: Refresh token invalid or expired
-  /api/v1/actor/context:
-    get:
-      summary: Get the active actor context for the session
-      responses:
-        "200":
-          description: Actor context and available Member bindings
-        "401":
-          description: Authentication required
-  /api/v1/actor/switch-member:
-    post:
-      summary: Switch the active Member for the session
-      responses:
-        "200":
-          description: Updated actor context
-        "403":
-          description: Requested Member binding is not active
-  /api/v1/authz/check:
-    post:
-      summary: Run a compact authorization check
-      responses:
-        "200":
-          description: Authorization decision
-  /api/v1/authz/explain:
-    post:
-      summary: Run an authorization check and return the full trace
-      responses:
-        "200":
-          description: Full authorization trace
-  /api/v1/audit/logs:
-    get:
-      summary: List audit logs
-      responses:
-        "200":
-          description: Audit log list
-  /api/v1/resource-types:
-    get:
-      summary: List ResourceTypes
-      responses:
-        "200":
-          description: ResourceType list
-  /api/v1/plugins:
-    get:
-      summary: List installed plugin metadata
-      responses:
-        "200":
-          description: Plugin list
-  /api/v1/plugins/install:
-    post:
-      summary: Install or update plugin metadata
-      responses:
-        "201":
-          description: Installed plugin metadata
-  /api/v1/plugins/validate-manifest:
-    post:
-      summary: Validate a plugin manifest
-      responses:
-        "200":
-          description: Validation result
-  /api/v1/plugins/{plugin_id}/settings:
-    get:
-      summary: List plugin settings
-      responses:
-        "200":
-          description: Plugin setting list
-    patch:
-      summary: Update plugin settings
-      responses:
-        "200":
-          description: Updated plugin setting list
-  /api/v1/templates:
-    get:
-      summary: List templates
-      responses:
-        "200":
-          description: Template list
-  /api/v1/templates/{template_id}:
-    get:
-      summary: Get template detail
-      responses:
-        "200":
-          description: Template detail
-  /api/v1/templates/{template_id}/preview-install:
-    post:
-      summary: Preview template installation
-      responses:
-        "200":
-          description: Template installation preview
-  /api/v1/templates/{template_id}/install:
-    post:
-      summary: Record template installation
-      responses:
-        "201":
-          description: Template installation record
-  /api/v1/data/tables:
-    get:
-      summary: List data table mappings
-      responses:
-        "200":
-          description: Data table mapping list
-  /api/v1/data/rows/{resource_type}:
-    get:
-      summary: List rows for a mapped resource type
-      responses:
-        "200":
-          description: Data row list
-    post:
-      summary: Create a data row after authorization
-      responses:
-        "201":
-          description: Created data row and authorization decision
-        "403":
-          description: Authorization denied
-  /api/v1/data/rows/{resource_type}/{resource_id}:
-    get:
-      summary: Get a mapped data row
-      responses:
-        "200":
-          description: Data row detail
-    patch:
-      summary: Update a data row after authorization
-      responses:
-        "200":
-          description: Updated data row and authorization decision
-        "403":
-          description: Authorization denied
-    delete:
-      summary: Soft-delete a data row after authorization
-      responses:
-        "200":
-          description: Soft-deleted data row and authorization decision
-        "403":
-          description: Authorization denied
 components:
   schemas:
-    ActorContext:
+    Envelope:
       type: object
-      required: [user_id, space_id, member_id, user_member_id]
       properties:
-        user_id:
+        data: {}
+        request_id:
           type: string
-        space_id:
-          type: string
-        member_id:
-          type: string
-        user_member_id:
-          type: string
-    AuthzCheckRequest:
+        meta:
+          type: object
+          properties:
+            request_id:
+              type: string
+    ErrorEnvelope:
       type: object
-      required: [actor, resource_type, resource_id, action]
       properties:
-        actor:
-          $ref: "#/components/schemas/ActorContext"
-        resource_type:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: {}
+            request_id: { type: string }
+            deny_code: { type: string }
+            trace_id: { type: string }
+            audit_log_id: { type: string }
+        request_id:
           type: string
-        resource_id:
-          type: string
-        action:
-          type: string
-        explain:
-          type: boolean
-    PluginManifest:
+        meta:
+          type: object
+          properties:
+            request_id:
+              type: string
+    AuthzCheckResponse:
       type: object
-      required: [id, name, version, manifest_version, plugin_api_version, requires_core]
       properties:
-        id:
-          type: string
-        name:
-          type: string
-        version:
-          type: string
-        manifest_version:
-          type: string
-        plugin_api_version:
-          type: string
-        requires_core:
-          type: string
+        allow: { type: boolean }
+        decision: { type: string, enum: [allow, deny] }
+        deny_code: { type: [string, "null"] }
+        reason: { type: string }
+        trace_id: { type: string }
+        audit_log_id: { type: string }
+        audit: { type: object }
+    AuthzExplainTrace:
+      type: object
+      properties:
+        trace_version: { type: string }
+        trace_id: { type: string }
+        decision: { type: string }
+        deny_code: { type: [string, "null"] }
+        actor: { type: object }
+        space: { type: object }
+        target: { type: object }
+        matched_candidates: { type: array }
+        reason: { type: string }
+        audit: { type: object }
+paths:
+  /api/v1/health:
+    get: { summary: Health check, responses: { "200": { description: Service is alive } } }
+  /api/v1/ready:
+    get: { summary: Readiness check, responses: { "200": { description: Database and migrations are ready }, "503": { description: Service is not ready } } }
+  /api/v1/version:
+    get: { summary: Version metadata, responses: { "200": { description: Core, schema, and trace version metadata } } }
+  /api/v1/system/health:
+    get: { summary: Backward-compatible health alias, responses: { "200": { description: Service is alive } } }
+  /api/v1/system/ready:
+    get: { summary: Backward-compatible readiness alias, responses: { "200": { description: Service is ready } } }
+  /api/v1/system/version:
+    get: { summary: Backward-compatible version alias, responses: { "200": { description: Version metadata } } }
+  /system/health:
+    get: { summary: Legacy health alias, responses: { "200": { description: Service is alive } } }
+  /system/ready:
+    get: { summary: Legacy readiness alias, responses: { "200": { description: Service is ready } } }
+  /system/version:
+    get: { summary: Legacy version alias, responses: { "200": { description: Version metadata } } }
+  /api/v1/authz/check:
+    post: { summary: Run compact authorization check, responses: { "200": { description: Authorization decision } } }
+  /api/v1/authz/explain:
+    post: { summary: Run authorization check with full trace, responses: { "200": { description: Explainable authorization trace } } }
+  /api/v1/users:
+    get: { summary: List Users, responses: { "200": { description: User list } } }
+    post: { summary: Create User, responses: { "201": { description: Created User } } }
+  /api/v1/users/{user_id}:
+    get: { summary: Get User, responses: { "200": { description: User detail } } }
+    patch: { summary: Update User, responses: { "200": { description: Updated User } } }
+  /api/v1/users/{user_id}/disable:
+    post: { summary: Disable User, responses: { "200": { description: Disabled User } } }
+  /api/v1/users/{user_id}/restore:
+    post: { summary: Restore User, responses: { "200": { description: Restored User } } }
+  /api/v1/spaces:
+    get: { summary: List Spaces, responses: { "200": { description: Space list } } }
+    post: { summary: Create Space, responses: { "201": { description: Created Space } } }
+  /api/v1/spaces/{space_id}:
+    get: { summary: Get Space, responses: { "200": { description: Space detail } } }
+    patch: { summary: Update Space, responses: { "200": { description: Updated Space } } }
+  /api/v1/spaces/{space_id}/disable:
+    post: { summary: Disable Space, responses: { "200": { description: Disabled Space } } }
+  /api/v1/spaces/{space_id}/restore:
+    post: { summary: Restore Space, responses: { "200": { description: Restored Space } } }
+  /api/v1/spaces/{space_id}/groups:
+    get: { summary: List Groups, responses: { "200": { description: Group list } } }
+    post: { summary: Create Group, responses: { "201": { description: Created Group } } }
+  /api/v1/spaces/{space_id}/groups/tree:
+    get: { summary: List Group tree, responses: { "200": { description: Group tree } } }
+  /api/v1/spaces/{space_id}/groups/{group_id}:
+    get: { summary: Get Group, responses: { "200": { description: Group detail } } }
+    patch: { summary: Update Group display fields, responses: { "200": { description: Updated Group } } }
+  /api/v1/spaces/{space_id}/groups/{group_id}/disable:
+    post: { summary: Disable Group, responses: { "200": { description: Disabled Group } } }
+  /api/v1/spaces/{space_id}/members:
+    get: { summary: List Members, responses: { "200": { description: Member list } } }
+    post: { summary: Create Member, responses: { "201": { description: Created Member } } }
+  /api/v1/spaces/{space_id}/members/{member_id}:
+    get: { summary: Get Member, responses: { "200": { description: Member detail } } }
+    patch: { summary: Update Member, responses: { "200": { description: Updated Member } } }
+  /api/v1/spaces/{space_id}/members/{member_id}/disable:
+    post: { summary: Disable Member, responses: { "200": { description: Disabled Member } } }
+  /api/v1/spaces/{space_id}/user-members:
+    get: { summary: List UserMember bindings, responses: { "200": { description: UserMember list } } }
+    post: { summary: Create UserMember binding, responses: { "201": { description: Created UserMember } } }
+  /api/v1/spaces/{space_id}/user-members/{user_member_id}:
+    get: { summary: Get UserMember binding, responses: { "200": { description: UserMember detail } } }
+    patch: { summary: Update UserMember binding, responses: { "200": { description: Updated UserMember } } }
+  /api/v1/spaces/{space_id}/user-members/{user_member_id}/revoke:
+    post: { summary: Revoke UserMember binding, responses: { "200": { description: Revoked UserMember } } }
+  /api/v1/spaces/{space_id}/roles:
+    get: { summary: List Roles, responses: { "200": { description: Role list } } }
+    post: { summary: Create Role, responses: { "201": { description: Created Role } } }
+  /api/v1/spaces/{space_id}/roles/{role_id}:
+    get: { summary: Get Role, responses: { "200": { description: Role detail } } }
+    patch: { summary: Update Role, responses: { "200": { description: Updated Role } } }
+  /api/v1/spaces/{space_id}/roles/{role_id}/disable:
+    post: { summary: Disable Role, responses: { "200": { description: Disabled Role } } }
+  /api/v1/permissions:
+    get: { summary: List Permissions, responses: { "200": { description: Permission list } } }
+    post: { summary: Create Permission, responses: { "201": { description: Created Permission } } }
+  /api/v1/permissions/{permission_id}:
+    get: { summary: Get Permission, responses: { "200": { description: Permission detail } } }
+    patch: { summary: Update Permission, responses: { "200": { description: Updated Permission } } }
+  /api/v1/permissions/{permission_id}/disable:
+    post: { summary: Disable Permission, responses: { "200": { description: Disabled Permission } } }
+  /api/v1/spaces/{space_id}/member-roles:
+    get: { summary: List MemberRoles, responses: { "200": { description: MemberRole list } } }
+    post: { summary: Create MemberRole, responses: { "201": { description: Created MemberRole } } }
+  /api/v1/spaces/{space_id}/member-roles/{member_role_id}:
+    get: { summary: Get MemberRole, responses: { "200": { description: MemberRole detail } } }
+  /api/v1/spaces/{space_id}/member-roles/{member_role_id}/revoke:
+    post: { summary: Revoke MemberRole, responses: { "200": { description: Revoked MemberRole } } }
+  /api/v1/role-permissions:
+    get: { summary: List RolePermissions, responses: { "200": { description: RolePermission list } } }
+    post: { summary: Create RolePermission, responses: { "201": { description: Created RolePermission } } }
+  /api/v1/role-permissions/{role_permission_id}:
+    get: { summary: Get RolePermission, responses: { "200": { description: RolePermission detail } } }
+    delete: { summary: Revoke RolePermission, responses: { "200": { description: Revoked RolePermission } } }
+  /api/v1/resource-types:
+    get: { summary: List ResourceTypes, responses: { "200": { description: ResourceType list } } }
+    post: { summary: Register ResourceType, responses: { "201": { description: Registered ResourceType } } }
+  /api/v1/resource-types/{resource_type}/actions:
+    get: { summary: List ResourceActions, responses: { "200": { description: ResourceAction list } } }
+    post: { summary: Register ResourceAction, responses: { "201": { description: Registered ResourceAction } } }
+  /api/v1/resource-types/{resource_type}/mapping:
+    get: { summary: Get ResourceMapping, responses: { "200": { description: ResourceMapping detail } } }
+    post: { summary: Register ResourceMapping, responses: { "201": { description: Registered ResourceMapping } } }
+  /api/v1/spaces/{space_id}/resources:
+    get: { summary: List Resources, responses: { "200": { description: Resource list } } }
+    post: { summary: Create Resource, responses: { "201": { description: Created Resource } } }
+  /api/v1/spaces/{space_id}/resources/{resource_id}:
+    get: { summary: Get Resource, responses: { "200": { description: Resource detail } } }
+    patch: { summary: Update Resource, responses: { "200": { description: Updated Resource } } }
+  /api/v1/spaces/{space_id}/resources/{resource_id}/archive:
+    post: { summary: Archive Resource, responses: { "200": { description: Archived Resource } } }
+  /api/v1/resources:
+    get: { summary: List Resources across Spaces, responses: { "200": { description: Resource list } } }
+    post: { summary: Register Resource with explicit space_id, responses: { "201": { description: Created Resource } } }
+  /api/v1/resources/{resource_type}/{resource_id}:
+    get: { summary: Get Resource by type and ID, responses: { "200": { description: Resource detail } } }
+  /api/v1/audit-logs:
+    get:
+      summary: List AuditLogs across Spaces
+      parameters:
+        - { name: space_id, in: query, schema: { type: string } }
+        - { name: actor_user_id, in: query, schema: { type: string } }
+        - { name: actor_member_id, in: query, schema: { type: string } }
+        - { name: actor_user_member_id, in: query, schema: { type: string } }
+        - { name: resource_type, in: query, schema: { type: string } }
+        - { name: resource_id, in: query, schema: { type: string } }
+        - { name: decision, in: query, schema: { type: string } }
+        - { name: deny_code, in: query, schema: { type: string } }
+        - { name: request_id, in: query, schema: { type: string } }
+        - { name: created_at_from, in: query, schema: { type: string, format: date-time } }
+        - { name: created_at_to, in: query, schema: { type: string, format: date-time } }
+      responses: { "200": { description: AuditLog list } }
+  /api/v1/audit-logs/{audit_log_id}:
+    get: { summary: Get AuditLog, responses: { "200": { description: AuditLog detail } } }
+  /api/v1/audit/logs:
+    get: { summary: Backward-compatible AuditLog list alias, responses: { "200": { description: AuditLog list } } }
+  /api/v1/audit/logs/{audit_log_id}:
+    get: { summary: Backward-compatible AuditLog detail alias, responses: { "200": { description: AuditLog detail } } }
+  /api/v1/spaces/{space_id}/audit-logs:
+    get: { summary: List AuditLogs, responses: { "200": { description: AuditLog list } } }
+  /api/v1/spaces/{space_id}/audit-logs/{audit_log_id}:
+    get: { summary: Get AuditLog, responses: { "200": { description: AuditLog detail } } }

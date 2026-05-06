@@ -103,6 +103,19 @@ type Store interface {
 	WriteAuditLog(ctx context.Context, decision Decision) error
 }
 
+type AuthorizationContextLoader interface {
+	LoadAuthorizationContext(ctx context.Context, input CheckInput) (AuthorizationContext, error)
+}
+
+type AuthorizationContext struct {
+	Actor              ActorSnapshot
+	ResourceRegistry   ResourceRegistrySnapshot
+	RegistryErr        error
+	Target             TargetSnapshot
+	PermissionGrants   []PermissionCandidate
+	PermissionFiltered bool
+}
+
 type ActorSnapshot struct {
 	User       UserSnapshot       `json:"user"`
 	Member     MemberSnapshot     `json:"member"`
@@ -193,6 +206,7 @@ type ScopeCheck struct {
 }
 
 type AuditContext struct {
+	ID                string    `json:"audit_log_id,omitempty"`
 	ActorUserID       string    `json:"actor_user_id"`
 	ActorMemberID     string    `json:"actor_member_id"`
 	ActorUserMemberID string    `json:"actor_user_member_id"`
@@ -254,6 +268,8 @@ type RequestMetadata struct {
 }
 
 type Decision struct {
+	TraceVersion      string                   `json:"trace_version"`
+	TraceID           string                   `json:"trace_id"`
 	Decision          string                   `json:"decision"`
 	DenyCode          *DenyCode                `json:"deny_code"`
 	Actor             ActorSnapshot            `json:"actor"`

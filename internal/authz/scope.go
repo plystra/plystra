@@ -95,7 +95,7 @@ func ResolveScope(scope Scope, actor ActorSnapshot, target TargetSnapshot, ancho
 		return ScopeCheck{
 			Covered:  false,
 			Rule:     "global scope disabled for ordinary Members",
-			Reason:   "global scope is reserved and disabled in v0.1.",
+			Reason:   "global scope is reserved and disabled in v1.0.",
 			DenyCode: denyCodePtr(DenyGlobalScopeDisabled),
 		}
 

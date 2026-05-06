@@ -7,7 +7,7 @@ import (
 
 	"github.com/plystra/plystra/internal/authz"
 	"github.com/plystra/plystra/internal/demo"
-	"github.com/plystra/plystra/internal/store"
+	"github.com/plystra/plystra/internal/store/entstore"
 )
 
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
@@ -22,13 +22,13 @@ func main() {
 		databaseURL = defaultDatabaseURL
 	}
 
-	pgStore, err := store.OpenPostgres(ctx, databaseURL)
+	pgStore, err := entstore.Open(ctx, databaseURL)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "connect postgres: %v\n", err)
+		fmt.Fprintf(os.Stderr, "connect ent store: %v\n", err)
 		fmt.Fprintln(os.Stderr, "hint: run docker compose up -d, then apply migrations/001_finance_demo.sql")
 		os.Exit(1)
 	}
-	defer pgStore.Close()
+	defer func() { _ = pgStore.Close() }()
 
 	engine := authz.NewEngine(pgStore)
 	ok := true

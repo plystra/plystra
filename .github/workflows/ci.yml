@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: plystra
+          POSTGRES_PASSWORD: plystra
+          POSTGRES_DB: plystra
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U plystra -d plystra"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Check Ent generated code
+        run: |
+          go run entgo.io/ent/cmd/ent generate ./ent/schema
+          git diff --exit-code -- ent
+          test -z "$(git status --porcelain ent)"
+
+      - name: Unit tests
+        run: go test ./...
+
+      - name: Apply migrations
+        env:
+          PLYSTRA_DATABASE_URL: postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable
+        run: go run ./cmd/plystractl migrate up
+
+      - name: Verify migrations
+        env:
+          PLYSTRA_DATABASE_URL: postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable
+        run: go run ./cmd/plystractl migrate verify
+
+      - name: Check Ent migration drift
+        env:
+          PLYSTRA_DATABASE_URL: postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable
+        run: go run ./cmd/plystractl ent check
+
+      - name: Doctor
+        env:
+          PLYSTRA_DATABASE_URL: postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable
+        run: go run ./cmd/plystractl doctor
+
+      - name: Integration tests
+        env:
+          PLYSTRA_DATABASE_URL: postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable
+        run: go test ./...

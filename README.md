@@ -8,43 +8,68 @@ Plystra separates the login account from the identity acting inside a business s
 User -> UserMember -> Member -> Space
 ```
 
-The first milestone is the Finance Reviewer Identity Trace Demo. It proves that Plystra can explain who acted, through which identity, in which space, against which resource, under which permission, and why the decision was allowed or denied.
+The v1.0 milestone is a stable self-hosted Core. It proves that Plystra can explain who acted, through which identity, in which space, against which resource, under which permission, and why the decision was allowed or denied.
 
 ## Current Status
 
-This repository implements the identity trace prototype plus the current Core API foundation on the path to v1.0:
+This repository implements the Core side of `PRD-v1.0-stable-self-hosted-core-complete.md`:
 
 - `internal/authz`: reusable authorization engine, deny codes, scope resolver, trace types
-- `internal/store`: PostgreSQL data access using pgx and raw SQL
+- `ent/schema`: Ent schemas for required Core entities
+- `internal/store/entstore`: Ent-backed authorization context loading and audit writing
+- `internal/store`: PostgreSQL data access using pgx for compatibility paths
 - `internal/resources`: Resource Registry registration service
 - `internal/plugins`: plugin manifest structs and validation
-- `internal/api`: `/api/v1` HTTP handlers for system, authz, audit, registry, plugin, template, and data preview surfaces
+- `internal/api`: `/api/v1` HTTP handlers for health, authz, audit, Resource Registry, Core CRUD, plugin metadata, template metadata, and data preview surfaces
 - `cmd/plystrad`: Core HTTP API server
 - `cmd/plystractl`: migration-aware admin CLI
 - `cmd/explain-demo`: CLI that prints the four PRD traces
-- `migrations/001_finance_demo.sql`: schema and Finance Reviewer seed data
-- `migrations/002_resource_registry.sql`: Resource Registry tables and invoice registry seed
-- `migrations/003_plugin_api_preview.sql`: Plugin API preview tables and Moderation Lite metadata
-- `migrations/004_production_readiness.sql`: background job and template installation tables
-- `migrations/005_official_plugins_and_templates.sql`: official plugin metadata, settings values, and template support
+- `migrations/001` through `012`: Finance Reviewer seed data, Resource Registry, Core API support tables, Ent integration guardrails, required v1.0 fields, and empty-database Ent drift closure
 - `docs/identity-trace-demo.md`: invariants, scope matrix, deny codes, and non-goals
 - `docs/explainable-identity-core.md`: v0.1 package boundary and integration contract
 - `docs/resource-registry.md`: v0.3 Resource Registry concept and invoice metadata
 - `docs/core-api.md`: pre-1.0 `/api/v1` Core API envelope and endpoint overview
+- `docs/ent-database-management.md`: Ent schema management workflow
+- `docs/v1.0-readiness.md`: current v1.0 Core readiness notes
+- `docs/release/v1.0-readiness-checklist.md`: v1.0 release gate checklist
+- `docs/release/v1.0-rc-test-plan.md`: v1.0 RC execution plan
+- `docs/release/v1.0-release-notes.md`: v1.0 release notes
+- `docs/operations/migration-and-upgrade-guide.md`: migration, upgrade, and production Ent safety guide
+- `docs/compatibility/request-id-envelope.md`: request ID envelope compatibility policy
 
 ## Quick Start
 
 ```bash
+git clone https://github.com/plystra/core.git
+cd core
+cp .env.example .env
 docker compose up -d
+go run ./cmd/plystractl migrate up
+go run ./cmd/plystractl migrate verify
+go run ./cmd/plystractl doctor
+go test ./...
+go run ./cmd/explain-demo
+```
+
+The Compose baseline starts `postgres` and `plystra-core`. Compose reads `.env`, passes `DOCKER_DATABASE_URL` to Core so it can reach PostgreSQL inside Compose, and reports readiness after migrations are applied.
+
+If you prefer `make`:
+
+```bash
 make migrate
+make ent-check
 make demo
+make run
 ```
 
 Equivalent commands without `make`:
 
 ```bash
 go run ./cmd/plystractl migrate up
+go run ./cmd/plystractl migrate verify
+go run ./cmd/plystractl doctor
 go run ./cmd/explain-demo
+go run ./cmd/plystrad
 ```
 
 On PowerShell:
@@ -52,6 +77,9 @@ On PowerShell:
 ```powershell
 $env:PLYSTRA_DATABASE_URL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
 go run .\cmd\plystractl migrate up
+go run .\cmd\plystractl migrate verify
+go run .\cmd\plystractl ent check
+go run .\cmd\plystractl doctor
 go run .\cmd\explain-demo
 ```
 
@@ -69,6 +97,17 @@ python -m http.server 5173
 ```
 
 Open `http://localhost:5173` and sign in with `alice@example.com / plystra-demo`.
+
+Core health endpoints:
+
+```bash
+curl http://localhost:8080/api/v1/health
+curl http://localhost:8080/api/v1/ready
+curl http://localhost:8080/api/v1/version
+curl http://localhost:8080/system/health
+curl http://localhost:8080/system/ready
+curl http://localhost:8080/system/version
+```
 
 ## Demo Cases
 
@@ -141,11 +180,22 @@ audit:
 
 ```bash
 go test ./...
+DATABASE_URL="postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable" go test ./...
 go run ./cmd/explain-demo
 go run ./cmd/plystrad
 ```
 
 The demo writes audit logs for both `allow` and `deny` decisions. `audit_logs.trace` stores the full decision-time snapshot as JSONB.
+
+## Production Notes
+
+- Run `make migrate` before starting or upgrading `plystrad`.
+- Use `SERVER_MODE=production`, `DATABASE_URL`, a strong `JWT_SECRET`, and a stable `SERVER_PUBLIC_URL`.
+- Put Plystra Core behind a reverse proxy such as Caddy, Nginx, or a managed load balancer for TLS termination.
+- Back up PostgreSQL regularly; audit logs are append-only and should have an explicit retention/export plan.
+- Do not run Ent auto migration in production. Use versioned migrations through `plystractl migrate up`.
+- Keep `AUDIT_WRITE_MODE=always` in production unless a documented operational exception exists.
+- Set `TRUSTED_PROXIES` only when Plystra Core is behind trusted reverse proxies; forwarded IP headers are ignored unless this is configured.
 
 ## Integration Shape
 

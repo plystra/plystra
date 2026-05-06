@@ -3,6 +3,7 @@ package plugins
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/plystra/plystra/internal/authz"
@@ -98,6 +99,20 @@ func ValidateManifest(manifest Manifest) []string {
 	return errors
 }
 
+func ValidateManifestForCore(manifest Manifest, coreVersion string) []string {
+	errors := ValidateManifest(manifest)
+	if manifest.ManifestVersion != "" && manifest.ManifestVersion != "1.0" {
+		errors = append(errors, "manifest_version must be 1.0 for Core v1.0")
+	}
+	if manifest.PluginAPIVersion != "" && manifest.PluginAPIVersion != "1.0" {
+		errors = append(errors, "plugin_api_version must be 1.0 for Core v1.0")
+	}
+	if strings.TrimSpace(manifest.RequiresCore) != "" && !VersionSatisfies(coreVersion, manifest.RequiresCore) {
+		errors = append(errors, fmt.Sprintf("requires_core %q is not satisfied by Core %q", manifest.RequiresCore, coreVersion))
+	}
+	return errors
+}
+
 func validScope(scope string) bool {
 	switch authz.Scope(scope) {
 	case authz.ScopeSelf, authz.ScopeGroup, authz.ScopeGroupTree, authz.ScopeSpace, authz.ScopeGlobal:
@@ -105,4 +120,93 @@ func validScope(scope string) bool {
 	default:
 		return false
 	}
+}
+
+func VersionSatisfies(version, constraint string) bool {
+	v, ok := parseVersion(version)
+	if !ok {
+		return false
+	}
+	for _, part := range strings.Fields(constraint) {
+		if part == "" {
+			continue
+		}
+		switch {
+		case strings.HasPrefix(part, ">="):
+			if compareVersion(v, mustParseConstraint(part[2:])) < 0 {
+				return false
+			}
+		case strings.HasPrefix(part, "<="):
+			if compareVersion(v, mustParseConstraint(part[2:])) > 0 {
+				return false
+			}
+		case strings.HasPrefix(part, ">"):
+			if compareVersion(v, mustParseConstraint(part[1:])) <= 0 {
+				return false
+			}
+		case strings.HasPrefix(part, "<"):
+			if compareVersion(v, mustParseConstraint(part[1:])) >= 0 {
+				return false
+			}
+		case strings.HasPrefix(part, "="):
+			if compareVersion(v, mustParseConstraint(part[1:])) != 0 {
+				return false
+			}
+		default:
+			if compareVersion(v, mustParseConstraint(part)) != 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+type versionTriple struct {
+	major int
+	minor int
+	patch int
+}
+
+func mustParseConstraint(raw string) versionTriple {
+	v, ok := parseVersion(raw)
+	if !ok {
+		return versionTriple{major: 1<<31 - 1}
+	}
+	return v
+}
+
+func parseVersion(raw string) (versionTriple, bool) {
+	raw = strings.TrimSpace(raw)
+	raw = strings.TrimPrefix(raw, "v")
+	if raw == "" {
+		return versionTriple{}, false
+	}
+	raw = strings.SplitN(raw, "-", 2)[0]
+	parts := strings.Split(raw, ".")
+	if len(parts) != 3 {
+		return versionTriple{}, false
+	}
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return versionTriple{}, false
+	}
+	minor, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return versionTriple{}, false
+	}
+	patch, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return versionTriple{}, false
+	}
+	return versionTriple{major: major, minor: minor, patch: patch}, true
+}
+
+func compareVersion(left, right versionTriple) int {
+	if left.major != right.major {
+		return left.major - right.major
+	}
+	if left.minor != right.minor {
+		return left.minor - right.minor
+	}
+	return left.patch - right.patch
 }

@@ -2,7 +2,11 @@ package authz
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -33,18 +37,17 @@ func (e *Engine) Check(ctx context.Context, input CheckInput) (*Decision, error)
 	}
 	actorContext := input.NormalizedActor()
 
-	actor, err := e.store.LoadActor(ctx, actorContext)
+	loaded, err := e.loadAuthorizationContext(ctx, input)
 	if err != nil {
-		return nil, fmt.Errorf("load actor context: %w", err)
+		return nil, err
 	}
-
-	registry, err := e.store.LoadResourceRegistration(ctx, input.ResourceType, input.Action)
-	if err != nil && err != ErrResourceTypeNotFound && err != ErrResourceActionNotFound {
-		return nil, fmt.Errorf("load resource registry metadata: %w", err)
-	}
-	registryErr := err
+	actor := loaded.Actor
+	registry := loaded.ResourceRegistry
+	registryErr := loaded.RegistryErr
 
 	decision := Decision{
+		TraceVersion:     "1.0",
+		TraceID:          traceIDFromRequest(input.RequestID, e.now()),
 		Actor:            actor,
 		Space:            actor.Space,
 		ResourceRegistry: registry,
@@ -77,19 +80,8 @@ func (e *Engine) Check(ctx context.Context, input CheckInput) (*Decision, error)
 		return e.finish(ctx, decision, DecisionDeny, denyCodePtr(DenyInvalidResourceAction), "resource action is not registered for the resource type")
 	}
 
-	target, err := e.loadTarget(ctx, input)
-	if err != nil {
-		return nil, err
-	}
-
-	candidates, err := e.store.LoadPermissionCandidates(ctx, CandidateQuery{
-		MemberID:     actorContext.MemberID,
-		ResourceType: input.ResourceType,
-		Action:       input.Action,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("load permission candidates: %w", err)
-	}
+	target := loaded.Target
+	candidates := loaded.PermissionGrants
 
 	for i := range candidates {
 		candidates[i].ScopeCheck = ResolveScope(candidates[i].Permission.Scope, actor, target, candidates[i].ScopeAnchor)
@@ -121,6 +113,15 @@ func (e *Engine) finish(ctx context.Context, decision Decision, result string, d
 	decision.Decision = result
 	decision.DenyCode = denyCode
 	decision.Reason = reason
+	if decision.TraceVersion == "" {
+		decision.TraceVersion = "1.0"
+	}
+	if decision.TraceID == "" {
+		decision.TraceID = traceIDFromRequest(decision.Request.RequestID, e.now())
+	}
+	if decision.Audit.ID == "" {
+		decision.Audit.ID = auditIDFromTraceID(decision.TraceID)
+	}
 	decision.Audit.Decision = result
 	decision.Audit.DenyCode = denyCode
 
@@ -129,6 +130,56 @@ func (e *Engine) finish(ctx context.Context, decision Decision, result string, d
 	}
 
 	return &decision, nil
+}
+
+func (e *Engine) loadAuthorizationContext(ctx context.Context, input CheckInput) (AuthorizationContext, error) {
+	if loader, ok := e.store.(AuthorizationContextLoader); ok {
+		loaded, err := loader.LoadAuthorizationContext(ctx, input)
+		if err != nil {
+			return AuthorizationContext{}, fmt.Errorf("load authorization context: %w", err)
+		}
+		return loaded, nil
+	}
+
+	actorContext := input.NormalizedActor()
+	actor, err := e.store.LoadActor(ctx, actorContext)
+	if err != nil {
+		return AuthorizationContext{}, fmt.Errorf("load actor context: %w", err)
+	}
+
+	registry, err := e.store.LoadResourceRegistration(ctx, input.ResourceType, input.Action)
+	if err != nil && err != ErrResourceTypeNotFound && err != ErrResourceActionNotFound {
+		return AuthorizationContext{}, fmt.Errorf("load resource registry metadata: %w", err)
+	}
+	if err == ErrResourceTypeNotFound || err == ErrResourceActionNotFound {
+		return AuthorizationContext{
+			Actor:            actor,
+			ResourceRegistry: registry,
+			RegistryErr:      err,
+		}, nil
+	}
+
+	target, err := e.loadTarget(ctx, input)
+	if err != nil {
+		return AuthorizationContext{}, err
+	}
+
+	candidates, err := e.store.LoadPermissionCandidates(ctx, CandidateQuery{
+		MemberID:     actorContext.MemberID,
+		ResourceType: input.ResourceType,
+		Action:       input.Action,
+	})
+	if err != nil {
+		return AuthorizationContext{}, fmt.Errorf("load permission candidates: %w", err)
+	}
+
+	return AuthorizationContext{
+		Actor:              actor,
+		ResourceRegistry:   registry,
+		Target:             target,
+		PermissionGrants:   candidates,
+		PermissionFiltered: true,
+	}, nil
 }
 
 func (e *Engine) loadTarget(ctx context.Context, input CheckInput) (TargetSnapshot, error) {
@@ -206,4 +257,23 @@ func firstScopeDeny(candidates []PermissionCandidate) DenyCode {
 	}
 
 	return DenyScopeOutOfBounds
+}
+
+func traceIDFromRequest(requestID string, now time.Time) string {
+	return randomID("trc", now)
+}
+
+func auditIDFromTraceID(traceID string) string {
+	if traceID == "" {
+		return ""
+	}
+	return "audit_" + strings.TrimPrefix(traceID, "trc_")
+}
+
+func randomID(prefix string, now time.Time) string {
+	var buf [8]byte
+	if _, err := rand.Read(buf[:]); err == nil {
+		return prefix + "_" + hex.EncodeToString(buf[:])
+	}
+	return prefix + "_" + strconv.FormatInt(now.UTC().UnixNano(), 36)
 }

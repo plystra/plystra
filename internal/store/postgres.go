@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -248,6 +250,9 @@ func (s *PostgresStore) LoadPermissionCandidates(ctx context.Context, query auth
 }
 
 func (s *PostgresStore) WriteAuditLog(ctx context.Context, decision authz.Decision) error {
+	if !shouldWriteAudit(decision) {
+		return nil
+	}
 	trace, err := decision.MarshalTraceJSON()
 	if err != nil {
 		return err
@@ -259,7 +264,7 @@ func (s *PostgresStore) WriteAuditLog(ctx context.Context, decision authz.Decisi
 	}
 
 	_, err = s.pool.Exec(ctx, insertAuditLogSQL,
-		newAuditID(),
+		firstNonEmpty(decision.Audit.ID, newAuditID()),
 		decision.Audit.SpaceID,
 		decision.Audit.ActorUserID,
 		decision.Audit.ActorMemberID,
@@ -271,9 +276,37 @@ func (s *PostgresStore) WriteAuditLog(ctx context.Context, decision authz.Decisi
 		denyCode,
 		string(trace),
 		decision.Audit.RequestID,
+		decision.Request.IP,
+		decision.Request.UserAgent,
 	)
 
 	return err
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func shouldWriteAudit(decision authz.Decision) bool {
+	mode := strings.ToLower(strings.TrimSpace(os.Getenv("AUDIT_WRITE_MODE")))
+	if mode == "" {
+		mode = "always"
+	}
+	switch mode {
+	case "always":
+		return true
+	case "deny_only":
+		return decision.Decision == authz.DecisionDeny
+	case "manual", "disabled_for_dev":
+		return false
+	default:
+		return true
+	}
 }
 
 func (s *PostgresStore) UpsertResourceType(ctx context.Context, input resources.RegisterResourceTypeInput) (*resources.ResourceType, error) {

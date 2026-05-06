@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -11,7 +12,14 @@ import (
 	"strings"
 	"time"
 
+	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/schema"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+
+	"github.com/plystra/plystra/ent"
 )
 
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
@@ -41,6 +49,15 @@ func main() {
 			fmt.Fprintf(os.Stderr, "migrate %s: %v\n", os.Args[2], err)
 			os.Exit(1)
 		}
+	case "ent":
+		if len(os.Args) < 3 {
+			usage()
+			os.Exit(1)
+		}
+		if err := runEnt(ctx, os.Args[2]); err != nil {
+			fmt.Fprintf(os.Stderr, "ent %s: %v\n", os.Args[2], err)
+			os.Exit(1)
+		}
 	case "doctor":
 		if err := runDoctor(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "doctor: %v\n", err)
@@ -54,10 +71,111 @@ func main() {
 
 func usage() {
 	fmt.Fprintln(os.Stderr, "usage: plystractl migrate <status|plan|up|verify>")
+	fmt.Fprintln(os.Stderr, "       plystractl ent <status|plan|check|apply>")
 	fmt.Fprintln(os.Stderr, "       plystractl doctor")
 }
 
+func runEnt(ctx context.Context, command string) error {
+	client, db, err := openEntClient(ctx)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	defer db.Close()
+
+	switch command {
+	case "status":
+		tables := []string{
+			"users", "spaces", "groups", "members", "user_members", "roles", "permissions",
+			"member_roles", "role_permissions", "resources", "audit_logs", "resource_types",
+			"resource_actions", "resource_mappings", "plugins", "plugin_admin_menus",
+			"plugin_settings_definitions", "plugin_settings_values", "audit_event_types",
+			"background_jobs", "template_installations", "sessions",
+		}
+		for _, table := range tables {
+			var exists bool
+			err := db.QueryRowContext(ctx, `
+				SELECT EXISTS (
+					SELECT 1
+					FROM information_schema.tables
+					WHERE table_schema = 'public' AND table_name = $1
+				)
+			`, table).Scan(&exists)
+			if err != nil {
+				return err
+			}
+			status := "missing"
+			if exists {
+				status = "present"
+			}
+			fmt.Printf("%s %s\n", table, status)
+		}
+	case "apply":
+		if strings.EqualFold(firstEnv("SERVER_MODE", "PLYSTRA_ENV"), "production") {
+			return fmt.Errorf("Ent auto migration is disabled in production. Use versioned migrations through plystractl migrate up")
+		}
+		if err := client.Schema.Create(ctx, schema.WithDropColumn(false), schema.WithDropIndex(false)); err != nil {
+			return err
+		}
+		fmt.Println("ent schema applied")
+	case "plan":
+		plan, err := entMigrationPlan(ctx, client)
+		if err != nil {
+			return err
+		}
+		if strings.TrimSpace(plan) == "" {
+			fmt.Println("ent schema is in sync")
+			return nil
+		}
+		fmt.Print(plan)
+	case "check":
+		plan, err := entMigrationPlan(ctx, client)
+		if err != nil {
+			return err
+		}
+		if strings.TrimSpace(plan) != "" {
+			return fmt.Errorf("ent schema drift detected; update versioned migrations:\n%s", strings.TrimSpace(plan))
+		}
+		fmt.Println("ent schema is in sync")
+	default:
+		return fmt.Errorf("unknown ent command %q", command)
+	}
+	return nil
+}
+
+func entMigrationPlan(ctx context.Context, client *ent.Client) (string, error) {
+	var out strings.Builder
+	if err := client.Schema.WriteTo(ctx, &out, schema.WithDropColumn(false), schema.WithDropIndex(false)); err != nil {
+		return "", err
+	}
+	return out.String(), nil
+}
+
+func openEntClient(ctx context.Context) (*ent.Client, *sql.DB, error) {
+	cfg, err := pgx.ParseConfig(databaseURL())
+	if err != nil {
+		return nil, nil, err
+	}
+	db := stdlib.OpenDB(*cfg)
+	if err := db.PingContext(ctx); err != nil {
+		_ = db.Close()
+		return nil, nil, err
+	}
+	drv := entsql.OpenDB(dialect.Postgres, db)
+	return ent.NewClient(ent.Driver(drv)), db, nil
+}
+
 func runDoctor(ctx context.Context) error {
+	mode := strings.ToLower(firstEnv("SERVER_MODE", "PLYSTRA_ENV"))
+	if mode == "" {
+		mode = "development"
+	}
+	fmt.Printf("environment: %s\n", mode)
+	if err := validateDoctorConfig(mode); err != nil {
+		return err
+	}
+	fmt.Println("configuration: ok")
+
 	pool, err := pgxpool.New(ctx, databaseURL())
 	if err != nil {
 		return err
@@ -91,11 +209,44 @@ func runDoctor(ctx context.Context) error {
 	}
 	if pending > 0 {
 		fmt.Printf("migrations: %d pending\n", pending)
+		return fmt.Errorf("migrations are pending; run plystractl migrate up")
 	} else {
 		fmt.Println("migrations: current")
 	}
-	if len(os.Getenv("PLYSTRA_JWT_SECRET")) < 32 {
-		fmt.Println("warning: PLYSTRA_JWT_SECRET is unset or shorter than 32 characters")
+
+	client, db, err := openEntClient(ctx)
+	if err != nil {
+		return fmt.Errorf("schema readiness failed: %w", err)
+	}
+	defer client.Close()
+	defer db.Close()
+	plan, err := entMigrationPlan(ctx, client)
+	if err != nil {
+		return fmt.Errorf("schema readiness failed: %w", err)
+	}
+	if strings.TrimSpace(plan) != "" {
+		return fmt.Errorf("schema readiness failed: ent drift detected:\n%s", strings.TrimSpace(plan))
+	}
+	fmt.Println("schema: ok")
+	fmt.Println("service readiness: ok")
+	if len(firstEnv("JWT_SECRET", "PLYSTRA_JWT_SECRET")) < 32 {
+		fmt.Println("warning: JWT_SECRET is unset or shorter than 32 characters")
+	}
+	return nil
+}
+
+func validateDoctorConfig(mode string) error {
+	if mode != "production" {
+		return nil
+	}
+	if databaseURL() == defaultDatabaseURL && os.Getenv("DATABASE_URL") == "" && os.Getenv("PLYSTRA_DATABASE_URL") == "" {
+		return fmt.Errorf("DATABASE_URL is required in production")
+	}
+	if len(firstEnv("JWT_SECRET", "PLYSTRA_JWT_SECRET")) < 32 {
+		return fmt.Errorf("JWT_SECRET must be at least 32 characters in production")
+	}
+	if firstEnv("SERVER_PUBLIC_URL", "PLYSTRA_SERVER_PUBLIC_URL") == "" {
+		return fmt.Errorf("SERVER_PUBLIC_URL is required in production")
 	}
 	return nil
 }
@@ -140,14 +291,19 @@ func runMigrate(ctx context.Context, command string) error {
 			}
 		}
 	case "verify":
+		pending := []string{}
 		for _, migration := range migrations {
 			record, ok := applied[migration.Version]
 			if !ok {
+				pending = append(pending, migration.Version+" "+migration.Name)
 				continue
 			}
 			if record.Checksum != migration.Checksum {
 				return fmt.Errorf("%s checksum mismatch: database=%s file=%s", migration.Version, record.Checksum, migration.Checksum)
 			}
+		}
+		if len(pending) > 0 {
+			return fmt.Errorf("pending migrations: %s; run plystractl migrate up", strings.Join(pending, ", "))
 		}
 		fmt.Println("migrations verified")
 	case "up":
@@ -266,10 +422,19 @@ func parseMigrationName(filename string) (string, string) {
 }
 
 func databaseURL() string {
-	for _, key := range []string{"PLYSTRA_DATABASE_URL", "DATABASE_URL"} {
+	for _, key := range []string{"DATABASE_URL", "PLYSTRA_DATABASE_URL"} {
 		if value := os.Getenv(key); value != "" {
 			return value
 		}
 	}
 	return defaultDatabaseURL
+}
+
+func firstEnv(keys ...string) string {
+	for _, key := range keys {
+		if value := os.Getenv(key); value != "" {
+			return value
+		}
+	}
+	return ""
 }

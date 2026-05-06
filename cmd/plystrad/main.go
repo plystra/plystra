@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/plystra/plystra/internal/api"
+	"github.com/plystra/plystra/internal/store/entstore"
 )
 
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
@@ -31,18 +33,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	port := os.Getenv("PLYSTRA_SERVER_PORT")
+	host := firstEnv("SERVER_HOST", "PLYSTRA_SERVER_HOST")
+	port := firstEnv("SERVER_PORT", "PLYSTRA_SERVER_PORT")
 	if port == "" {
 		port = "8080"
 	}
-	coreVersion := os.Getenv("PLYSTRA_CORE_VERSION")
+	coreVersion := firstEnv("PLYSTRA_CORE_VERSION", "CORE_VERSION")
 	if coreVersion == "" {
 		coreVersion = "1.0.0-dev"
 	}
 
-	server := api.NewServer(pool, coreVersion)
+	authzStore, err := entstore.Open(ctx, databaseURL())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "connect ent store: %v\n", err)
+		os.Exit(1)
+	}
+	defer func() { _ = authzStore.Close() }()
+
+	server := api.NewServer(pool, authzStore, coreVersion)
 	addr := ":" + port
-	fmt.Printf("plystrad listening on http://localhost%s\n", addr)
+	if host != "" {
+		addr = net.JoinHostPort(host, port)
+	}
+	displayHost := host
+	if displayHost == "" || displayHost == "0.0.0.0" {
+		displayHost = "localhost"
+	}
+	fmt.Printf("plystrad listening on http://%s:%s\n", displayHost, port)
 	if err := http.ListenAndServe(addr, server.Routes()); err != nil {
 		fmt.Fprintf(os.Stderr, "serve: %v\n", err)
 		os.Exit(1)
@@ -50,27 +67,36 @@ func main() {
 }
 
 func validateProductionConfig() error {
-	env := strings.ToLower(os.Getenv("PLYSTRA_ENV"))
+	env := strings.ToLower(firstEnv("SERVER_MODE", "PLYSTRA_ENV"))
 	if env != "production" {
 		return nil
 	}
 	if os.Getenv("PLYSTRA_DATABASE_URL") == "" && os.Getenv("DATABASE_URL") == "" {
-		return fmt.Errorf("PLYSTRA_DATABASE_URL is required in production")
+		return fmt.Errorf("DATABASE_URL is required in production")
 	}
-	if len(os.Getenv("PLYSTRA_JWT_SECRET")) < 32 {
-		return fmt.Errorf("PLYSTRA_JWT_SECRET must be at least 32 characters in production")
+	if len(firstEnv("JWT_SECRET", "PLYSTRA_JWT_SECRET")) < 32 {
+		return fmt.Errorf("JWT_SECRET must be at least 32 characters in production")
 	}
-	if os.Getenv("PLYSTRA_SERVER_PUBLIC_URL") == "" {
-		return fmt.Errorf("PLYSTRA_SERVER_PUBLIC_URL is required in production")
+	if firstEnv("SERVER_PUBLIC_URL", "PLYSTRA_SERVER_PUBLIC_URL") == "" {
+		return fmt.Errorf("SERVER_PUBLIC_URL is required in production")
 	}
 	return nil
 }
 
 func databaseURL() string {
-	for _, key := range []string{"PLYSTRA_DATABASE_URL", "DATABASE_URL"} {
+	for _, key := range []string{"DATABASE_URL", "PLYSTRA_DATABASE_URL"} {
 		if value := os.Getenv(key); value != "" {
 			return value
 		}
 	}
 	return defaultDatabaseURL
+}
+
+func firstEnv(keys ...string) string {
+	for _, key := range keys {
+		if value := os.Getenv(key); value != "" {
+			return value
+		}
+	}
+	return ""
 }
