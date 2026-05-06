@@ -1,0 +1,8 @@
+.env
+.DS_Store
+bin/
+dist/
+.gocache/
+.gomodcache/
+coverage.out
+*.log

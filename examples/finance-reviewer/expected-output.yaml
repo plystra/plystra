@@ -1,0 +1,25 @@
+case: 1
+name: Alice approves Finance APAC invoice
+decision: allow
+deny_code: null
+audit:
+  actor_user_id: user_alice
+  actor_member_id: member_finance_reviewer
+---
+case: 2
+name: Alice tries to approve Legal EMEA invoice
+decision: deny
+deny_code: SCOPE_OUT_OF_BOUNDS
+---
+case: 3
+name: Bob approves Finance APAC invoice through the same Member
+decision: allow
+deny_code: null
+audit:
+  actor_user_id: user_bob
+  actor_member_id: member_finance_reviewer
+---
+case: 4
+name: Alice tries to approve with a revoked UserMember binding
+decision: deny
+deny_code: USER_MEMBER_REVOKED
