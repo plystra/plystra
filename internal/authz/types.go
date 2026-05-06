@@ -15,6 +15,8 @@ const (
 )
 
 var ErrNotFound = errors.New("not found")
+var ErrResourceTypeNotFound = errors.New("resource type not found")
+var ErrResourceActionNotFound = errors.New("resource action not found")
 
 type Scope string
 
@@ -27,21 +29,28 @@ const (
 )
 
 type CheckInput struct {
-	ActorUserID       string
-	ActorMemberID     string
-	ActorUserMemberID string
-	SpaceID           string
-	ResourceType      string
-	ResourceID        string
-	Action            string
+	Actor             ActorContext    `json:"actor"`
+	ActorUserID       string          `json:"actor_user_id"`
+	ActorMemberID     string          `json:"actor_member_id"`
+	ActorUserMemberID string          `json:"actor_user_member_id"`
+	SpaceID           string          `json:"space_id"`
+	ResourceType      string          `json:"resource_type"`
+	ResourceID        string          `json:"resource_id"`
+	Target            *TargetSnapshot `json:"target,omitempty"`
+	Action            string          `json:"action"`
+	Explain           bool            `json:"explain"`
+	RequestID         string          `json:"request_id,omitempty"`
+	IP                string          `json:"ip,omitempty"`
+	UserAgent         string          `json:"user_agent,omitempty"`
 }
 
 func (in CheckInput) Validate() error {
+	actor := in.NormalizedActor()
 	missing := map[string]string{
-		"actor_user_id":        in.ActorUserID,
-		"actor_member_id":      in.ActorMemberID,
-		"actor_user_member_id": in.ActorUserMemberID,
-		"space_id":             in.SpaceID,
+		"actor_user_id":        actor.UserID,
+		"actor_member_id":      actor.MemberID,
+		"actor_user_member_id": actor.UserMemberID,
+		"space_id":             actor.SpaceID,
 		"resource_type":        in.ResourceType,
 		"resource_id":          in.ResourceID,
 		"action":               in.Action,
@@ -56,11 +65,28 @@ func (in CheckInput) Validate() error {
 	return nil
 }
 
+func (in CheckInput) NormalizedActor() ActorContext {
+	actor := in.Actor
+	if actor.UserID == "" {
+		actor.UserID = in.ActorUserID
+	}
+	if actor.MemberID == "" {
+		actor.MemberID = in.ActorMemberID
+	}
+	if actor.UserMemberID == "" {
+		actor.UserMemberID = in.ActorUserMemberID
+	}
+	if actor.SpaceID == "" {
+		actor.SpaceID = in.SpaceID
+	}
+	return actor
+}
+
 type ActorContext struct {
-	UserID       string
-	MemberID     string
-	UserMemberID string
-	SpaceID      string
+	UserID       string `json:"user_id"`
+	MemberID     string `json:"member_id"`
+	UserMemberID string `json:"user_member_id"`
+	SpaceID      string `json:"space_id"`
 }
 
 type CandidateQuery struct {
@@ -71,6 +97,7 @@ type CandidateQuery struct {
 
 type Store interface {
 	LoadActor(ctx context.Context, actor ActorContext) (ActorSnapshot, error)
+	LoadResourceRegistration(ctx context.Context, resourceType, action string) (ResourceRegistrySnapshot, error)
 	LoadTarget(ctx context.Context, resourceType, resourceID string) (TargetSnapshot, error)
 	LoadPermissionCandidates(ctx context.Context, query CandidateQuery) ([]PermissionCandidate, error)
 	WriteAuditLog(ctx context.Context, decision Decision) error
@@ -124,6 +151,9 @@ type ResourceSnapshot struct {
 	SpaceID       string         `json:"space_id"`
 	GroupID       string         `json:"group_id"`
 	OwnerMemberID string         `json:"owner_member_id"`
+	DisplayName   string         `json:"display_name,omitempty"`
+	Visibility    string         `json:"visibility,omitempty"`
+	Status        string         `json:"status,omitempty"`
 	Metadata      map[string]any `json:"metadata,omitempty"`
 }
 
@@ -172,17 +202,68 @@ type AuditContext struct {
 	ResourceID        string    `json:"resource_id"`
 	Decision          string    `json:"decision"`
 	DenyCode          *DenyCode `json:"deny_code"`
+	RequestID         string    `json:"request_id,omitempty"`
+}
+
+type ResourceRegistrySnapshot struct {
+	ResourceType ResourceTypeSnapshot    `json:"resource_type"`
+	Action       ResourceActionSnapshot  `json:"action"`
+	Mapping      ResourceMappingSnapshot `json:"mapping"`
+}
+
+type ResourceTypeSnapshot struct {
+	ID          string         `json:"id"`
+	Key         string         `json:"key"`
+	DisplayName string         `json:"display_name"`
+	Description string         `json:"description,omitempty"`
+	Status      string         `json:"status"`
+	Source      string         `json:"source"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
+}
+
+type ResourceActionSnapshot struct {
+	ID             string         `json:"id"`
+	ResourceTypeID string         `json:"resource_type_id"`
+	Key            string         `json:"key"`
+	DisplayName    string         `json:"display_name"`
+	Description    string         `json:"description,omitempty"`
+	RiskLevel      string         `json:"risk_level"`
+	AuditDefault   bool           `json:"audit_default"`
+	Metadata       map[string]any `json:"metadata,omitempty"`
+}
+
+type ResourceMappingSnapshot struct {
+	ID               string         `json:"id"`
+	ResourceTypeID   string         `json:"resource_type_id"`
+	StorageKind      string         `json:"storage_kind"`
+	TableName        string         `json:"table_name,omitempty"`
+	IDField          string         `json:"id_field"`
+	SpaceField       string         `json:"space_field"`
+	GroupField       string         `json:"group_field,omitempty"`
+	OwnerMemberField string         `json:"owner_member_field,omitempty"`
+	VisibilityField  string         `json:"visibility_field,omitempty"`
+	MetadataField    string         `json:"metadata_field,omitempty"`
+	Status           string         `json:"status"`
+	Metadata         map[string]any `json:"metadata,omitempty"`
+}
+
+type RequestMetadata struct {
+	RequestID string `json:"request_id,omitempty"`
+	IP        string `json:"ip,omitempty"`
+	UserAgent string `json:"user_agent,omitempty"`
 }
 
 type Decision struct {
-	Decision          string                `json:"decision"`
-	DenyCode          *DenyCode             `json:"deny_code"`
-	Actor             ActorSnapshot         `json:"actor"`
-	Space             SpaceSnapshot         `json:"space"`
-	Target            TargetSnapshot        `json:"target"`
-	MatchedCandidates []PermissionCandidate `json:"matched_candidates"`
-	Reason            string                `json:"reason"`
-	Audit             AuditContext          `json:"audit"`
+	Decision          string                   `json:"decision"`
+	DenyCode          *DenyCode                `json:"deny_code"`
+	Actor             ActorSnapshot            `json:"actor"`
+	Space             SpaceSnapshot            `json:"space"`
+	Target            TargetSnapshot           `json:"target"`
+	ResourceRegistry  ResourceRegistrySnapshot `json:"resource_registry"`
+	MatchedCandidates []PermissionCandidate    `json:"matched_candidates"`
+	Request           RequestMetadata          `json:"request,omitempty"`
+	Reason            string                   `json:"reason"`
+	Audit             AuditContext             `json:"audit"`
 }
 
 func (d Decision) IsAllowed() bool {

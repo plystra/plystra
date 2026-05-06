@@ -14,9 +14,9 @@ const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?ss
 
 func main() {
 	ctx := context.Background()
-	databaseURL := os.Getenv("DATABASE_URL")
+	databaseURL := os.Getenv("PLYSTRA_DATABASE_URL")
 	if databaseURL == "" {
-		databaseURL = os.Getenv("PLYSTRA_DATABASE_URL")
+		databaseURL = os.Getenv("DATABASE_URL")
 	}
 	if databaseURL == "" {
 		databaseURL = defaultDatabaseURL

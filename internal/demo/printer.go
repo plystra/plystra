@@ -42,6 +42,22 @@ func PrintDecision(w io.Writer, scenario Scenario, decision *authz.Decision) {
 		fmt.Fprintf(w, "    path: %s\n", decision.Target.Group.Path)
 	}
 
+	fmt.Fprintln(w, "\nresource_registry:")
+	fmt.Fprintln(w, "  resource_type:")
+	fmt.Fprintf(w, "    key: %s\n", decision.ResourceRegistry.ResourceType.Key)
+	fmt.Fprintf(w, "    display_name: %s\n", decision.ResourceRegistry.ResourceType.DisplayName)
+	fmt.Fprintf(w, "    source: %s\n", decision.ResourceRegistry.ResourceType.Source)
+	fmt.Fprintln(w, "  action:")
+	fmt.Fprintf(w, "    key: %s\n", decision.ResourceRegistry.Action.Key)
+	fmt.Fprintf(w, "    risk_level: %s\n", decision.ResourceRegistry.Action.RiskLevel)
+	fmt.Fprintf(w, "    audit_default: %t\n", decision.ResourceRegistry.Action.AuditDefault)
+	fmt.Fprintln(w, "  mapping:")
+	fmt.Fprintf(w, "    storage_kind: %s\n", decision.ResourceRegistry.Mapping.StorageKind)
+	fmt.Fprintf(w, "    table_name: %s\n", decision.ResourceRegistry.Mapping.TableName)
+	fmt.Fprintf(w, "    space_field: %s\n", decision.ResourceRegistry.Mapping.SpaceField)
+	fmt.Fprintf(w, "    group_field: %s\n", decision.ResourceRegistry.Mapping.GroupField)
+	fmt.Fprintf(w, "    owner_member_field: %s\n", decision.ResourceRegistry.Mapping.OwnerMemberField)
+
 	fmt.Fprintln(w, "\nmatched_candidates:")
 	if len(decision.MatchedCandidates) == 0 {
 		fmt.Fprintln(w, "  []")

@@ -2,6 +2,7 @@ package authz_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -100,6 +101,31 @@ func TestPackageLevelCheckAndExplain(t *testing.T) {
 	}
 }
 
+func TestEngineAllowsProposedTargetWithoutLoadingExistingResource(t *testing.T) {
+	store := newMemoryStore()
+	engine := newTestEngine(store)
+	input := checkInput("user_alice", "um_alice_finance_reviewer", "invoice_draft_001")
+	input.Target = &authz.TargetSnapshot{
+		Resource: authz.ResourceSnapshot{
+			ID:            "invoice_draft_001",
+			Type:          "invoice",
+			SpaceID:       "space_acme",
+			GroupID:       "group_finance_apac",
+			OwnerMemberID: "member_invoice_creator",
+		},
+		Group: &authz.GroupSnapshot{ID: "group_finance_apac", SpaceID: "space_acme", Path: "finance.apac", Status: authz.StatusActive},
+	}
+
+	decision, err := engine.Check(context.Background(), input)
+	if err != nil {
+		t.Fatalf("Check() error = %v", err)
+	}
+	assertDecision(t, decision, authz.DecisionAllow, nil)
+	if decision.Target.Resource.ID != "invoice_draft_001" {
+		t.Fatalf("target id = %s, want invoice_draft_001", decision.Target.Resource.ID)
+	}
+}
+
 func TestEngineDeniesWithoutMatchingPermission(t *testing.T) {
 	store := newMemoryStore()
 	engine := newTestEngine(store)
@@ -113,6 +139,34 @@ func TestEngineDeniesWithoutMatchingPermission(t *testing.T) {
 	assertDecision(t, decision, authz.DecisionDeny, ptrDeny(authz.DenyNoMatchingPermission))
 	if len(decision.MatchedCandidates) != 0 {
 		t.Fatalf("matched candidates = %d, want 0", len(decision.MatchedCandidates))
+	}
+}
+
+func TestEngineDeniesUnknownResourceRegistryEntries(t *testing.T) {
+	tests := []struct {
+		name         string
+		resourceType string
+		action       string
+		wantCode     authz.DenyCode
+	}{
+		{name: "unknown resource type", resourceType: "contract", action: "approve", wantCode: authz.DenyInvalidResourceType},
+		{name: "unknown action", resourceType: "invoice", action: "void", wantCode: authz.DenyInvalidResourceAction},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newMemoryStore()
+			engine := newTestEngine(store)
+			input := checkInput("user_alice", "um_alice_finance_reviewer", "invoice_001")
+			input.ResourceType = tt.resourceType
+			input.Action = tt.action
+
+			decision, err := engine.Check(context.Background(), input)
+			if err != nil {
+				t.Fatalf("Check() error = %v", err)
+			}
+			assertDecision(t, decision, authz.DecisionDeny, ptrDeny(tt.wantCode))
+		})
 	}
 }
 
@@ -276,6 +330,7 @@ func newTestEngine(store authz.Store) *authz.Engine {
 type memoryStore struct {
 	actors     map[string]authz.ActorSnapshot
 	targets    map[string]authz.TargetSnapshot
+	registry   map[string]authz.ResourceRegistrySnapshot
 	candidates []authz.PermissionCandidate
 	audits     []authz.Decision
 }
@@ -370,6 +425,68 @@ func newMemoryStore() *memoryStore {
 				Group: &authz.GroupSnapshot{ID: "group_legal_emea", SpaceID: "space_acme", Path: "legal.emea", Status: authz.StatusActive},
 			},
 		},
+		registry: map[string]authz.ResourceRegistrySnapshot{
+			"invoice:approve": {
+				ResourceType: authz.ResourceTypeSnapshot{
+					ID:          "rt_invoice",
+					Key:         "invoice",
+					DisplayName: "Invoice",
+					Status:      authz.StatusActive,
+					Source:      "core",
+				},
+				Action: authz.ResourceActionSnapshot{
+					ID:             "ra_invoice_approve",
+					ResourceTypeID: "rt_invoice",
+					Key:            "approve",
+					DisplayName:    "Approve",
+					RiskLevel:      "high",
+					AuditDefault:   true,
+				},
+				Mapping: authz.ResourceMappingSnapshot{
+					ID:               "rm_invoice_resources",
+					ResourceTypeID:   "rt_invoice",
+					StorageKind:      "internal_table",
+					TableName:        "resources",
+					IDField:          "id",
+					SpaceField:       "space_id",
+					GroupField:       "group_id",
+					OwnerMemberField: "owner_member_id",
+					VisibilityField:  "visibility",
+					MetadataField:    "metadata",
+					Status:           authz.StatusActive,
+				},
+			},
+			"invoice:reject": {
+				ResourceType: authz.ResourceTypeSnapshot{
+					ID:          "rt_invoice",
+					Key:         "invoice",
+					DisplayName: "Invoice",
+					Status:      authz.StatusActive,
+					Source:      "core",
+				},
+				Action: authz.ResourceActionSnapshot{
+					ID:             "ra_invoice_reject",
+					ResourceTypeID: "rt_invoice",
+					Key:            "reject",
+					DisplayName:    "Reject",
+					RiskLevel:      "high",
+					AuditDefault:   true,
+				},
+				Mapping: authz.ResourceMappingSnapshot{
+					ID:               "rm_invoice_resources",
+					ResourceTypeID:   "rt_invoice",
+					StorageKind:      "internal_table",
+					TableName:        "resources",
+					IDField:          "id",
+					SpaceField:       "space_id",
+					GroupField:       "group_id",
+					OwnerMemberField: "owner_member_id",
+					VisibilityField:  "visibility",
+					MetadataField:    "metadata",
+					Status:           authz.StatusActive,
+				},
+			},
+		},
 		candidates: []authz.PermissionCandidate{
 			{
 				Role:              authz.RoleSnapshot{ID: "role_finance_approver", Key: "finance_approver", SpaceID: "space_acme"},
@@ -405,6 +522,19 @@ func (m *memoryStore) LoadTarget(_ context.Context, resourceType, resourceID str
 	}
 
 	return value, nil
+}
+
+func (m *memoryStore) LoadResourceRegistration(_ context.Context, resourceType, action string) (authz.ResourceRegistrySnapshot, error) {
+	value, ok := m.registry[resourceType+":"+action]
+	if ok {
+		return value, nil
+	}
+	for key := range m.registry {
+		if strings.HasPrefix(key, resourceType+":") {
+			return authz.ResourceRegistrySnapshot{}, authz.ErrResourceActionNotFound
+		}
+	}
+	return authz.ResourceRegistrySnapshot{}, authz.ErrResourceTypeNotFound
 }
 
 func (m *memoryStore) LoadPermissionCandidates(_ context.Context, query authz.CandidateQuery) ([]authz.PermissionCandidate, error) {

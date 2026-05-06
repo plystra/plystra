@@ -12,14 +12,25 @@ The first milestone is the Finance Reviewer Identity Trace Demo. It proves that 
 
 ## Current Status
 
-This repository implements the v0.1-pre identity trace prototype and the v0.1 internal package boundary:
+This repository implements the identity trace prototype plus the current Core API foundation on the path to v1.0:
 
 - `internal/authz`: reusable authorization engine, deny codes, scope resolver, trace types
 - `internal/store`: PostgreSQL data access using pgx and raw SQL
+- `internal/resources`: Resource Registry registration service
+- `internal/plugins`: plugin manifest structs and validation
+- `internal/api`: `/api/v1` HTTP handlers for system, authz, audit, registry, plugin, template, and data preview surfaces
+- `cmd/plystrad`: Core HTTP API server
+- `cmd/plystractl`: migration-aware admin CLI
 - `cmd/explain-demo`: CLI that prints the four PRD traces
 - `migrations/001_finance_demo.sql`: schema and Finance Reviewer seed data
+- `migrations/002_resource_registry.sql`: Resource Registry tables and invoice registry seed
+- `migrations/003_plugin_api_preview.sql`: Plugin API preview tables and Moderation Lite metadata
+- `migrations/004_production_readiness.sql`: background job and template installation tables
+- `migrations/005_official_plugins_and_templates.sql`: official plugin metadata, settings values, and template support
 - `docs/identity-trace-demo.md`: invariants, scope matrix, deny codes, and non-goals
 - `docs/explainable-identity-core.md`: v0.1 package boundary and integration contract
+- `docs/resource-registry.md`: v0.3 Resource Registry concept and invoice metadata
+- `docs/core-api.md`: pre-1.0 `/api/v1` Core API envelope and endpoint overview
 
 ## Quick Start
 
@@ -32,15 +43,15 @@ make demo
 Equivalent commands without `make`:
 
 ```bash
-docker compose exec -T postgres psql -U plystra -d plystra < migrations/001_finance_demo.sql
+go run ./cmd/plystractl migrate up
 go run ./cmd/explain-demo
 ```
 
 On PowerShell:
 
 ```powershell
-$env:DATABASE_URL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
-Get-Content .\migrations\001_finance_demo.sql | docker compose exec -T postgres psql -U plystra -d plystra
+$env:PLYSTRA_DATABASE_URL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
+go run .\cmd\plystractl migrate up
 go run .\cmd\explain-demo
 ```
 
@@ -116,6 +127,7 @@ audit:
 ```bash
 go test ./...
 go run ./cmd/explain-demo
+go run ./cmd/plystrad
 ```
 
 The demo writes audit logs for both `allow` and `deny` decisions. `audit_logs.trace` stores the full decision-time snapshot as JSONB.

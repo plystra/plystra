@@ -1,0 +1,188 @@
+openapi: 3.1.0
+info:
+  title: Plystra Core API
+  version: 0.6.0-dev
+  description: Pre-1.0 Plystra Core API contract for system, authorization, audit, resource registry, and plugin metadata.
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/v1/system/health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service is alive
+  /api/v1/system/ready:
+    get:
+      summary: Readiness check
+      responses:
+        "200":
+          description: Service is ready
+        "503":
+          description: Service is not ready
+  /api/v1/system/version:
+    get:
+      summary: Version metadata
+      responses:
+        "200":
+          description: Core version and compatibility metadata
+  /api/v1/authz/check:
+    post:
+      summary: Run a compact authorization check
+      responses:
+        "200":
+          description: Authorization decision
+  /api/v1/authz/explain:
+    post:
+      summary: Run an authorization check and return the full trace
+      responses:
+        "200":
+          description: Full authorization trace
+  /api/v1/audit/logs:
+    get:
+      summary: List audit logs
+      responses:
+        "200":
+          description: Audit log list
+  /api/v1/resource-types:
+    get:
+      summary: List ResourceTypes
+      responses:
+        "200":
+          description: ResourceType list
+  /api/v1/plugins:
+    get:
+      summary: List installed plugin metadata
+      responses:
+        "200":
+          description: Plugin list
+  /api/v1/plugins/install:
+    post:
+      summary: Install or update plugin metadata
+      responses:
+        "201":
+          description: Installed plugin metadata
+  /api/v1/plugins/validate-manifest:
+    post:
+      summary: Validate a plugin manifest
+      responses:
+        "200":
+          description: Validation result
+  /api/v1/plugins/{plugin_id}/settings:
+    get:
+      summary: List plugin settings
+      responses:
+        "200":
+          description: Plugin setting list
+    patch:
+      summary: Update plugin settings
+      responses:
+        "200":
+          description: Updated plugin setting list
+  /api/v1/templates:
+    get:
+      summary: List templates
+      responses:
+        "200":
+          description: Template list
+  /api/v1/templates/{template_id}:
+    get:
+      summary: Get template detail
+      responses:
+        "200":
+          description: Template detail
+  /api/v1/templates/{template_id}/preview-install:
+    post:
+      summary: Preview template installation
+      responses:
+        "200":
+          description: Template installation preview
+  /api/v1/templates/{template_id}/install:
+    post:
+      summary: Record template installation
+      responses:
+        "201":
+          description: Template installation record
+  /api/v1/data/tables:
+    get:
+      summary: List data table mappings
+      responses:
+        "200":
+          description: Data table mapping list
+  /api/v1/data/rows/{resource_type}:
+    get:
+      summary: List rows for a mapped resource type
+      responses:
+        "200":
+          description: Data row list
+    post:
+      summary: Create a data row after authorization
+      responses:
+        "201":
+          description: Created data row and authorization decision
+        "403":
+          description: Authorization denied
+  /api/v1/data/rows/{resource_type}/{resource_id}:
+    get:
+      summary: Get a mapped data row
+      responses:
+        "200":
+          description: Data row detail
+    patch:
+      summary: Update a data row after authorization
+      responses:
+        "200":
+          description: Updated data row and authorization decision
+        "403":
+          description: Authorization denied
+    delete:
+      summary: Soft-delete a data row after authorization
+      responses:
+        "200":
+          description: Soft-deleted data row and authorization decision
+        "403":
+          description: Authorization denied
+components:
+  schemas:
+    ActorContext:
+      type: object
+      required: [user_id, space_id, member_id, user_member_id]
+      properties:
+        user_id:
+          type: string
+        space_id:
+          type: string
+        member_id:
+          type: string
+        user_member_id:
+          type: string
+    AuthzCheckRequest:
+      type: object
+      required: [actor, resource_type, resource_id, action]
+      properties:
+        actor:
+          $ref: "#/components/schemas/ActorContext"
+        resource_type:
+          type: string
+        resource_id:
+          type: string
+        action:
+          type: string
+        explain:
+          type: boolean
+    PluginManifest:
+      type: object
+      required: [id, name, version, manifest_version, plugin_api_version, requires_core]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        manifest_version:
+          type: string
+        plugin_api_version:
+          type: string
+        requires_core:
+          type: string

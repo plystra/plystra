@@ -13,12 +13,18 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/plystra/plystra/internal/authz"
+	"github.com/plystra/plystra/internal/resources"
 )
 
 var _ authz.Store = (*PostgresStore)(nil)
+var _ resources.Store = (*PostgresStore)(nil)
 
 type PostgresStore struct {
 	pool *pgxpool.Pool
+}
+
+func NewPostgresStore(pool *pgxpool.Pool) *PostgresStore {
+	return &PostgresStore{pool: pool}
 }
 
 func OpenPostgres(ctx context.Context, databaseURL string) (*PostgresStore, error) {
@@ -31,7 +37,7 @@ func OpenPostgres(ctx context.Context, databaseURL string) (*PostgresStore, erro
 		return nil, err
 	}
 
-	return &PostgresStore{pool: pool}, nil
+	return NewPostgresStore(pool), nil
 }
 
 func (s *PostgresStore) Close() {
@@ -95,6 +101,9 @@ func (s *PostgresStore) LoadTarget(ctx context.Context, resourceType, resourceID
 		&out.Resource.SpaceID,
 		&out.Resource.GroupID,
 		&out.Resource.OwnerMemberID,
+		&out.Resource.DisplayName,
+		&out.Resource.Visibility,
+		&out.Resource.Status,
 		&metadata,
 		&groupID,
 		&groupSpaceID,
@@ -120,6 +129,68 @@ func (s *PostgresStore) LoadTarget(ctx context.Context, resourceType, resourceID
 			Path:    groupPath.String,
 			Status:  groupStatus.String,
 		}
+	}
+
+	return out, nil
+}
+
+func (s *PostgresStore) LoadResourceRegistration(ctx context.Context, resourceType, action string) (authz.ResourceRegistrySnapshot, error) {
+	var out authz.ResourceRegistrySnapshot
+	var resourceTypeMetadata []byte
+	var actionMetadata []byte
+	var mappingMetadata []byte
+
+	err := s.pool.QueryRow(ctx, loadResourceRegistrationSQL, resourceType, action).Scan(
+		&out.ResourceType.ID,
+		&out.ResourceType.Key,
+		&out.ResourceType.DisplayName,
+		&out.ResourceType.Description,
+		&out.ResourceType.Status,
+		&out.ResourceType.Source,
+		&resourceTypeMetadata,
+		&out.Action.ID,
+		&out.Action.ResourceTypeID,
+		&out.Action.Key,
+		&out.Action.DisplayName,
+		&out.Action.Description,
+		&out.Action.RiskLevel,
+		&out.Action.AuditDefault,
+		&actionMetadata,
+		&out.Mapping.ID,
+		&out.Mapping.ResourceTypeID,
+		&out.Mapping.StorageKind,
+		&out.Mapping.TableName,
+		&out.Mapping.IDField,
+		&out.Mapping.SpaceField,
+		&out.Mapping.GroupField,
+		&out.Mapping.OwnerMemberField,
+		&out.Mapping.VisibilityField,
+		&out.Mapping.MetadataField,
+		&out.Mapping.Status,
+		&mappingMetadata,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		var exists bool
+		if existsErr := s.pool.QueryRow(ctx, resourceTypeExistsSQL, resourceType).Scan(&exists); existsErr != nil {
+			return out, existsErr
+		}
+		if !exists {
+			return out, authz.ErrResourceTypeNotFound
+		}
+		return out, authz.ErrResourceActionNotFound
+	}
+	if err != nil {
+		return out, err
+	}
+
+	if err := decodeJSONMap(resourceTypeMetadata, &out.ResourceType.Metadata); err != nil {
+		return out, fmt.Errorf("decode resource type metadata: %w", err)
+	}
+	if err := decodeJSONMap(actionMetadata, &out.Action.Metadata); err != nil {
+		return out, fmt.Errorf("decode resource action metadata: %w", err)
+	}
+	if err := decodeJSONMap(mappingMetadata, &out.Mapping.Metadata); err != nil {
+		return out, fmt.Errorf("decode resource mapping metadata: %w", err)
 	}
 
 	return out, nil
@@ -199,16 +270,236 @@ func (s *PostgresStore) WriteAuditLog(ctx context.Context, decision authz.Decisi
 		decision.Audit.Decision,
 		denyCode,
 		string(trace),
+		decision.Audit.RequestID,
 	)
 
 	return err
 }
 
-func newAuditID() string {
-	var buf [8]byte
-	if _, err := rand.Read(buf[:]); err != nil {
-		return fmt.Sprintf("audit_%d", time.Now().UTC().UnixNano())
+func (s *PostgresStore) UpsertResourceType(ctx context.Context, input resources.RegisterResourceTypeInput) (*resources.ResourceType, error) {
+	metadata, err := json.Marshal(input.Metadata)
+	if err != nil {
+		return nil, err
 	}
 
-	return fmt.Sprintf("audit_%s_%x", time.Now().UTC().Format("20060102T150405Z"), buf)
+	var out resources.ResourceType
+	var rawMetadata []byte
+	err = s.pool.QueryRow(ctx, upsertResourceTypeSQL,
+		newID("rt"),
+		input.Key,
+		input.DisplayName,
+		input.Description,
+		input.Source,
+		string(metadata),
+	).Scan(
+		&out.ID,
+		&out.Key,
+		&out.DisplayName,
+		&out.Description,
+		&out.Status,
+		&out.Source,
+		&rawMetadata,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if err := decodeJSONMap(rawMetadata, &out.Metadata); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+func (s *PostgresStore) UpsertResourceAction(ctx context.Context, input resources.RegisterResourceActionInput) (*resources.ResourceAction, error) {
+	metadata, err := json.Marshal(input.Metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	var out resources.ResourceAction
+	var rawMetadata []byte
+	err = s.pool.QueryRow(ctx, upsertResourceActionSQL,
+		input.ResourceTypeKey,
+		newID("ra"),
+		input.Key,
+		input.DisplayName,
+		input.Description,
+		input.RiskLevel,
+		input.AuditDefault,
+		string(metadata),
+	).Scan(
+		&out.ID,
+		&out.ResourceTypeID,
+		&out.Key,
+		&out.DisplayName,
+		&out.Description,
+		&out.RiskLevel,
+		&out.AuditDefault,
+		&rawMetadata,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, authz.ErrResourceTypeNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := decodeJSONMap(rawMetadata, &out.Metadata); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+func (s *PostgresStore) UpsertResourceMapping(ctx context.Context, input resources.RegisterResourceMappingInput) (*resources.ResourceMapping, error) {
+	metadata, err := json.Marshal(input.Metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	var out resources.ResourceMapping
+	var rawMetadata []byte
+	err = s.pool.QueryRow(ctx, upsertResourceMappingSQL,
+		input.ResourceTypeKey,
+		newID("rm"),
+		input.StorageKind,
+		input.TableName,
+		input.IDField,
+		input.SpaceField,
+		input.GroupField,
+		input.OwnerMemberField,
+		input.VisibilityField,
+		input.MetadataField,
+		string(metadata),
+	).Scan(
+		&out.ID,
+		&out.ResourceTypeID,
+		&out.StorageKind,
+		&out.TableName,
+		&out.IDField,
+		&out.SpaceField,
+		&out.GroupField,
+		&out.OwnerMemberField,
+		&out.VisibilityField,
+		&out.MetadataField,
+		&out.Status,
+		&rawMetadata,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, authz.ErrResourceTypeNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := decodeJSONMap(rawMetadata, &out.Metadata); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+func (s *PostgresStore) GetResourceType(ctx context.Context, key string) (*resources.ResourceType, error) {
+	var out resources.ResourceType
+	var rawMetadata []byte
+	err := s.pool.QueryRow(ctx, getResourceTypeSQL, key).Scan(
+		&out.ID,
+		&out.Key,
+		&out.DisplayName,
+		&out.Description,
+		&out.Status,
+		&out.Source,
+		&rawMetadata,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, authz.ErrResourceTypeNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := decodeJSONMap(rawMetadata, &out.Metadata); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (s *PostgresStore) ListResourceActions(ctx context.Context, resourceTypeKey string) ([]resources.ResourceAction, error) {
+	rows, err := s.pool.Query(ctx, listResourceActionsSQL, resourceTypeKey)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var actions []resources.ResourceAction
+	for rows.Next() {
+		var action resources.ResourceAction
+		var rawMetadata []byte
+		if err := rows.Scan(
+			&action.ID,
+			&action.ResourceTypeID,
+			&action.Key,
+			&action.DisplayName,
+			&action.Description,
+			&action.RiskLevel,
+			&action.AuditDefault,
+			&rawMetadata,
+		); err != nil {
+			return nil, err
+		}
+		if err := decodeJSONMap(rawMetadata, &action.Metadata); err != nil {
+			return nil, err
+		}
+		actions = append(actions, action)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return actions, nil
+}
+
+func (s *PostgresStore) GetResourceMapping(ctx context.Context, resourceTypeKey string) (*resources.ResourceMapping, error) {
+	var out resources.ResourceMapping
+	var rawMetadata []byte
+	err := s.pool.QueryRow(ctx, getResourceMappingSQL, resourceTypeKey).Scan(
+		&out.ID,
+		&out.ResourceTypeID,
+		&out.StorageKind,
+		&out.TableName,
+		&out.IDField,
+		&out.SpaceField,
+		&out.GroupField,
+		&out.OwnerMemberField,
+		&out.VisibilityField,
+		&out.MetadataField,
+		&out.Status,
+		&rawMetadata,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, authz.ErrResourceTypeNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := decodeJSONMap(rawMetadata, &out.Metadata); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func newAuditID() string {
+	return newID("audit")
+}
+
+func newID(prefix string) string {
+	var buf [8]byte
+	if _, err := rand.Read(buf[:]); err != nil {
+		return fmt.Sprintf("%s_%d", prefix, time.Now().UTC().UnixNano())
+	}
+
+	return fmt.Sprintf("%s_%s_%x", prefix, time.Now().UTC().Format("20060102T150405Z"), buf)
+}
+
+func decodeJSONMap(raw []byte, target *map[string]any) error {
+	if len(raw) == 0 {
+		return nil
+	}
+	return json.Unmarshal(raw, target)
 }

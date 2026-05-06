@@ -3,7 +3,7 @@ DATABASE_URL ?= postgres://plystra:plystra@localhost:5432/plystra?sslmode=disabl
 .PHONY: migrate demo test fmt
 
 migrate:
-	docker compose exec -T postgres psql -U plystra -d plystra < migrations/001_finance_demo.sql
+	go run ./cmd/plystractl migrate up
 
 demo:
 	DATABASE_URL="$(DATABASE_URL)" go run ./cmd/explain-demo
