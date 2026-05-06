@@ -140,6 +140,14 @@
           }
         }
       }
+    },
+    "securitySchemes": {
+      "AdminToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Plystra-Admin-Token",
+        "description": "Required for non-public Core API routes."
+      }
     }
   },
   "paths": {

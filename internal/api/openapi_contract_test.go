@@ -18,6 +18,7 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 			Schemas map[string]struct {
 				Properties map[string]any `json:"properties"`
 			} `json:"schemas"`
+			SecuritySchemes map[string]any `json:"securitySchemes"`
 		} `json:"components"`
 	}
 	if err := json.Unmarshal(raw, &doc); err != nil {
@@ -65,5 +66,8 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 	}
 	if _, ok := errEnvelope["meta"]; !ok {
 		t.Fatalf("ErrorEnvelope.meta is missing")
+	}
+	if _, ok := doc.Components.SecuritySchemes["AdminToken"]; !ok {
+		t.Fatalf("OpenAPI AdminToken security scheme is missing")
 	}
 }

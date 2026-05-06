@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
@@ -94,6 +95,14 @@ func (s *Server) Routes() http.Handler {
 }
 
 func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
+	if !featureEnabled("METRICS_ENABLED") {
+		writeError(w, r, http.StatusNotFound, "FEATURE_DISABLED", "Metrics endpoint is disabled.", nil)
+		return
+	}
+	if !metricsAuthorized(r) {
+		writeError(w, r, http.StatusUnauthorized, "METRICS_TOKEN_REQUIRED", "A valid metrics token is required.", nil)
+		return
+	}
 	if r.Method != http.MethodGet {
 		writeMethodNotAllowed(w, r)
 		return
@@ -370,15 +379,9 @@ func (s *Server) handleAuthz(w http.ResponseWriter, r *http.Request, explain boo
 		return
 	}
 	input := req.CheckInput()
-	if input.RequestID == "" {
-		input.RequestID = requestIDFrom(r)
-	}
-	if input.IP == "" {
-		input.IP = remoteIPFrom(r)
-	}
-	if input.UserAgent == "" {
-		input.UserAgent = r.UserAgent()
-	}
+	input.RequestID = requestIDFrom(r)
+	input.IP = remoteIPFrom(r)
+	input.UserAgent = r.UserAgent()
 	input.Explain = explain || req.Explain
 
 	decision, err := authz.Check(r.Context(), s.authzStore, input)
@@ -2569,6 +2572,10 @@ func (s *Server) handleResourceDetail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDataTables(w http.ResponseWriter, r *http.Request) {
+	if !featureEnabled("DATA_CONSOLE_ENABLED") {
+		writeError(w, r, http.StatusNotFound, "FEATURE_DISABLED", "Data Console API is disabled.", nil)
+		return
+	}
 	if r.Method != http.MethodGet {
 		writeMethodNotAllowed(w, r)
 		return
@@ -2589,6 +2596,10 @@ func (s *Server) handleDataTables(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleDataRows(w http.ResponseWriter, r *http.Request) {
+	if !featureEnabled("DATA_CONSOLE_ENABLED") {
+		writeError(w, r, http.StatusNotFound, "FEATURE_DISABLED", "Data Console API is disabled.", nil)
+		return
+	}
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1/data/rows/")
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) == 0 || parts[0] == "" {
@@ -3857,13 +3868,8 @@ func requestMiddleware(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Vary", "Origin")
 		}
-		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-ID")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-ID, X-Plystra-Admin-Token, X-Plystra-Metrics-Token")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
-		if r.Method == http.MethodOptions {
-			recorder.WriteHeader(http.StatusNoContent)
-			logHTTPRequest(r, recorder.Header(), recorder.status, recorder.bytes, time.Since(start), "")
-			return
-		}
 		requestID := r.Header.Get(requestIDHeader())
 		if requestID == "" {
 			requestID = newRequestID()
@@ -3880,6 +3886,21 @@ func requestMiddleware(next http.Handler) http.Handler {
 			}
 			logHTTPRequest(ctxReq, recorder.Header(), recorder.status, recorder.bytes, time.Since(start), w.Header().Get("X-Plystra-Error-Code"))
 		}()
+		if r.Method == http.MethodOptions {
+			recorder.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if !publicRoute(ctxReq) {
+			token := adminToken()
+			if token == "" {
+				writeError(recorder, ctxReq, http.StatusServiceUnavailable, "ADMIN_TOKEN_NOT_CONFIGURED", "Admin token is not configured.", nil)
+				return
+			}
+			if !adminAuthorized(ctxReq) {
+				writeError(recorder, ctxReq, http.StatusUnauthorized, "ADMIN_TOKEN_REQUIRED", "A valid admin token is required.", nil)
+				return
+			}
+		}
 		next.ServeHTTP(recorder, ctxReq)
 	})
 }
@@ -3932,6 +3953,85 @@ func allowedCORSOrigin(r *http.Request) string {
 		}
 	}
 	return ""
+}
+
+func publicRoute(r *http.Request) bool {
+	if r.Method == http.MethodOptions {
+		return true
+	}
+	path := r.URL.Path
+	if r.Method == http.MethodGet {
+		switch path {
+		case "/api/v1/health", "/api/v1/ready", "/api/v1/version",
+			"/api/v1/system/health", "/api/v1/system/ready", "/api/v1/system/version",
+			"/system/health", "/system/ready", "/system/version",
+			"/metrics":
+			return true
+		}
+	}
+	if r.Method == http.MethodPost {
+		switch path {
+		case "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout":
+			return true
+		case "/api/v1/actor/switch-member":
+			return true
+		}
+	}
+	return r.Method == http.MethodGet && path == "/api/v1/actor/context"
+}
+
+func adminAuthorized(r *http.Request) bool {
+	configured := adminToken()
+	if configured == "" {
+		return false
+	}
+	for _, provided := range []string{
+		strings.TrimSpace(r.Header.Get("X-Plystra-Admin-Token")),
+		strings.TrimSpace(r.Header.Get("X-Admin-Token")),
+		bearerToken(r),
+	} {
+		if constantTimeStringEqual(provided, configured) {
+			return true
+		}
+	}
+	return false
+}
+
+func metricsAuthorized(r *http.Request) bool {
+	configured := firstEnv("METRICS_TOKEN", "PLYSTRA_METRICS_TOKEN")
+	if configured != "" {
+		for _, provided := range []string{
+			strings.TrimSpace(r.Header.Get("X-Plystra-Metrics-Token")),
+			strings.TrimSpace(r.Header.Get("X-Metrics-Token")),
+			bearerToken(r),
+		} {
+			if constantTimeStringEqual(provided, configured) {
+				return true
+			}
+		}
+		return false
+	}
+	return adminAuthorized(r)
+}
+
+func adminToken() string {
+	return strings.TrimSpace(firstEnv("PLYSTRA_ADMIN_TOKEN", "ADMIN_TOKEN"))
+}
+
+func constantTimeStringEqual(left, right string) bool {
+	if left == "" || right == "" || len(left) != len(right) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(left), []byte(right)) == 1
+}
+
+func featureEnabled(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
+	case "1", "true", "yes", "on", "enabled":
+		return true
+	default:
+		return false
+	}
 }
 
 func logHTTPRequest(r *http.Request, headers http.Header, status, bytes int, latency time.Duration, errorCode string) {

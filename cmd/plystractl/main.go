@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -23,6 +24,8 @@ import (
 )
 
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
+const defaultJWTSecret = "change-me-to-at-least-32-characters"
+const defaultAdminToken = "change-me-admin-token-at-least-32-characters"
 
 type migrationFile struct {
 	Version  string
@@ -229,8 +232,13 @@ func runDoctor(ctx context.Context) error {
 	}
 	fmt.Println("schema: ok")
 	fmt.Println("service readiness: ok")
-	if len(firstEnv("JWT_SECRET", "PLYSTRA_JWT_SECRET")) < 32 {
-		fmt.Println("warning: JWT_SECRET is unset or shorter than 32 characters")
+	jwtSecret := firstEnv("JWT_SECRET", "PLYSTRA_JWT_SECRET")
+	if len(jwtSecret) < 32 || jwtSecret == defaultJWTSecret {
+		fmt.Println("warning: JWT_SECRET is unset, default, or shorter than 32 characters")
+	}
+	adminToken := firstEnv("PLYSTRA_ADMIN_TOKEN", "ADMIN_TOKEN")
+	if len(adminToken) < 32 || adminToken == defaultAdminToken {
+		fmt.Println("warning: PLYSTRA_ADMIN_TOKEN is unset, default, or shorter than 32 characters")
 	}
 	return nil
 }
@@ -242,13 +250,51 @@ func validateDoctorConfig(mode string) error {
 	if databaseURL() == defaultDatabaseURL && os.Getenv("DATABASE_URL") == "" && os.Getenv("PLYSTRA_DATABASE_URL") == "" {
 		return fmt.Errorf("DATABASE_URL is required in production")
 	}
-	if len(firstEnv("JWT_SECRET", "PLYSTRA_JWT_SECRET")) < 32 {
-		return fmt.Errorf("JWT_SECRET must be at least 32 characters in production")
+	if databaseURL() == defaultDatabaseURL || strings.Contains(databaseURL(), "://plystra:plystra@") {
+		return fmt.Errorf("DATABASE_URL must not use the default development database credentials in production")
 	}
-	if firstEnv("SERVER_PUBLIC_URL", "PLYSTRA_SERVER_PUBLIC_URL") == "" {
+	jwtSecret := firstEnv("JWT_SECRET", "PLYSTRA_JWT_SECRET")
+	if len(jwtSecret) < 32 || jwtSecret == defaultJWTSecret {
+		return fmt.Errorf("JWT_SECRET must be changed and at least 32 characters in production")
+	}
+	adminToken := firstEnv("PLYSTRA_ADMIN_TOKEN", "ADMIN_TOKEN")
+	if len(adminToken) < 32 || adminToken == defaultAdminToken {
+		return fmt.Errorf("PLYSTRA_ADMIN_TOKEN must be changed and at least 32 characters in production")
+	}
+	corsOrigins := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS"))
+	if corsOrigins == "" || wildcardListContains(corsOrigins) {
+		return fmt.Errorf("CORS_ALLOWED_ORIGINS must be explicit and must not include * in production")
+	}
+	publicURL := firstEnv("SERVER_PUBLIC_URL", "PLYSTRA_SERVER_PUBLIC_URL")
+	if publicURL == "" {
 		return fmt.Errorf("SERVER_PUBLIC_URL is required in production")
 	}
+	if isLocalPublicURL(publicURL) {
+		return fmt.Errorf("SERVER_PUBLIC_URL must not point to localhost in production")
+	}
 	return nil
+}
+
+func wildcardListContains(value string) bool {
+	for _, part := range strings.Split(value, ",") {
+		if strings.TrimSpace(part) == "*" {
+			return true
+		}
+	}
+	return false
+}
+
+func isLocalPublicURL(raw string) bool {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return true
+	}
+	host := parsed.Hostname()
+	if host == "" {
+		host = parsed.Host
+	}
+	host = strings.ToLower(strings.Trim(host, "[]"))
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }
 
 func runMigrate(ctx context.Context, command string) error {

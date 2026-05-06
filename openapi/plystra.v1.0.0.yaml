@@ -6,6 +6,12 @@ info:
 servers:
   - url: http://localhost:8080
 components:
+  securitySchemes:
+    AdminToken:
+      type: apiKey
+      in: header
+      name: X-Plystra-Admin-Token
+      description: Required for non-public Core API routes.
   schemas:
     Envelope:
       type: object

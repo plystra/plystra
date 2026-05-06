@@ -107,7 +107,7 @@ func (s *Server) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 			access_token_hash, refresh_token_hash, expires_at, refresh_expires_at, ip, user_agent
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-	`, session.ID, session.UserID, session.ActiveSpaceID, session.ActiveMemberID, session.ActiveUserMemberID, tokenHash(accessToken), tokenHash(refreshToken), session.ExpiresAt, session.RefreshExpiresAt, r.RemoteAddr, r.UserAgent())
+	`, session.ID, session.UserID, session.ActiveSpaceID, session.ActiveMemberID, session.ActiveUserMemberID, tokenHash(accessToken), tokenHash(refreshToken), session.ExpiresAt, session.RefreshExpiresAt, remoteIPFrom(r), r.UserAgent())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to create session.", err.Error())
 		return

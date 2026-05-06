@@ -40,8 +40,8 @@ This repository implements the Core side of `PRD-v1.0-stable-self-hosted-core-co
 ## Quick Start
 
 ```bash
-git clone https://github.com/plystra/core.git
-cd core
+git clone https://github.com/plystra/plystra.git
+cd plystra
 cp .env.example .env
 docker compose up -d
 go run ./cmd/plystractl migrate up
@@ -108,6 +108,15 @@ curl http://localhost:8080/system/health
 curl http://localhost:8080/system/ready
 curl http://localhost:8080/system/version
 ```
+
+All non-public Core API routes require the admin bootstrap token. Set `PLYSTRA_ADMIN_TOKEN` in `.env` and pass it as `X-Plystra-Admin-Token`:
+
+```bash
+curl -H "X-Plystra-Admin-Token: $PLYSTRA_ADMIN_TOKEN" \
+  http://localhost:8080/api/v1/audit-logs
+```
+
+Session endpoints such as login and actor context use their own bearer-token flow. Health, readiness, and version endpoints remain public for operations.
 
 ## Demo Cases
 
@@ -190,12 +199,13 @@ The demo writes audit logs for both `allow` and `deny` decisions. `audit_logs.tr
 ## Production Notes
 
 - Run `make migrate` before starting or upgrading `plystrad`.
-- Use `SERVER_MODE=production`, `DATABASE_URL`, a strong `JWT_SECRET`, and a stable `SERVER_PUBLIC_URL`.
+- Use `SERVER_MODE=production`, `DATABASE_URL`, a strong `JWT_SECRET`, a strong `PLYSTRA_ADMIN_TOKEN`, explicit `CORS_ALLOWED_ORIGINS`, and a stable non-localhost `SERVER_PUBLIC_URL`.
 - Put Plystra Core behind a reverse proxy such as Caddy, Nginx, or a managed load balancer for TLS termination.
 - Back up PostgreSQL regularly; audit logs are append-only and should have an explicit retention/export plan.
 - Do not run Ent auto migration in production. Use versioned migrations through `plystractl migrate up`.
 - Keep `AUDIT_WRITE_MODE=always` in production unless a documented operational exception exists.
 - Set `TRUSTED_PROXIES` only when Plystra Core is behind trusted reverse proxies; forwarded IP headers are ignored unless this is configured.
+- `DATA_CONSOLE_ENABLED=false` and `METRICS_ENABLED=false` by default; enable them only for deployments that explicitly need those surfaces.
 
 ## Integration Shape
 
