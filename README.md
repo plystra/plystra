@@ -55,6 +55,21 @@ go run .\cmd\plystractl migrate up
 go run .\cmd\explain-demo
 ```
 
+Run the Core API:
+
+```powershell
+go run .\cmd\plystrad
+```
+
+Then serve the Console from the sibling repository:
+
+```powershell
+cd ..\console
+python -m http.server 5173
+```
+
+Open `http://localhost:5173` and sign in with `alice@example.com / plystra-demo`.
+
 ## Demo Cases
 
 | Case | Actor | Target | Decision | What it proves |

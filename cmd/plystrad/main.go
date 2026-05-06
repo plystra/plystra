@@ -37,7 +37,7 @@ func main() {
 	}
 	coreVersion := os.Getenv("PLYSTRA_CORE_VERSION")
 	if coreVersion == "" {
-		coreVersion = "0.6.0-dev"
+		coreVersion = "1.0.0-dev"
 	}
 
 	server := api.NewServer(pool, coreVersion)

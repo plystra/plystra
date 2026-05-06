@@ -42,6 +42,11 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/v1/system/version", s.handleVersion)
 	mux.HandleFunc("/metrics", s.handleMetrics)
 	mux.HandleFunc("/api/v1/console/overview", s.handleOverview)
+	mux.HandleFunc("/api/v1/auth/login", s.handleAuthLogin)
+	mux.HandleFunc("/api/v1/auth/logout", s.handleAuthLogout)
+	mux.HandleFunc("/api/v1/auth/refresh", s.handleAuthRefresh)
+	mux.HandleFunc("/api/v1/actor/context", s.handleActorContext)
+	mux.HandleFunc("/api/v1/actor/switch-member", s.handleActorSwitchMember)
 	mux.HandleFunc("/api/v1/authz/check", s.handleAuthzCheck)
 	mux.HandleFunc("/api/v1/authz/explain", s.handleAuthzExplain)
 	mux.HandleFunc("/api/v1/audit/logs", s.handleAuditLogs)
@@ -113,8 +118,8 @@ func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
 	writeData(w, r, http.StatusOK, map[string]any{
 		"core_version":              s.coreVersion,
 		"api_version":               "v1",
-		"plugin_api_version":        "0.1",
-		"resource_registry_version": "0.1",
+		"plugin_api_version":        "1.0",
+		"resource_registry_version": "1.0",
 		"build_time":                time.Now().UTC().Format(time.RFC3339),
 	})
 }
@@ -1476,6 +1481,13 @@ const requestIDKey contextKey = "request_id"
 
 func requestMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-ID")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		requestID := r.Header.Get("X-Request-ID")
 		if requestID == "" {
 			requestID = newRequestID()

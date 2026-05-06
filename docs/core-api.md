@@ -41,6 +41,8 @@ Errors use:
 ## Implemented Endpoint Groups
 
 - `/api/v1/system`
+- `/api/v1/auth`
+- `/api/v1/actor`
 - `/api/v1/console/overview`
 - `/api/v1/authz`
 - `/api/v1/audit`
@@ -58,6 +60,11 @@ Errors use:
 
 ## Recent v1.0-oriented additions
 
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/logout`
+- `POST /api/v1/auth/refresh`
+- `GET /api/v1/actor/context`
+- `POST /api/v1/actor/switch-member`
 - `GET /api/v1/templates`
 - `GET /api/v1/templates/{template_id}`
 - `POST /api/v1/templates/{template_id}/preview-install`
@@ -75,11 +82,20 @@ Errors use:
 
 Data Console mutations currently support `internal_table` mappings backed by the Core `resources` table. Each mutation runs an authorization check against the requested row action and returns the authorization decision alongside the changed row.
 
+Demo users are seeded for local development:
+
+```text
+alice@example.com / plystra-demo
+bob@example.com / plystra-demo
+```
+
 OpenAPI artifacts live in:
 
 ```text
 openapi/plystra.v0.6.0.json
 openapi/plystra.v0.6.0.yaml
+openapi/plystra.v1.0.0.json
+openapi/plystra.v1.0.0.yaml
 ```
 
 The API is still pre-1.0 and may change before the stable release. v1.0 will freeze response envelopes, deny code semantics, and required audit trace fields.
