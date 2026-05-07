@@ -149,21 +149,21 @@ func TestEntStoreIntegrationSameSpaceHooks(t *testing.T) {
 
 func cleanupEntHookFixtures(t *testing.T, ctx context.Context, store *Store) {
 	t.Helper()
-	if store == nil || store.db == nil {
+	if store == nil || store.client == nil {
 		return
 	}
-	statements := []string{
-		`DELETE FROM resources WHERE id = 'resource_ent_hook_cross_space'`,
-		`DELETE FROM member_roles WHERE id = 'mr_ent_hook_cross_space'`,
-		`DELETE FROM user_members WHERE id = 'um_ent_hook_cross_space'`,
-		`DELETE FROM groups WHERE id = 'group_ent_hook_other'`,
-		`DELETE FROM roles WHERE id = 'role_ent_hook_other'`,
-		`DELETE FROM members WHERE id = 'member_ent_hook_other'`,
-		`DELETE FROM spaces WHERE id = 'space_ent_hook_other'`,
-	}
-	for _, statement := range statements {
-		if _, err := store.db.ExecContext(ctx, statement); err != nil {
-			t.Fatalf("cleanup fixture with %q: %v", statement, err)
+	now := time.Now().UTC()
+	ignoreNotFound := func(label string, err error) {
+		t.Helper()
+		if err != nil && !coreent.IsNotFound(err) {
+			t.Fatalf("cleanup %s: %v", label, err)
 		}
 	}
+	ignoreNotFound("resource", store.client.Resource.UpdateOneID("resource_ent_hook_cross_space").SetDeletedAt(now).Exec(ctx))
+	ignoreNotFound("member_role", store.client.MemberRole.UpdateOneID("mr_ent_hook_cross_space").SetDeletedAt(now).Exec(ctx))
+	ignoreNotFound("user_member", store.client.UserMember.UpdateOneID("um_ent_hook_cross_space").SetDeletedAt(now).Exec(ctx))
+	ignoreNotFound("group", store.client.Group.UpdateOneID("group_ent_hook_other").SetDeletedAt(now).Exec(ctx))
+	ignoreNotFound("role", store.client.Role.UpdateOneID("role_ent_hook_other").SetDeletedAt(now).Exec(ctx))
+	ignoreNotFound("member", store.client.Member.UpdateOneID("member_ent_hook_other").SetDeletedAt(now).Exec(ctx))
+	ignoreNotFound("space", store.client.Space.UpdateOneID("space_ent_hook_other").SetDeletedAt(now).Exec(ctx))
 }

@@ -9,14 +9,21 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"hash"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	coreent "github.com/plystra/plystra/ent"
+	entmember "github.com/plystra/plystra/ent/member"
+	entsession "github.com/plystra/plystra/ent/session"
+	entspace "github.com/plystra/plystra/ent/space"
+	entuser "github.com/plystra/plystra/ent/user"
+	entusermember "github.com/plystra/plystra/ent/usermember"
 )
 
 const (
@@ -57,13 +64,14 @@ func (s *Server) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is invalid JSON.", err.Error())
 		return
 	}
-	var userID, email, status, passwordHash string
-	err := s.pool.QueryRow(r.Context(), `
-		SELECT id, email, status, COALESCE(password_hash, '')
-		FROM users
-		WHERE lower(email) = lower($1)
-	`, strings.TrimSpace(req.Email)).Scan(&userID, &email, &status, &passwordHash)
-	if errors.Is(err, pgx.ErrNoRows) {
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	u, err := client.User.Query().
+		Where(entuser.EmailEqualFold(strings.TrimSpace(req.Email)), entuser.DeletedAtIsNil()).
+		Only(r.Context())
+	if coreent.IsNotFound(err) {
 		writeError(w, r, http.StatusUnauthorized, "AUTHENTICATION_REQUIRED", "Email or password is incorrect.", nil)
 		return
 	}
@@ -71,16 +79,16 @@ func (s *Server) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load user.", err.Error())
 		return
 	}
-	if status != "active" {
+	if u.Status != "active" {
 		writeError(w, r, http.StatusForbidden, "ACTOR_USER_INACTIVE", "User is not active.", nil)
 		return
 	}
-	if !verifyPassword(req.Password, passwordHash) {
+	if !verifyPassword(req.Password, derefString(u.PasswordHash)) {
 		writeError(w, r, http.StatusUnauthorized, "AUTHENTICATION_REQUIRED", "Email or password is incorrect.", nil)
 		return
 	}
 
-	actor, available, err := s.defaultActorForUser(r.Context(), userID)
+	actor, available, err := s.defaultActorForUser(r.Context(), u.ID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeError(w, r, http.StatusForbidden, "ACTIVE_MEMBER_REQUIRED", "User has no active Member binding.", nil)
 		return
@@ -94,20 +102,26 @@ func (s *Server) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 	refreshToken := newToken("ply_rt")
 	session := sessionRecord{
 		ID:                 "sess_" + safeIdentifier(newToken("")),
-		UserID:             userID,
+		UserID:             u.ID,
 		ActiveSpaceID:      stringMapValue(actor, "space_id"),
 		ActiveMemberID:     stringMapValue(actor, "member_id"),
 		ActiveUserMemberID: stringMapValue(actor, "user_member_id"),
 		ExpiresAt:          time.Now().UTC().Add(accessTokenTTL),
 		RefreshExpiresAt:   time.Now().UTC().Add(refreshTokenTTL),
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		INSERT INTO sessions (
-			id, user_id, active_space_id, active_member_id, active_user_member_id,
-			access_token_hash, refresh_token_hash, expires_at, refresh_expires_at, ip, user_agent
-		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-	`, session.ID, session.UserID, session.ActiveSpaceID, session.ActiveMemberID, session.ActiveUserMemberID, tokenHash(accessToken), tokenHash(refreshToken), session.ExpiresAt, session.RefreshExpiresAt, remoteIPFrom(r), r.UserAgent())
+	_, err = client.Session.Create().
+		SetID(session.ID).
+		SetUserID(session.UserID).
+		SetNillableActiveSpaceID(optionalString(session.ActiveSpaceID)).
+		SetNillableActiveMemberID(optionalString(session.ActiveMemberID)).
+		SetNillableActiveUserMemberID(optionalString(session.ActiveUserMemberID)).
+		SetAccessTokenHash(tokenHash(accessToken)).
+		SetRefreshTokenHash(tokenHash(refreshToken)).
+		SetExpiresAt(session.ExpiresAt).
+		SetRefreshExpiresAt(session.RefreshExpiresAt).
+		SetNillableIP(optionalString(remoteIPFrom(r))).
+		SetNillableUserAgent(optionalString(r.UserAgent())).
+		Save(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to create session.", err.Error())
 		return
@@ -119,7 +133,7 @@ func (s *Server) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 		"token_type":         "Bearer",
 		"expires_at":         session.ExpiresAt.UTC().Format(time.RFC3339),
 		"refresh_expires_at": session.RefreshExpiresAt.UTC().Format(time.RFC3339),
-		"user":               map[string]any{"id": userID, "email": email, "status": status},
+		"user":               map[string]any{"id": u.ID, "email": u.Email, "status": u.Status},
 		"actor":              actor,
 		"available_members":  available,
 	})
@@ -147,11 +161,15 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 
 	accessToken := newToken("ply_at")
 	expiresAt := time.Now().UTC().Add(accessTokenTTL)
-	_, err = s.pool.Exec(r.Context(), `
-		UPDATE sessions
-		SET access_token_hash = $2, expires_at = $3, updated_at = now()
-		WHERE id = $1
-	`, session.ID, tokenHash(accessToken), expiresAt)
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	_, err = client.Session.Update().
+		Where(entsession.ID(session.ID)).
+		SetAccessTokenHash(tokenHash(accessToken)).
+		SetExpiresAt(expiresAt).
+		Save(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to rotate access token.", err.Error())
 		return
@@ -176,11 +194,18 @@ func (s *Server) handleAuthLogout(w http.ResponseWriter, r *http.Request) {
 		token = req.RefreshToken
 	}
 	if token != "" {
-		_, _ = s.pool.Exec(r.Context(), `
-			UPDATE sessions
-			SET revoked_at = now(), updated_at = now()
-			WHERE access_token_hash = $1 OR refresh_token_hash = $1
-		`, tokenHash(token))
+		client, ok := s.requireEnt(w, r)
+		if !ok {
+			return
+		}
+		now := time.Now().UTC()
+		_, _ = client.Session.Update().
+			Where(entsession.Or(
+				entsession.AccessTokenHash(tokenHash(token)),
+				entsession.RefreshTokenHash(tokenHash(token)),
+			)).
+			SetRevokedAt(now).
+			Save(r.Context())
 	}
 	writeData(w, r, http.StatusOK, map[string]any{"logged_out": true})
 }
@@ -249,11 +274,16 @@ func (s *Server) handleActorSwitchMember(w http.ResponseWriter, r *http.Request)
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to switch Member.", err.Error())
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		UPDATE sessions
-		SET active_space_id = $2, active_member_id = $3, active_user_member_id = $4, updated_at = now()
-		WHERE id = $1
-	`, session.ID, stringMapValue(actor, "space_id"), stringMapValue(actor, "member_id"), stringMapValue(actor, "user_member_id"))
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	_, err = client.Session.Update().
+		Where(entsession.ID(session.ID)).
+		SetActiveSpaceID(stringMapValue(actor, "space_id")).
+		SetActiveMemberID(stringMapValue(actor, "member_id")).
+		SetActiveUserMemberID(stringMapValue(actor, "user_member_id")).
+		Save(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to update session actor.", err.Error())
 		return
@@ -267,27 +297,43 @@ func (s *Server) sessionFromRequest(ctx context.Context, r *http.Request) (sessi
 	if token == "" {
 		return sessionRecord{}, pgx.ErrNoRows
 	}
-	var session sessionRecord
-	err := s.pool.QueryRow(ctx, `
-		SELECT id, user_id, COALESCE(active_space_id, ''), COALESCE(active_member_id, ''), COALESCE(active_user_member_id, ''), expires_at, refresh_expires_at
-		FROM sessions
-		WHERE access_token_hash = $1
-			AND revoked_at IS NULL
-			AND expires_at > now()
-	`, tokenHash(token)).Scan(&session.ID, &session.UserID, &session.ActiveSpaceID, &session.ActiveMemberID, &session.ActiveUserMemberID, &session.ExpiresAt, &session.RefreshExpiresAt)
-	return session, err
+	if s.ent == nil {
+		return sessionRecord{}, errors.New("ent client is not configured")
+	}
+	record, err := s.ent.Session.Query().
+		Where(
+			entsession.AccessTokenHash(tokenHash(token)),
+			entsession.RevokedAtIsNil(),
+			entsession.ExpiresAtGT(time.Now().UTC()),
+		).
+		Only(ctx)
+	if coreent.IsNotFound(err) {
+		return sessionRecord{}, pgx.ErrNoRows
+	}
+	if err != nil {
+		return sessionRecord{}, err
+	}
+	return sessionRecordFromEnt(record), nil
 }
 
 func (s *Server) sessionByRefreshToken(ctx context.Context, token string) (sessionRecord, error) {
-	var session sessionRecord
-	err := s.pool.QueryRow(ctx, `
-		SELECT id, user_id, COALESCE(active_space_id, ''), COALESCE(active_member_id, ''), COALESCE(active_user_member_id, ''), expires_at, refresh_expires_at
-		FROM sessions
-		WHERE refresh_token_hash = $1
-			AND revoked_at IS NULL
-			AND refresh_expires_at > now()
-	`, tokenHash(token)).Scan(&session.ID, &session.UserID, &session.ActiveSpaceID, &session.ActiveMemberID, &session.ActiveUserMemberID, &session.ExpiresAt, &session.RefreshExpiresAt)
-	return session, err
+	if s.ent == nil {
+		return sessionRecord{}, errors.New("ent client is not configured")
+	}
+	record, err := s.ent.Session.Query().
+		Where(
+			entsession.RefreshTokenHash(tokenHash(token)),
+			entsession.RevokedAtIsNil(),
+			entsession.RefreshExpiresAtGT(time.Now().UTC()),
+		).
+		Only(ctx)
+	if coreent.IsNotFound(err) {
+		return sessionRecord{}, pgx.ErrNoRows
+	}
+	if err != nil {
+		return sessionRecord{}, err
+	}
+	return sessionRecordFromEnt(record), nil
 }
 
 func (s *Server) defaultActorForUser(ctx context.Context, userID string) (map[string]any, []map[string]any, error) {
@@ -318,35 +364,135 @@ func (s *Server) actorForSession(ctx context.Context, session sessionRecord) (ma
 }
 
 func (s *Server) actorBindingForUser(ctx context.Context, userID, memberID, userMemberID string) (map[string]any, error) {
-	where := "um.user_id = $1 AND um.status = 'active' AND (um.expires_at IS NULL OR um.expires_at > now())"
-	args := []any{userID}
-	if userMemberID != "" {
-		args = append(args, userMemberID)
-		where += fmt.Sprintf(" AND um.id = $%d", len(args))
+	bindings, err := s.availableActorBindingsFiltered(ctx, userID, memberID, userMemberID)
+	if err != nil {
+		return nil, err
 	}
-	if memberID != "" {
-		args = append(args, memberID)
-		where += fmt.Sprintf(" AND um.member_id = $%d", len(args))
+	if len(bindings) == 0 {
+		return nil, pgx.ErrNoRows
 	}
-	return queryOneMap(ctx, s.pool, actorBindingSQL(where), args...)
+	return bindings[0], nil
 }
 
 func (s *Server) availableActorBindings(ctx context.Context, userID string) ([]map[string]any, error) {
-	return queryMaps(ctx, s.pool, actorBindingSQL("um.user_id = $1 AND um.status = 'active' AND (um.expires_at IS NULL OR um.expires_at > now())"), userID)
+	return s.availableActorBindingsFiltered(ctx, userID, "", "")
 }
 
-func actorBindingSQL(where string) string {
-	return `
-		SELECT um.id AS user_member_id, um.user_id, u.email AS user_email,
-			um.member_id, m.display_name AS member_display_name,
-			um.space_id, s.name AS space_name, um.relation_type, um.is_primary
-		FROM user_members um
-		JOIN users u ON u.id = um.user_id
-		JOIN members m ON m.id = um.member_id AND m.status = 'active'
-		JOIN spaces s ON s.id = um.space_id AND s.status = 'active'
-		WHERE ` + where + `
-		ORDER BY um.is_primary DESC, s.name, m.display_name
-	`
+func (s *Server) availableActorBindingsFiltered(ctx context.Context, userID, memberID, userMemberID string) ([]map[string]any, error) {
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	now := time.Now().UTC()
+	q := s.ent.UserMember.Query().
+		Where(
+			entusermember.UserID(userID),
+			entusermember.Status("active"),
+			entusermember.DeletedAtIsNil(),
+			entusermember.RevokedAtIsNil(),
+			entusermember.Or(entusermember.ExpiresAtIsNil(), entusermember.ExpiresAtGT(now)),
+		)
+	if memberID != "" {
+		q = q.Where(entusermember.MemberID(memberID))
+	}
+	if userMemberID != "" {
+		q = q.Where(entusermember.ID(userMemberID))
+	}
+	userRecord, err := s.ent.User.Query().
+		Where(entuser.ID(userID), entuser.DeletedAtIsNil()).
+		Only(ctx)
+	if coreent.IsNotFound(err) {
+		return []map[string]any{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	userMembers, err := q.All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	bindings := make([]map[string]any, 0, len(userMembers))
+	for _, userMember := range userMembers {
+		memberRecord, err := s.ent.Member.Query().
+			Where(
+				entmember.ID(userMember.MemberID),
+				entmember.Status("active"),
+				entmember.DeletedAtIsNil(),
+			).
+			Only(ctx)
+		if coreent.IsNotFound(err) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		spaceRecord, err := s.ent.Space.Query().
+			Where(
+				entspace.ID(userMember.SpaceID),
+				entspace.Status("active"),
+				entspace.DeletedAtIsNil(),
+			).
+			Only(ctx)
+		if coreent.IsNotFound(err) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		bindings = append(bindings, map[string]any{
+			"user_member_id":      userMember.ID,
+			"user_id":             userMember.UserID,
+			"user_email":          userRecord.Email,
+			"member_id":           userMember.MemberID,
+			"member_display_name": memberRecord.DisplayName,
+			"space_id":            userMember.SpaceID,
+			"space_name":          spaceRecord.Name,
+			"relation_type":       userMember.RelationType,
+			"is_primary":          userMember.IsPrimary,
+		})
+	}
+	sort.SliceStable(bindings, func(i, j int) bool {
+		leftPrimary, _ := bindings[i]["is_primary"].(bool)
+		rightPrimary, _ := bindings[j]["is_primary"].(bool)
+		if leftPrimary != rightPrimary {
+			return leftPrimary
+		}
+		leftSpace, _ := bindings[i]["space_name"].(string)
+		rightSpace, _ := bindings[j]["space_name"].(string)
+		if leftSpace != rightSpace {
+			return leftSpace < rightSpace
+		}
+		leftMember, _ := bindings[i]["member_display_name"].(string)
+		rightMember, _ := bindings[j]["member_display_name"].(string)
+		return leftMember < rightMember
+	})
+	return bindings, nil
+}
+
+func (s *Server) requireEnt(w http.ResponseWriter, r *http.Request) (*coreent.Client, bool) {
+	if s.ent == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Ent client is not configured.", nil)
+		return nil, false
+	}
+	return s.ent, true
+}
+
+func sessionRecordFromEnt(record *coreent.Session) sessionRecord {
+	return sessionRecord{
+		ID:                 record.ID,
+		UserID:             record.UserID,
+		ActiveSpaceID:      derefString(record.ActiveSpaceID),
+		ActiveMemberID:     derefString(record.ActiveMemberID),
+		ActiveUserMemberID: derefString(record.ActiveUserMemberID),
+		ExpiresAt:          record.ExpiresAt,
+		RefreshExpiresAt:   record.RefreshExpiresAt,
+	}
+}
+
+func optionalString(value string) *string {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return &value
 }
 
 func actorMapFromBinding(binding map[string]any) map[string]any {

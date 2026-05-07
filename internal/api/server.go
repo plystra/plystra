@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/subtle"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -18,26 +17,53 @@ import (
 	"strings"
 	"time"
 
+	entsql "entgo.io/ent/dialect/sql"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	coreent "github.com/plystra/plystra/ent"
+	entauditeventtype "github.com/plystra/plystra/ent/auditeventtype"
+	"github.com/plystra/plystra/ent/auditlog"
+	entgroup "github.com/plystra/plystra/ent/group"
+	entmember "github.com/plystra/plystra/ent/member"
+	entmemberrole "github.com/plystra/plystra/ent/memberrole"
+	entpermission "github.com/plystra/plystra/ent/permission"
+	entplugin "github.com/plystra/plystra/ent/plugin"
+	entpluginadminmenu "github.com/plystra/plystra/ent/pluginadminmenu"
+	entpluginsettingsdefinition "github.com/plystra/plystra/ent/pluginsettingsdefinition"
+	entpluginsettingsvalue "github.com/plystra/plystra/ent/pluginsettingsvalue"
+	entresource "github.com/plystra/plystra/ent/resource"
+	entresourceaction "github.com/plystra/plystra/ent/resourceaction"
+	entresourcemapping "github.com/plystra/plystra/ent/resourcemapping"
+	entresourcetype "github.com/plystra/plystra/ent/resourcetype"
+	entrole "github.com/plystra/plystra/ent/role"
+	entrolepermission "github.com/plystra/plystra/ent/rolepermission"
+	entspace "github.com/plystra/plystra/ent/space"
+	entuser "github.com/plystra/plystra/ent/user"
+	entusermember "github.com/plystra/plystra/ent/usermember"
 	"github.com/plystra/plystra/internal/authz"
 	"github.com/plystra/plystra/internal/plugins"
-	"github.com/plystra/plystra/internal/store"
 )
 
 type Server struct {
 	pool        *pgxpool.Pool
+	ent         *coreent.Client
 	authzStore  authz.Store
 	coreVersion string
 }
 
+type entClientProvider interface {
+	Client() *coreent.Client
+}
+
 func NewServer(pool *pgxpool.Pool, authzStore authz.Store, coreVersion string) *Server {
-	if authzStore == nil {
-		authzStore = store.NewPostgresStore(pool)
+	var entClient *coreent.Client
+	if provider, ok := authzStore.(entClientProvider); ok {
+		entClient = provider.Client()
 	}
 	return &Server{
 		pool:        pool,
+		ent:         entClient,
 		authzStore:  authzStore,
 		coreVersion: coreVersion,
 	}
@@ -107,10 +133,23 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		writeMethodNotAllowed(w, r)
 		return
 	}
-	var auditLogs int64
-	var authzDenies int64
-	_ = s.pool.QueryRow(r.Context(), `SELECT count(*) FROM audit_logs`).Scan(&auditLogs)
-	_ = s.pool.QueryRow(r.Context(), `SELECT count(*) FROM audit_logs WHERE decision = 'deny'`).Scan(&authzDenies)
+	var auditLogs int
+	var authzDenies int
+	if s.ent == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Ent client is not configured.", nil)
+		return
+	}
+	var err error
+	auditLogs, err = s.ent.AuditLog.Query().Count(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to read audit metrics.", err.Error())
+		return
+	}
+	authzDenies, err = s.ent.AuditLog.Query().Where(auditlog.Decision("deny")).Count(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to read audit metrics.", err.Error())
+		return
+	}
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 	fmt.Fprintf(w, "audit_logs_written_total %d\n", auditLogs)
 	fmt.Fprintf(w, "authz_denies_total %d\n", authzDenies)
@@ -166,6 +205,8 @@ func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) latestSchemaVersion(ctx context.Context) (string, error) {
+	// schema_migrations is migration metadata, not a Core business entity.
+	// Keep this tiny control-plane read outside Ent so readiness can validate migrations.
 	var version string
 	err := s.pool.QueryRow(ctx, `SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1`).Scan(&version)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -198,6 +239,7 @@ func (s *Server) readySchemaVersions(ctx context.Context) (string, string, error
 }
 
 func (s *Server) missingMigrationVersions(ctx context.Context, expectedVersions []string) ([]string, error) {
+	// See latestSchemaVersion: schema_migrations intentionally remains migration metadata.
 	rows, err := s.pool.Query(ctx, `SELECT version FROM schema_migrations`)
 	if err != nil {
 		return nil, err
@@ -277,37 +319,71 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	counts := map[string]int64{}
-	for key, table := range map[string]string{
-		"spaces":               "spaces",
-		"users":                "users",
-		"members":              "members",
-		"user_member_bindings": "user_members",
-		"groups":               "groups",
-		"roles":                "roles",
-		"permissions":          "permissions",
-		"resource_types":       "resource_types",
-		"resources":            "resources",
-		"audit_logs":           "audit_logs",
-	} {
-		var count int64
-		if err := s.pool.QueryRow(ctx, "SELECT count(*) FROM "+table).Scan(&count); err != nil {
-			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load overview counts.", err.Error())
-			return
-		}
-		counts[key] = count
+	if s.ent == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Ent client is not configured.", nil)
+		return
+	}
+	counts := map[string]int{}
+	var err error
+	if counts["spaces"], err = s.ent.Space.Query().Count(ctx); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load overview counts.", err.Error())
+		return
+	}
+	if counts["users"], err = s.ent.User.Query().Count(ctx); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load overview counts.", err.Error())
+		return
+	}
+	if counts["members"], err = s.ent.Member.Query().Count(ctx); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load overview counts.", err.Error())
+		return
+	}
+	if counts["user_member_bindings"], err = s.ent.UserMember.Query().Count(ctx); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load overview counts.", err.Error())
+		return
+	}
+	if counts["groups"], err = s.ent.Group.Query().Count(ctx); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load overview counts.", err.Error())
+		return
+	}
+	if counts["roles"], err = s.ent.Role.Query().Count(ctx); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load overview counts.", err.Error())
+		return
+	}
+	if counts["permissions"], err = s.ent.Permission.Query().Count(ctx); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load overview counts.", err.Error())
+		return
+	}
+	if counts["resource_types"], err = s.ent.ResourceType.Query().Count(ctx); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load overview counts.", err.Error())
+		return
+	}
+	if counts["resources"], err = s.ent.Resource.Query().Count(ctx); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load overview counts.", err.Error())
+		return
+	}
+	if counts["audit_logs"], err = s.ent.AuditLog.Query().Count(ctx); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load overview counts.", err.Error())
+		return
 	}
 
-	recent, err := queryMaps(ctx, s.pool, `
-		SELECT id, created_at, decision, COALESCE(deny_code, '') AS deny_code,
-			actor_user_id, actor_member_id, resource_type, resource_id, action
-		FROM audit_logs
-		ORDER BY created_at DESC
-		LIMIT 10
-	`)
+	logs, err := s.ent.AuditLog.Query().Order(auditlog.ByCreatedAt(entsql.OrderDesc())).Limit(10).All(ctx)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load recent audit logs.", err.Error())
 		return
+	}
+	recent := make([]map[string]any, 0, len(logs))
+	for _, log := range logs {
+		recent = append(recent, map[string]any{
+			"id":              log.ID,
+			"created_at":      formatTime(log.CreatedAt),
+			"decision":        log.Decision,
+			"deny_code":       derefString(log.DenyCode),
+			"actor_user_id":   derefString(log.ActorUserID),
+			"actor_member_id": derefString(log.ActorMemberID),
+			"resource_type":   log.ResourceType,
+			"resource_id":     log.ResourceID,
+			"action":          log.Action,
+		})
 	}
 
 	writeData(w, r, http.StatusOK, map[string]any{
@@ -413,47 +489,120 @@ func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
 		writeMethodNotAllowed(w, r)
 		return
 	}
+	if s.ent == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Ent client is not configured.", nil)
+		return
+	}
 	limit := limitFrom(r, 50)
-	sql := `SELECT id, space_id, actor_user_id, actor_member_id, actor_user_member_id, action, resource_type, resource_id, decision, COALESCE(deny_code, '') AS deny_code, request_id, ip_address, user_agent, created_at FROM audit_logs`
-	args := []any{}
-	where := []string{}
+	q := s.ent.AuditLog.Query()
 	for _, filter := range []string{"space_id", "actor_user_id", "actor_member_id", "actor_user_member_id", "resource_type", "resource_id", "decision", "deny_code", "request_id"} {
 		if value := r.URL.Query().Get(filter); value != "" {
-			args = append(args, value)
-			where = append(where, fmt.Sprintf("%s = $%d", filter, len(args)))
+			switch filter {
+			case "space_id":
+				q = q.Where(auditlog.SpaceID(value))
+			case "actor_user_id":
+				q = q.Where(auditlog.ActorUserID(value))
+			case "actor_member_id":
+				q = q.Where(auditlog.ActorMemberID(value))
+			case "actor_user_member_id":
+				q = q.Where(auditlog.ActorUserMemberID(value))
+			case "resource_type":
+				q = q.Where(auditlog.ResourceType(value))
+			case "resource_id":
+				q = q.Where(auditlog.ResourceID(value))
+			case "decision":
+				q = q.Where(auditlog.Decision(value))
+			case "deny_code":
+				q = q.Where(auditlog.DenyCode(value))
+			case "request_id":
+				q = q.Where(auditlog.RequestID(value))
+			}
 		}
 	}
 	if from := r.URL.Query().Get("created_at_from"); from != "" {
-		args = append(args, from)
-		where = append(where, fmt.Sprintf("created_at >= $%d::timestamptz", len(args)))
+		parsed, err := time.Parse(time.RFC3339, from)
+		if err != nil {
+			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "created_at_from must be RFC3339.", err.Error())
+			return
+		}
+		q = q.Where(auditlog.CreatedAtGTE(parsed))
 	}
 	if to := r.URL.Query().Get("created_at_to"); to != "" {
-		args = append(args, to)
-		where = append(where, fmt.Sprintf("created_at <= $%d::timestamptz", len(args)))
+		parsed, err := time.Parse(time.RFC3339, to)
+		if err != nil {
+			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "created_at_to must be RFC3339.", err.Error())
+			return
+		}
+		q = q.Where(auditlog.CreatedAtLTE(parsed))
 	}
-	if len(where) > 0 {
-		sql += " WHERE " + strings.Join(where, " AND ")
-	}
-	args = append(args, limit)
-	sql += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d", len(args))
-	rows, err := queryMaps(r.Context(), s.pool, sql, args...)
+	logs, err := q.Order(auditlog.ByCreatedAt(entsql.OrderDesc())).Limit(limit).All(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list audit logs.", err.Error())
 		return
+	}
+	rows := make([]map[string]any, 0, len(logs))
+	for _, log := range logs {
+		rows = append(rows, auditLogListItem(log))
 	}
 	writeList(w, r, http.StatusOK, rows, limit)
 }
 
 func (s *Server) handleAuditLogDetail(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeMethodNotAllowed(w, r)
+		return
+	}
+	if s.ent == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Ent client is not configured.", nil)
+		return
+	}
 	id := strings.TrimPrefix(r.URL.Path, "/api/v1/audit/logs/")
 	if id == r.URL.Path {
 		id = strings.TrimPrefix(r.URL.Path, "/api/v1/audit-logs/")
 	}
-	s.handleSingleByID(w, r, `SELECT * FROM audit_logs WHERE id = $1`, id, "AUDIT_LOG_NOT_FOUND")
+	log, err := s.ent.AuditLog.Query().Where(auditlog.ID(id)).Only(r.Context())
+	if coreent.IsNotFound(err) {
+		writeError(w, r, http.StatusNotFound, "AUDIT_LOG_NOT_FOUND", "Resource was not found.", nil)
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load audit log.", err.Error())
+		return
+	}
+	writeData(w, r, http.StatusOK, auditLogDetail(log))
+}
+
+func auditLogListItem(log *coreent.AuditLog) map[string]any {
+	return map[string]any{
+		"id":                   log.ID,
+		"space_id":             log.SpaceID,
+		"actor_user_id":        derefString(log.ActorUserID),
+		"actor_member_id":      derefString(log.ActorMemberID),
+		"actor_user_member_id": derefString(log.ActorUserMemberID),
+		"action":               log.Action,
+		"resource_type":        log.ResourceType,
+		"resource_id":          log.ResourceID,
+		"decision":             log.Decision,
+		"deny_code":            derefString(log.DenyCode),
+		"request_id":           derefString(log.RequestID),
+		"ip_address":           derefString(log.IPAddress),
+		"user_agent":           derefString(log.UserAgent),
+		"created_at":           log.CreatedAt.UTC().Format(time.RFC3339),
+	}
+}
+
+func auditLogDetail(log *coreent.AuditLog) map[string]any {
+	row := auditLogListItem(log)
+	row["trace"] = nonNilMap(log.Trace)
+	return row
 }
 
 func (s *Server) handleResourceTypes(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
+		client, ok := s.requireEnt(w, r)
+		if !ok {
+			return
+		}
 		var req resourceTypeMutationRequest
 		if !decodeJSON(w, r, &req) {
 			return
@@ -465,22 +614,26 @@ func (s *Server) handleResourceTypes(w http.ResponseWriter, r *http.Request) {
 		if req.ID == "" {
 			req.ID = newEntityID("rt")
 		}
-		metadata, err := json.Marshal(nonNilMap(req.Metadata))
-		if err != nil {
-			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
-			return
+		existing, err := client.ResourceType.Query().Where(entresourcetype.Key(req.Key)).Only(r.Context())
+		if coreent.IsNotFound(err) {
+			_, err = client.ResourceType.Create().
+				SetID(req.ID).
+				SetKey(req.Key).
+				SetDisplayName(req.DisplayName).
+				SetNillableDescription(optionalString(derefString(req.Description))).
+				SetStatus(firstNonEmpty(derefString(req.Status), "active")).
+				SetSource(firstNonEmpty(req.Source, "core")).
+				SetMetadata(nonNilMap(req.Metadata)).
+				Save(r.Context())
+		} else if err == nil {
+			err = client.ResourceType.UpdateOneID(existing.ID).
+				SetDisplayName(req.DisplayName).
+				SetNillableDescription(optionalString(derefString(req.Description))).
+				SetStatus(firstNonEmpty(derefString(req.Status), "active")).
+				SetSource(firstNonEmpty(req.Source, "core")).
+				SetMetadata(nonNilMap(req.Metadata)).
+				Exec(r.Context())
 		}
-		_, err = s.pool.Exec(r.Context(), `
-			INSERT INTO resource_types (id, key, display_name, description, status, source, metadata)
-			VALUES ($1, $2, $3, NULLIF($4, ''), $5, $6, $7::jsonb)
-			ON CONFLICT (key)
-			DO UPDATE SET display_name = EXCLUDED.display_name,
-				description = EXCLUDED.description,
-				status = EXCLUDED.status,
-				source = EXCLUDED.source,
-				metadata = EXCLUDED.metadata,
-				updated_at = now()
-		`, req.ID, req.Key, req.DisplayName, derefString(req.Description), firstNonEmpty(derefString(req.Status), "active"), firstNonEmpty(req.Source, "core"), metadata)
 		if err != nil {
 			writeError(w, r, http.StatusConflict, "RESOURCE_TYPE_UPSERT_FAILED", "Failed to register ResourceType.", err.Error())
 			return
@@ -497,10 +650,18 @@ func (s *Server) handleResourceTypes(w http.ResponseWriter, r *http.Request) {
 		writeMethodNotAllowed(w, r)
 		return
 	}
-	rows, err := queryMaps(r.Context(), s.pool, `SELECT id, key, display_name, description, status, source, metadata, created_at, updated_at FROM resource_types ORDER BY key`)
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	resourceTypes, err := client.ResourceType.Query().Order(entresourcetype.ByKey()).All(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list resource types.", err.Error())
 		return
+	}
+	rows := make([]map[string]any, 0, len(resourceTypes))
+	for _, resourceType := range resourceTypes {
+		rows = append(rows, resourceTypeMap(resourceType))
 	}
 	writeList(w, r, http.StatusOK, rows, limitFrom(r, 50))
 }
@@ -549,22 +710,46 @@ func (s *Server) handleResourceTypeSubroutes(w http.ResponseWriter, r *http.Requ
 	key := parts[0]
 	switch {
 	case len(parts) == 1:
-		s.handleSingleByID(w, r, `SELECT id, key, display_name, description, status, source, metadata, created_at, updated_at FROM resource_types WHERE key = $1`, key, "RESOURCE_TYPE_NOT_FOUND")
+		if r.Method != http.MethodGet {
+			writeMethodNotAllowed(w, r)
+			return
+		}
+		row, err := s.loadResourceTypeByKey(r.Context(), key)
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeError(w, r, http.StatusNotFound, "RESOURCE_TYPE_NOT_FOUND", "ResourceType was not found.", nil)
+			return
+		}
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load ResourceType.", err.Error())
+			return
+		}
+		writeData(w, r, http.StatusOK, row)
 	case len(parts) == 2 && parts[1] == "actions":
 		if r.Method == http.MethodPost {
 			s.handleResourceActionUpsert(w, r, key)
 			return
 		}
-		rows, err := queryMaps(r.Context(), s.pool, `
-			SELECT ra.id, ra.key, ra.display_name, ra.description, ra.risk_level, ra.audit_default, ra.metadata
-			FROM resource_actions ra
-			JOIN resource_types rt ON rt.id = ra.resource_type_id
-			WHERE rt.key = $1
-			ORDER BY ra.key
-		`, key)
+		if r.Method != http.MethodGet {
+			writeMethodNotAllowed(w, r)
+			return
+		}
+		rt, err := s.loadResourceTypeEntityByKey(r.Context(), key)
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeError(w, r, http.StatusNotFound, "RESOURCE_TYPE_NOT_FOUND", "ResourceType was not found.", nil)
+			return
+		}
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load ResourceType.", err.Error())
+			return
+		}
+		actions, err := s.ent.ResourceAction.Query().Where(entresourceaction.ResourceTypeID(rt.ID)).Order(entresourceaction.ByKey()).All(r.Context())
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list resource actions.", err.Error())
 			return
+		}
+		rows := make([]map[string]any, 0, len(actions))
+		for _, action := range actions {
+			rows = append(rows, resourceActionMap(action))
 		}
 		writeList(w, r, http.StatusOK, rows, limitFrom(r, 50))
 	case len(parts) == 2 && parts[1] == "mapping":
@@ -572,12 +757,20 @@ func (s *Server) handleResourceTypeSubroutes(w http.ResponseWriter, r *http.Requ
 			s.handleResourceMappingUpsert(w, r, key)
 			return
 		}
-		s.handleSingleByID(w, r, `
-			SELECT rm.*
-			FROM resource_mappings rm
-			JOIN resource_types rt ON rt.id = rm.resource_type_id
-			WHERE rt.key = $1
-		`, key, "RESOURCE_MAPPING_NOT_FOUND")
+		if r.Method != http.MethodGet {
+			writeMethodNotAllowed(w, r)
+			return
+		}
+		row, err := s.loadResourceMappingByTypeKey(r.Context(), key)
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeError(w, r, http.StatusNotFound, "RESOURCE_MAPPING_NOT_FOUND", "ResourceMapping was not found.", nil)
+			return
+		}
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load ResourceMapping.", err.Error())
+			return
+		}
+		writeData(w, r, http.StatusOK, row)
 	default:
 		http.NotFound(w, r)
 	}
@@ -600,36 +793,42 @@ func (s *Server) handleResourceActionUpsert(w http.ResponseWriter, r *http.Reque
 	if req.ID == "" {
 		req.ID = newEntityID("ra")
 	}
-	metadata, err := json.Marshal(nonNilMap(req.Metadata))
-	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+	client, ok := s.requireEnt(w, r)
+	if !ok {
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		INSERT INTO resource_actions (id, resource_type_id, key, display_name, description, risk_level, audit_default, metadata)
-		VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $7, $8::jsonb)
-		ON CONFLICT (resource_type_id, key)
-		DO UPDATE SET display_name = EXCLUDED.display_name,
-			description = EXCLUDED.description,
-			risk_level = EXCLUDED.risk_level,
-			audit_default = EXCLUDED.audit_default,
-			metadata = EXCLUDED.metadata,
-			updated_at = now()
-	`, req.ID, stringFromMap(rt, "id"), req.Key, req.DisplayName, derefString(req.Description), firstNonEmpty(req.RiskLevel, "normal"), boolValue(req.AuditDefault, true), metadata)
+	resourceTypeID := stringFromMap(rt, "id")
+	existing, err := client.ResourceAction.Query().Where(entresourceaction.ResourceTypeID(resourceTypeID), entresourceaction.Key(req.Key)).Only(r.Context())
+	if coreent.IsNotFound(err) {
+		_, err = client.ResourceAction.Create().
+			SetID(req.ID).
+			SetResourceTypeID(resourceTypeID).
+			SetKey(req.Key).
+			SetDisplayName(req.DisplayName).
+			SetNillableDescription(optionalString(derefString(req.Description))).
+			SetRiskLevel(firstNonEmpty(req.RiskLevel, "normal")).
+			SetAuditDefault(boolValue(req.AuditDefault, true)).
+			SetMetadata(nonNilMap(req.Metadata)).
+			Save(r.Context())
+	} else if err == nil {
+		err = client.ResourceAction.UpdateOneID(existing.ID).
+			SetDisplayName(req.DisplayName).
+			SetNillableDescription(optionalString(derefString(req.Description))).
+			SetRiskLevel(firstNonEmpty(req.RiskLevel, "normal")).
+			SetAuditDefault(boolValue(req.AuditDefault, true)).
+			SetMetadata(nonNilMap(req.Metadata)).
+			Exec(r.Context())
+	}
 	if err != nil {
 		writeError(w, r, http.StatusConflict, "RESOURCE_ACTION_UPSERT_FAILED", "Failed to register ResourceAction.", err.Error())
 		return
 	}
-	row, err := queryOneMap(r.Context(), s.pool, `
-		SELECT ra.id, ra.key, ra.display_name, ra.description, ra.risk_level, ra.audit_default, ra.metadata
-		FROM resource_actions ra
-		WHERE ra.resource_type_id = $1 AND ra.key = $2
-	`, stringFromMap(rt, "id"), req.Key)
+	row, err := client.ResourceAction.Query().Where(entresourceaction.ResourceTypeID(resourceTypeID), entresourceaction.Key(req.Key)).Only(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load ResourceAction.", err.Error())
 		return
 	}
-	writeData(w, r, http.StatusCreated, row)
+	writeData(w, r, http.StatusCreated, resourceActionMap(row))
 }
 
 func (s *Server) handleResourceMappingUpsert(w http.ResponseWriter, r *http.Request, resourceTypeKey string) {
@@ -645,32 +844,46 @@ func (s *Server) handleResourceMappingUpsert(w http.ResponseWriter, r *http.Requ
 	if req.ID == "" {
 		req.ID = newEntityID("rm")
 	}
-	metadata, err := json.Marshal(nonNilMap(req.Metadata))
-	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+	client, ok := s.requireEnt(w, r)
+	if !ok {
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		INSERT INTO resource_mappings (id, resource_type_id, storage_kind, table_name, id_field, space_field, group_field, owner_member_field, visibility_field, metadata_field, status, metadata)
-		VALUES ($1, $2, $3, NULLIF($4, ''), $5, $6, NULLIF($7, ''), NULLIF($8, ''), NULLIF($9, ''), NULLIF($10, ''), $11, $12::jsonb)
-		ON CONFLICT (resource_type_id)
-		DO UPDATE SET storage_kind = EXCLUDED.storage_kind,
-			table_name = EXCLUDED.table_name,
-			id_field = EXCLUDED.id_field,
-			space_field = EXCLUDED.space_field,
-			group_field = EXCLUDED.group_field,
-			owner_member_field = EXCLUDED.owner_member_field,
-			visibility_field = EXCLUDED.visibility_field,
-			metadata_field = EXCLUDED.metadata_field,
-			status = EXCLUDED.status,
-			metadata = EXCLUDED.metadata,
-			updated_at = now()
-	`, req.ID, stringFromMap(rt, "id"), firstNonEmpty(req.StorageKind, "internal_table"), derefString(req.TableName), firstNonEmpty(req.IDField, "id"), firstNonEmpty(req.SpaceField, "space_id"), derefString(req.GroupField), derefString(req.OwnerMemberField), derefString(req.VisibilityField), derefString(req.MetadataField), firstNonEmpty(derefString(req.Status), "active"), metadata)
+	resourceTypeID := stringFromMap(rt, "id")
+	existing, err := client.ResourceMapping.Query().Where(entresourcemapping.ResourceTypeID(resourceTypeID)).Only(r.Context())
+	if coreent.IsNotFound(err) {
+		_, err = client.ResourceMapping.Create().
+			SetID(req.ID).
+			SetResourceTypeID(resourceTypeID).
+			SetStorageKind(firstNonEmpty(req.StorageKind, "internal_table")).
+			SetNillableTableName(optionalString(derefString(req.TableName))).
+			SetIDField(firstNonEmpty(req.IDField, "id")).
+			SetSpaceField(firstNonEmpty(req.SpaceField, "space_id")).
+			SetNillableGroupField(optionalString(derefString(req.GroupField))).
+			SetNillableOwnerMemberField(optionalString(derefString(req.OwnerMemberField))).
+			SetNillableVisibilityField(optionalString(derefString(req.VisibilityField))).
+			SetNillableMetadataField(optionalString(derefString(req.MetadataField))).
+			SetStatus(firstNonEmpty(derefString(req.Status), "active")).
+			SetMetadata(nonNilMap(req.Metadata)).
+			Save(r.Context())
+	} else if err == nil {
+		err = client.ResourceMapping.UpdateOneID(existing.ID).
+			SetStorageKind(firstNonEmpty(req.StorageKind, "internal_table")).
+			SetNillableTableName(optionalString(derefString(req.TableName))).
+			SetIDField(firstNonEmpty(req.IDField, "id")).
+			SetSpaceField(firstNonEmpty(req.SpaceField, "space_id")).
+			SetNillableGroupField(optionalString(derefString(req.GroupField))).
+			SetNillableOwnerMemberField(optionalString(derefString(req.OwnerMemberField))).
+			SetNillableVisibilityField(optionalString(derefString(req.VisibilityField))).
+			SetNillableMetadataField(optionalString(derefString(req.MetadataField))).
+			SetStatus(firstNonEmpty(derefString(req.Status), "active")).
+			SetMetadata(nonNilMap(req.Metadata)).
+			Exec(r.Context())
+	}
 	if err != nil {
 		writeError(w, r, http.StatusConflict, "RESOURCE_MAPPING_UPSERT_FAILED", "Failed to register ResourceMapping.", err.Error())
 		return
 	}
-	row, err := queryOneMap(r.Context(), s.pool, `SELECT * FROM resource_mappings WHERE resource_type_id = $1`, stringFromMap(rt, "id"))
+	row, err := s.loadResourceMappingByTypeKey(r.Context(), resourceTypeKey)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load ResourceMapping.", err.Error())
 		return
@@ -679,11 +892,37 @@ func (s *Server) handleResourceMappingUpsert(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *Server) loadResourceTypeByKey(ctx context.Context, key string) (map[string]any, error) {
-	return queryOneMap(ctx, s.pool, `
-		SELECT id, key, display_name, description, status, source, metadata, created_at, updated_at
-		FROM resource_types
-		WHERE key = $1
-	`, key)
+	row, err := s.loadResourceTypeEntityByKey(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	return resourceTypeMap(row), nil
+}
+
+func (s *Server) loadResourceTypeEntityByKey(ctx context.Context, key string) (*coreent.ResourceType, error) {
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.ResourceType.Query().Where(entresourcetype.Key(key)).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	return row, err
+}
+
+func (s *Server) loadResourceMappingByTypeKey(ctx context.Context, key string) (map[string]any, error) {
+	rt, err := s.loadResourceTypeEntityByKey(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	row, err := s.ent.ResourceMapping.Query().Where(entresourcemapping.ResourceTypeID(rt.ID)).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	if err != nil {
+		return nil, err
+	}
+	return resourceMappingMap(row), nil
 }
 
 type userMutationRequest struct {
@@ -701,6 +940,10 @@ type userMutationRequest struct {
 func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
+		client, ok := s.requireEnt(w, r)
+		if !ok {
+			return
+		}
 		var req userMutationRequest
 		if !decodeJSON(w, r, &req) {
 			return
@@ -712,16 +955,16 @@ func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
 		if req.ID == "" {
 			req.ID = newEntityID("user")
 		}
-		metadata, err := json.Marshal(nonNilMap(req.Metadata))
-		if err != nil {
-			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
-			return
-		}
 		status := firstNonEmpty(derefString(req.Status), "active")
-		_, err = s.pool.Exec(r.Context(), `
-			INSERT INTO users (id, email, username, phone, password_hash, status, metadata)
-			VALUES ($1, $2, NULLIF($3, ''), NULLIF($4, ''), NULLIF($5, ''), $6, $7::jsonb)
-		`, req.ID, req.Email, derefString(req.Username), derefString(req.Phone), derefString(req.PasswordHash), status, metadata)
+		_, err := client.User.Create().
+			SetID(req.ID).
+			SetEmail(req.Email).
+			SetNillableUsername(optionalString(derefString(req.Username))).
+			SetNillablePhone(optionalString(derefString(req.Phone))).
+			SetNillablePasswordHash(optionalString(derefString(req.PasswordHash))).
+			SetStatus(status).
+			SetMetadata(nonNilMap(req.Metadata)).
+			Save(r.Context())
 		if err != nil {
 			writeError(w, r, http.StatusConflict, "USER_CREATE_FAILED", "Failed to create User.", err.Error())
 			return
@@ -736,16 +979,22 @@ func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
 		writeData(w, r, http.StatusCreated, response)
 	case http.MethodGet:
 		limit := limitFrom(r, 50)
-		rows, err := queryMaps(r.Context(), s.pool, `
-			SELECT id, email, username, phone, status, metadata, created_at, updated_at, deleted_at
-			FROM users
-			WHERE deleted_at IS NULL
-			ORDER BY email
-			LIMIT $1
-		`, limit)
+		client, ok := s.requireEnt(w, r)
+		if !ok {
+			return
+		}
+		users, err := client.User.Query().
+			Where(entuser.DeletedAtIsNil()).
+			Order(entuser.ByEmail()).
+			Limit(limit).
+			All(r.Context())
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list Users.", err.Error())
 			return
+		}
+		rows := make([]map[string]any, 0, len(users))
+		for _, user := range users {
+			rows = append(rows, userResponse(userMap(user)))
 		}
 		writeList(w, r, http.StatusOK, rows, limit)
 	default:
@@ -794,25 +1043,33 @@ func (s *Server) handleUserSubroutes(w http.ResponseWriter, r *http.Request) {
 			if req.Metadata != nil {
 				metadata = req.Metadata
 			}
-			metadataJSON, err := json.Marshal(nonNilMap(metadata))
-			if err != nil {
-				writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
-				return
-			}
 			username := nullableFromRequest(req.Username, stringFromMap(current, "username"))
 			phone := nullableFromRequest(req.Phone, stringFromMap(current, "phone"))
 			passwordHash := nullableFromRequest(req.PasswordHash, stringFromMap(current, "password_hash"))
-			_, err = s.pool.Exec(r.Context(), `
-				UPDATE users
-				SET email = $2,
-					username = NULLIF($3, ''),
-					phone = NULLIF($4, ''),
-					password_hash = NULLIF($5, ''),
-					status = $6,
-					metadata = $7::jsonb,
-					updated_at = now()
-				WHERE id = $1 AND deleted_at IS NULL
-			`, userID, email, username, phone, passwordHash, status, metadataJSON)
+			client, ok := s.requireEnt(w, r)
+			if !ok {
+				return
+			}
+			update := client.User.UpdateOneID(userID).
+				SetEmail(email).
+				SetStatus(status).
+				SetMetadata(nonNilMap(metadata))
+			if username == "" {
+				update.ClearUsername()
+			} else {
+				update.SetUsername(username)
+			}
+			if phone == "" {
+				update.ClearPhone()
+			} else {
+				update.SetPhone(phone)
+			}
+			if passwordHash == "" {
+				update.ClearPasswordHash()
+			} else {
+				update.SetPasswordHash(passwordHash)
+			}
+			err = update.Exec(r.Context())
 			if err != nil {
 				writeError(w, r, http.StatusConflict, "USER_UPDATE_FAILED", "Failed to update User.", err.Error())
 				return
@@ -859,11 +1116,17 @@ func (s *Server) handleUserSubroutes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) loadUser(ctx context.Context, id string) (map[string]any, error) {
-	return queryOneMap(ctx, s.pool, `
-		SELECT id, email, username, phone, password_hash, status, metadata, created_at, updated_at, deleted_at
-		FROM users
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id)
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.User.Query().Where(entuser.ID(id), entuser.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	if err != nil {
+		return nil, err
+	}
+	return userMap(row), nil
 }
 
 func userResponse(row map[string]any) map[string]any {
@@ -889,10 +1152,18 @@ func (s *Server) handleSpaces(w http.ResponseWriter, r *http.Request) {
 		writeMethodNotAllowed(w, r)
 		return
 	}
-	rows, err := queryMaps(r.Context(), s.pool, `SELECT id, name, slug, type, status, metadata, created_at, updated_at, deleted_at FROM spaces WHERE deleted_at IS NULL ORDER BY name`)
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	spaces, err := client.Space.Query().Where(entspace.DeletedAtIsNil()).Order(entspace.ByName()).All(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list spaces.", err.Error())
 		return
+	}
+	rows := make([]map[string]any, 0, len(spaces))
+	for _, space := range spaces {
+		rows = append(rows, spaceMap(space))
 	}
 	writeList(w, r, http.StatusOK, rows, limitFrom(r, 50))
 }
@@ -908,7 +1179,16 @@ func (s *Server) handleSpaceSubroutes(w http.ResponseWriter, r *http.Request) {
 	if len(parts) == 1 {
 		switch r.Method {
 		case http.MethodGet:
-			s.handleSingleByID(w, r, `SELECT id, name, slug, type, status, metadata, created_at, updated_at, deleted_at FROM spaces WHERE id = $1 AND deleted_at IS NULL`, spaceID, "SPACE_NOT_FOUND")
+			row, err := s.loadSpace(r.Context(), spaceID)
+			if errors.Is(err, pgx.ErrNoRows) {
+				writeError(w, r, http.StatusNotFound, "SPACE_NOT_FOUND", "Space was not found.", nil)
+				return
+			}
+			if err != nil {
+				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load Space.", err.Error())
+				return
+			}
+			writeData(w, r, http.StatusOK, row)
 		case http.MethodPatch:
 			s.handleSpaceUpdate(w, r, spaceID)
 		default:
@@ -982,15 +1262,18 @@ func (s *Server) handleSpaceCreate(w http.ResponseWriter, r *http.Request) {
 	if req.ID == "" {
 		req.ID = newEntityID("space")
 	}
-	metadata, err := json.Marshal(nonNilMap(req.Metadata))
-	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+	client, ok := s.requireEnt(w, r)
+	if !ok {
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		INSERT INTO spaces (id, name, slug, type, status, metadata)
-		VALUES ($1, $2, NULLIF($3, ''), $4, $5, $6::jsonb)
-	`, req.ID, req.Name, derefString(req.Slug), firstNonEmpty(derefString(req.Type), "custom"), firstNonEmpty(derefString(req.Status), "active"), metadata)
+	_, err := client.Space.Create().
+		SetID(req.ID).
+		SetName(req.Name).
+		SetNillableSlug(optionalString(derefString(req.Slug))).
+		SetType(firstNonEmpty(derefString(req.Type), "custom")).
+		SetStatus(firstNonEmpty(derefString(req.Status), "active")).
+		SetMetadata(nonNilMap(req.Metadata)).
+		Save(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusConflict, "SPACE_CREATE_FAILED", "Failed to create Space.", err.Error())
 		return
@@ -1023,21 +1306,22 @@ func (s *Server) handleSpaceUpdate(w http.ResponseWriter, r *http.Request, space
 	if req.Metadata != nil {
 		metadata = req.Metadata
 	}
-	metadataJSON, err := json.Marshal(nonNilMap(metadata))
-	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+	client, ok := s.requireEnt(w, r)
+	if !ok {
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		UPDATE spaces
-		SET name = $2,
-			slug = NULLIF($3, ''),
-			type = $4,
-			status = $5,
-			metadata = $6::jsonb,
-			updated_at = now()
-		WHERE id = $1 AND deleted_at IS NULL
-	`, spaceID, name, nullableFromRequest(req.Slug, stringFromMap(current, "slug")), firstNonEmpty(derefString(req.Type), stringFromMap(current, "type"), "custom"), firstNonEmpty(derefString(req.Status), stringFromMap(current, "status"), "active"), metadataJSON)
+	slug := nullableFromRequest(req.Slug, stringFromMap(current, "slug"))
+	update := client.Space.UpdateOneID(spaceID).
+		SetName(name).
+		SetType(firstNonEmpty(derefString(req.Type), stringFromMap(current, "type"), "custom")).
+		SetStatus(firstNonEmpty(derefString(req.Status), stringFromMap(current, "status"), "active")).
+		SetMetadata(nonNilMap(metadata))
+	if slug == "" {
+		update.ClearSlug()
+	} else {
+		update.SetSlug(slug)
+	}
+	err = update.Exec(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusConflict, "SPACE_UPDATE_FAILED", "Failed to update Space.", err.Error())
 		return
@@ -1052,11 +1336,17 @@ func (s *Server) handleSpaceUpdate(w http.ResponseWriter, r *http.Request, space
 }
 
 func (s *Server) loadSpace(ctx context.Context, id string) (map[string]any, error) {
-	return queryOneMap(ctx, s.pool, `
-		SELECT id, name, slug, type, status, metadata, created_at, updated_at, deleted_at
-		FROM spaces
-		WHERE id = $1 AND deleted_at IS NULL
-	`, id)
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.Space.Query().Where(entspace.ID(id), entspace.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	if err != nil {
+		return nil, err
+	}
+	return spaceMap(row), nil
 }
 
 type groupMutationRequest struct {
@@ -1095,15 +1385,22 @@ func (s *Server) handleSpaceGroups(w http.ResponseWriter, r *http.Request, space
 				}
 			}
 			name := firstNonEmpty(req.Name, derefString(req.DisplayName), titleFromKey(lastPathSegment(req.Path)))
-			metadata, err := json.Marshal(nonNilMap(req.Metadata))
-			if err != nil {
-				writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+			client, ok := s.requireEnt(w, r)
+			if !ok {
 				return
 			}
-			_, err = s.pool.Exec(r.Context(), `
-				INSERT INTO groups (id, space_id, parent_group_id, name, display_name, path, depth, sort_order, status, metadata)
-				VALUES ($1, $2, NULLIF($3, ''), $4, NULLIF($5, ''), $6, $7, $8, $9, $10::jsonb)
-			`, req.ID, spaceID, parentID, name, derefString(req.DisplayName), req.Path, pathDepth(req.Path), intValue(req.SortOrder, 1000), firstNonEmpty(derefString(req.Status), "active"), metadata)
+			_, err := client.Group.Create().
+				SetID(req.ID).
+				SetSpaceID(spaceID).
+				SetNillableParentGroupID(optionalString(parentID)).
+				SetName(name).
+				SetNillableDisplayName(optionalString(derefString(req.DisplayName))).
+				SetPath(req.Path).
+				SetDepth(pathDepth(req.Path)).
+				SetSortOrder(intValue(req.SortOrder, 1000)).
+				SetStatus(firstNonEmpty(derefString(req.Status), "active")).
+				SetMetadata(nonNilMap(req.Metadata)).
+				Save(r.Context())
 			if err != nil {
 				writeError(w, r, http.StatusConflict, "GROUP_CREATE_FAILED", "Failed to create Group.", err.Error())
 				return
@@ -1188,21 +1485,22 @@ func (s *Server) handleGroupUpdate(w http.ResponseWriter, r *http.Request, space
 	if req.Metadata != nil {
 		metadata = req.Metadata
 	}
-	metadataJSON, err := json.Marshal(nonNilMap(metadata))
-	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+	client, ok := s.requireEnt(w, r)
+	if !ok {
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		UPDATE groups
-		SET name = $3,
-			display_name = NULLIF($4, ''),
-			sort_order = $5,
-			status = $6,
-			metadata = $7::jsonb,
-			updated_at = now()
-		WHERE id = $1 AND space_id = $2 AND deleted_at IS NULL
-	`, groupID, spaceID, firstNonEmpty(req.Name, stringFromMap(current, "name")), nullableFromRequest(req.DisplayName, stringFromMap(current, "display_name")), intValue(req.SortOrder, intFromMap(current, "sort_order", 1000)), firstNonEmpty(derefString(req.Status), stringFromMap(current, "status"), "active"), metadataJSON)
+	displayName := nullableFromRequest(req.DisplayName, stringFromMap(current, "display_name"))
+	update := client.Group.UpdateOneID(groupID).
+		SetName(firstNonEmpty(req.Name, stringFromMap(current, "name"))).
+		SetSortOrder(intValue(req.SortOrder, intFromMap(current, "sort_order", 1000))).
+		SetStatus(firstNonEmpty(derefString(req.Status), stringFromMap(current, "status"), "active")).
+		SetMetadata(nonNilMap(metadata))
+	if displayName == "" {
+		update.ClearDisplayName()
+	} else {
+		update.SetDisplayName(displayName)
+	}
+	err = update.Exec(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusConflict, "GROUP_UPDATE_FAILED", "Failed to update Group.", err.Error())
 		return
@@ -1218,26 +1516,38 @@ func (s *Server) handleGroupUpdate(w http.ResponseWriter, r *http.Request, space
 
 func (s *Server) listGroups(w http.ResponseWriter, r *http.Request, spaceID string) {
 	limit := limitFrom(r, 200)
-	rows, err := queryMaps(r.Context(), s.pool, `
-		SELECT id, space_id, parent_group_id, parent_group_id AS parent_id, name, display_name, path, depth, sort_order, status, metadata, created_at, updated_at, deleted_at
-		FROM groups
-		WHERE space_id = $1 AND deleted_at IS NULL
-		ORDER BY path
-		LIMIT $2
-	`, spaceID, limit)
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	groups, err := client.Group.Query().
+		Where(entgroup.SpaceID(spaceID), entgroup.DeletedAtIsNil()).
+		Order(entgroup.ByPath()).
+		Limit(limit).
+		All(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list Groups.", err.Error())
 		return
+	}
+	rows := make([]map[string]any, 0, len(groups))
+	for _, group := range groups {
+		rows = append(rows, groupMap(group))
 	}
 	writeList(w, r, http.StatusOK, rows, limit)
 }
 
 func (s *Server) loadGroupInSpace(ctx context.Context, spaceID, groupID string) (map[string]any, error) {
-	return queryOneMap(ctx, s.pool, `
-		SELECT id, space_id, parent_group_id, parent_group_id AS parent_id, name, display_name, path, depth, sort_order, status, metadata, created_at, updated_at, deleted_at
-		FROM groups
-		WHERE id = $1 AND space_id = $2 AND deleted_at IS NULL
-	`, groupID, spaceID)
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.Group.Query().Where(entgroup.ID(groupID), entgroup.SpaceID(spaceID), entgroup.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	if err != nil {
+		return nil, err
+	}
+	return groupMap(row), nil
 }
 
 type memberMutationRequest struct {
@@ -1264,15 +1574,18 @@ func (s *Server) handleSpaceMembers(w http.ResponseWriter, r *http.Request, spac
 			if req.ID == "" {
 				req.ID = newEntityID("member")
 			}
-			metadata, err := json.Marshal(nonNilMap(req.Metadata))
-			if err != nil {
-				writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+			client, ok := s.requireEnt(w, r)
+			if !ok {
 				return
 			}
-			_, err = s.pool.Exec(r.Context(), `
-				INSERT INTO members (id, space_id, display_name, member_type, status, metadata)
-				VALUES ($1, $2, $3, $4, $5, $6::jsonb)
-			`, req.ID, spaceID, req.DisplayName, firstNonEmpty(derefString(req.MemberType), "human"), firstNonEmpty(derefString(req.Status), "active"), metadata)
+			_, err := client.Member.Create().
+				SetID(req.ID).
+				SetSpaceID(spaceID).
+				SetDisplayName(req.DisplayName).
+				SetMemberType(firstNonEmpty(derefString(req.MemberType), "human")).
+				SetStatus(firstNonEmpty(derefString(req.Status), "active")).
+				SetMetadata(nonNilMap(req.Metadata)).
+				Save(r.Context())
 			if err != nil {
 				writeError(w, r, http.StatusConflict, "MEMBER_CREATE_FAILED", "Failed to create Member.", err.Error())
 				return
@@ -1286,16 +1599,22 @@ func (s *Server) handleSpaceMembers(w http.ResponseWriter, r *http.Request, spac
 			writeData(w, r, http.StatusCreated, row)
 		case http.MethodGet:
 			limit := limitFrom(r, 50)
-			rows, err := queryMaps(r.Context(), s.pool, `
-				SELECT id, space_id, display_name, member_type, status, metadata, created_at, updated_at, deleted_at
-				FROM members
-				WHERE space_id = $1 AND deleted_at IS NULL
-				ORDER BY display_name
-				LIMIT $2
-			`, spaceID, limit)
+			client, ok := s.requireEnt(w, r)
+			if !ok {
+				return
+			}
+			members, err := client.Member.Query().
+				Where(entmember.SpaceID(spaceID), entmember.DeletedAtIsNil()).
+				Order(entmember.ByDisplayName()).
+				Limit(limit).
+				All(r.Context())
 			if err != nil {
 				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list Members.", err.Error())
 				return
+			}
+			rows := make([]map[string]any, 0, len(members))
+			for _, member := range members {
+				rows = append(rows, memberMap(member))
 			}
 			writeList(w, r, http.StatusOK, rows, limit)
 		default:
@@ -1361,20 +1680,16 @@ func (s *Server) handleMemberUpdate(w http.ResponseWriter, r *http.Request, spac
 	if req.Metadata != nil {
 		metadata = req.Metadata
 	}
-	metadataJSON, err := json.Marshal(nonNilMap(metadata))
-	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+	client, ok := s.requireEnt(w, r)
+	if !ok {
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		UPDATE members
-		SET display_name = $3,
-			member_type = $4,
-			status = $5,
-			metadata = $6::jsonb,
-			updated_at = now()
-		WHERE id = $1 AND space_id = $2 AND deleted_at IS NULL
-	`, memberID, spaceID, firstNonEmpty(req.DisplayName, stringFromMap(current, "display_name")), firstNonEmpty(derefString(req.MemberType), stringFromMap(current, "member_type"), "human"), firstNonEmpty(derefString(req.Status), stringFromMap(current, "status"), "active"), metadataJSON)
+	err = client.Member.UpdateOneID(memberID).
+		SetDisplayName(firstNonEmpty(req.DisplayName, stringFromMap(current, "display_name"))).
+		SetMemberType(firstNonEmpty(derefString(req.MemberType), stringFromMap(current, "member_type"), "human")).
+		SetStatus(firstNonEmpty(derefString(req.Status), stringFromMap(current, "status"), "active")).
+		SetMetadata(nonNilMap(metadata)).
+		Exec(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusConflict, "MEMBER_UPDATE_FAILED", "Failed to update Member.", err.Error())
 		return
@@ -1389,11 +1704,17 @@ func (s *Server) handleMemberUpdate(w http.ResponseWriter, r *http.Request, spac
 }
 
 func (s *Server) loadMemberInSpace(ctx context.Context, spaceID, memberID string) (map[string]any, error) {
-	return queryOneMap(ctx, s.pool, `
-		SELECT id, space_id, display_name, member_type, status, metadata, created_at, updated_at, deleted_at
-		FROM members
-		WHERE id = $1 AND space_id = $2 AND deleted_at IS NULL
-	`, memberID, spaceID)
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.Member.Query().Where(entmember.ID(memberID), entmember.SpaceID(spaceID), entmember.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	if err != nil {
+		return nil, err
+	}
+	return memberMap(row), nil
 }
 
 type userMemberMutationRequest struct {
@@ -1430,20 +1751,28 @@ func (s *Server) handleSpaceUserMembers(w http.ResponseWriter, r *http.Request, 
 				writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "UserMember references are invalid.", err.Error())
 				return
 			}
-			metadata, err := json.Marshal(nonNilMap(req.Metadata))
-			if err != nil {
-				writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
-				return
-			}
 			linkedAt := req.LinkedAt
 			if linkedAt == nil {
 				now := time.Now().UTC()
 				linkedAt = &now
 			}
-			_, err = s.pool.Exec(r.Context(), `
-				INSERT INTO user_members (id, user_id, member_id, space_id, relation_type, status, is_primary, expires_at, linked_by_member_id, linked_at, metadata)
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULLIF($9, ''), $10, $11::jsonb)
-			`, req.ID, req.UserID, req.MemberID, spaceID, req.RelationType, firstNonEmpty(derefString(req.Status), "active"), boolValue(req.IsPrimary, false), req.ExpiresAt, derefString(req.LinkedByMemberID), linkedAt, metadata)
+			client, ok := s.requireEnt(w, r)
+			if !ok {
+				return
+			}
+			_, err := client.UserMember.Create().
+				SetID(req.ID).
+				SetUserID(req.UserID).
+				SetMemberID(req.MemberID).
+				SetSpaceID(spaceID).
+				SetRelationType(req.RelationType).
+				SetStatus(firstNonEmpty(derefString(req.Status), "active")).
+				SetIsPrimary(boolValue(req.IsPrimary, false)).
+				SetNillableExpiresAt(req.ExpiresAt).
+				SetNillableLinkedByMemberID(optionalString(derefString(req.LinkedByMemberID))).
+				SetNillableLinkedAt(linkedAt).
+				SetMetadata(nonNilMap(req.Metadata)).
+				Save(r.Context())
 			if err != nil {
 				writeError(w, r, http.StatusConflict, "USER_MEMBER_CREATE_FAILED", "Failed to create UserMember.", err.Error())
 				return
@@ -1457,22 +1786,37 @@ func (s *Server) handleSpaceUserMembers(w http.ResponseWriter, r *http.Request, 
 			writeData(w, r, http.StatusCreated, row)
 		case http.MethodGet:
 			limit := limitFrom(r, 50)
-			rows, err := queryMaps(r.Context(), s.pool, `
-				SELECT um.id, um.user_id, u.email, um.member_id, m.display_name AS member_display_name,
-					um.space_id, um.relation_type, um.status, um.is_primary, um.expires_at,
-					um.linked_by_member_id, um.linked_at, um.revoked_at, um.revoked_reason,
-					um.metadata, um.created_at, um.updated_at, um.deleted_at
-				FROM user_members um
-				JOIN users u ON u.id = um.user_id
-				JOIN members m ON m.id = um.member_id
-				WHERE um.space_id = $1 AND um.deleted_at IS NULL
-				ORDER BY u.email, m.display_name
-				LIMIT $2
-			`, spaceID, limit)
+			client, ok := s.requireEnt(w, r)
+			if !ok {
+				return
+			}
+			userMembers, err := client.UserMember.Query().
+				Where(entusermember.SpaceID(spaceID), entusermember.DeletedAtIsNil()).
+				Limit(limit).
+				All(r.Context())
 			if err != nil {
 				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list UserMembers.", err.Error())
 				return
 			}
+			rows := make([]map[string]any, 0, len(userMembers))
+			for _, userMember := range userMembers {
+				row, err := s.userMemberMapWithRefs(r.Context(), userMember)
+				if err != nil {
+					writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list UserMembers.", err.Error())
+					return
+				}
+				rows = append(rows, row)
+			}
+			sort.SliceStable(rows, func(i, j int) bool {
+				leftEmail, _ := rows[i]["email"].(string)
+				rightEmail, _ := rows[j]["email"].(string)
+				if leftEmail != rightEmail {
+					return leftEmail < rightEmail
+				}
+				leftMember, _ := rows[i]["member_display_name"].(string)
+				rightMember, _ := rows[j]["member_display_name"].(string)
+				return leftMember < rightMember
+			})
 			writeList(w, r, http.StatusOK, rows, limit)
 		default:
 			writeMethodNotAllowed(w, r)
@@ -1507,14 +1851,19 @@ func (s *Server) handleSpaceUserMembers(w http.ResponseWriter, r *http.Request, 
 		}
 		var req userMemberMutationRequest
 		_ = json.NewDecoder(r.Body).Decode(&req)
-		_, err := s.pool.Exec(r.Context(), `
-			UPDATE user_members
-			SET status = 'revoked',
-				revoked_at = now(),
-				revoked_reason = NULLIF($3, ''),
-				updated_at = now()
-			WHERE id = $1 AND space_id = $2 AND deleted_at IS NULL
-		`, userMemberID, spaceID, derefString(req.RevokedReason))
+		client, ok := s.requireEnt(w, r)
+		if !ok {
+			return
+		}
+		update := client.UserMember.UpdateOneID(userMemberID).
+			SetStatus("revoked").
+			SetRevokedAt(time.Now().UTC())
+		if reason := derefString(req.RevokedReason); reason != "" {
+			update.SetRevokedReason(reason)
+		} else {
+			update.ClearRevokedReason()
+		}
+		err := update.Exec(r.Context())
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to revoke UserMember.", err.Error())
 			return
@@ -1556,25 +1905,29 @@ func (s *Server) handleUserMemberUpdate(w http.ResponseWriter, r *http.Request, 
 	if req.Metadata != nil {
 		metadata = req.Metadata
 	}
-	metadataJSON, err := json.Marshal(nonNilMap(metadata))
-	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+	client, ok := s.requireEnt(w, r)
+	if !ok {
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		UPDATE user_members
-		SET user_id = $3,
-			member_id = $4,
-			relation_type = $5,
-			status = $6,
-			is_primary = $7,
-			expires_at = COALESCE($8, expires_at),
-			linked_by_member_id = NULLIF($9, ''),
-			linked_at = COALESCE($10, linked_at),
-			metadata = $11::jsonb,
-			updated_at = now()
-		WHERE id = $1 AND space_id = $2 AND deleted_at IS NULL
-	`, userMemberID, spaceID, userID, memberID, firstNonEmpty(req.RelationType, stringFromMap(current, "relation_type")), firstNonEmpty(derefString(req.Status), stringFromMap(current, "status"), "active"), boolValue(req.IsPrimary, boolFromMap(current, "is_primary", false)), req.ExpiresAt, linkedBy, req.LinkedAt, metadataJSON)
+	update := client.UserMember.UpdateOneID(userMemberID).
+		SetUserID(userID).
+		SetMemberID(memberID).
+		SetRelationType(firstNonEmpty(req.RelationType, stringFromMap(current, "relation_type"))).
+		SetStatus(firstNonEmpty(derefString(req.Status), stringFromMap(current, "status"), "active")).
+		SetIsPrimary(boolValue(req.IsPrimary, boolFromMap(current, "is_primary", false))).
+		SetMetadata(nonNilMap(metadata))
+	if req.ExpiresAt != nil {
+		update.SetExpiresAt(*req.ExpiresAt)
+	}
+	if linkedBy == "" {
+		update.ClearLinkedByMemberID()
+	} else {
+		update.SetLinkedByMemberID(linkedBy)
+	}
+	if req.LinkedAt != nil {
+		update.SetLinkedAt(*req.LinkedAt)
+	}
+	err = update.Exec(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusConflict, "USER_MEMBER_UPDATE_FAILED", "Failed to update UserMember.", err.Error())
 		return
@@ -1589,21 +1942,25 @@ func (s *Server) handleUserMemberUpdate(w http.ResponseWriter, r *http.Request, 
 }
 
 func (s *Server) loadUserMemberInSpace(ctx context.Context, spaceID, userMemberID string) (map[string]any, error) {
-	return queryOneMap(ctx, s.pool, `
-		SELECT um.id, um.user_id, u.email, um.member_id, m.display_name AS member_display_name,
-			um.space_id, um.relation_type, um.status, um.is_primary, um.expires_at,
-			um.linked_by_member_id, um.linked_at, um.revoked_at, um.revoked_reason,
-			um.metadata, um.created_at, um.updated_at, um.deleted_at
-		FROM user_members um
-		JOIN users u ON u.id = um.user_id
-		JOIN members m ON m.id = um.member_id
-		WHERE um.id = $1 AND um.space_id = $2 AND um.deleted_at IS NULL
-	`, userMemberID, spaceID)
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.UserMember.Query().Where(entusermember.ID(userMemberID), entusermember.SpaceID(spaceID), entusermember.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	if err != nil {
+		return nil, err
+	}
+	return s.userMemberMapWithRefs(ctx, row)
 }
 
 func (s *Server) validateUserMemberRefs(ctx context.Context, spaceID, userID, memberID, linkedByMemberID string) error {
-	var userExists bool
-	if err := s.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM users WHERE id = $1 AND deleted_at IS NULL)`, userID).Scan(&userExists); err != nil {
+	if s.ent == nil {
+		return errors.New("ent client is not configured")
+	}
+	userExists, err := s.ent.User.Query().Where(entuser.ID(userID), entuser.DeletedAtIsNil()).Exist(ctx)
+	if err != nil {
 		return err
 	}
 	if !userExists {
@@ -1618,6 +1975,24 @@ func (s *Server) validateUserMemberRefs(ctx context.Context, spaceID, userID, me
 		}
 	}
 	return nil
+}
+
+func (s *Server) userMemberMapWithRefs(ctx context.Context, row *coreent.UserMember) (map[string]any, error) {
+	userRecord, err := s.ent.User.Query().Where(entuser.ID(row.UserID), entuser.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return userMemberMap(row, "", ""), nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	memberRecord, err := s.ent.Member.Query().Where(entmember.ID(row.MemberID), entmember.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return userMemberMap(row, userRecord.Email, ""), nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return userMemberMap(row, userRecord.Email, memberRecord.DisplayName), nil
 }
 
 type roleMutationRequest struct {
@@ -1645,15 +2020,19 @@ func (s *Server) handleSpaceRoles(w http.ResponseWriter, r *http.Request, spaceI
 			if req.ID == "" {
 				req.ID = newEntityID("role")
 			}
-			metadata, err := json.Marshal(nonNilMap(req.Metadata))
-			if err != nil {
-				writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+			client, ok := s.requireEnt(w, r)
+			if !ok {
 				return
 			}
-			_, err = s.pool.Exec(r.Context(), `
-				INSERT INTO roles (id, space_id, key, name, description, status, metadata)
-				VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $7::jsonb)
-			`, req.ID, spaceID, req.Key, firstNonEmpty(req.Name, titleFromKey(req.Key)), derefString(req.Description), firstNonEmpty(derefString(req.Status), "active"), metadata)
+			_, err := client.Role.Create().
+				SetID(req.ID).
+				SetSpaceID(spaceID).
+				SetKey(req.Key).
+				SetName(firstNonEmpty(req.Name, titleFromKey(req.Key))).
+				SetNillableDescription(optionalString(derefString(req.Description))).
+				SetStatus(firstNonEmpty(derefString(req.Status), "active")).
+				SetMetadata(nonNilMap(req.Metadata)).
+				Save(r.Context())
 			if err != nil {
 				writeError(w, r, http.StatusConflict, "ROLE_CREATE_FAILED", "Failed to create Role.", err.Error())
 				return
@@ -1667,16 +2046,22 @@ func (s *Server) handleSpaceRoles(w http.ResponseWriter, r *http.Request, spaceI
 			writeData(w, r, http.StatusCreated, row)
 		case http.MethodGet:
 			limit := limitFrom(r, 50)
-			rows, err := queryMaps(r.Context(), s.pool, `
-				SELECT id, space_id, key, name, description, status, metadata, created_at, updated_at, deleted_at
-				FROM roles
-				WHERE space_id = $1 AND deleted_at IS NULL
-				ORDER BY key
-				LIMIT $2
-			`, spaceID, limit)
+			client, ok := s.requireEnt(w, r)
+			if !ok {
+				return
+			}
+			roles, err := client.Role.Query().
+				Where(entrole.SpaceID(spaceID), entrole.DeletedAtIsNil()).
+				Order(entrole.ByKey()).
+				Limit(limit).
+				All(r.Context())
 			if err != nil {
 				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list Roles.", err.Error())
 				return
+			}
+			rows := make([]map[string]any, 0, len(roles))
+			for _, role := range roles {
+				rows = append(rows, roleMap(role))
 			}
 			writeList(w, r, http.StatusOK, rows, limit)
 		default:
@@ -1742,20 +2127,21 @@ func (s *Server) handleRoleUpdate(w http.ResponseWriter, r *http.Request, spaceI
 	if req.Metadata != nil {
 		metadata = req.Metadata
 	}
-	metadataJSON, err := json.Marshal(nonNilMap(metadata))
-	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+	client, ok := s.requireEnt(w, r)
+	if !ok {
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		UPDATE roles
-		SET name = $3,
-			description = NULLIF($4, ''),
-			status = $5,
-			metadata = $6::jsonb,
-			updated_at = now()
-		WHERE id = $1 AND space_id = $2 AND deleted_at IS NULL
-	`, roleID, spaceID, firstNonEmpty(req.Name, stringFromMap(current, "name")), nullableFromRequest(req.Description, stringFromMap(current, "description")), firstNonEmpty(derefString(req.Status), stringFromMap(current, "status"), "active"), metadataJSON)
+	description := nullableFromRequest(req.Description, stringFromMap(current, "description"))
+	update := client.Role.UpdateOneID(roleID).
+		SetName(firstNonEmpty(req.Name, stringFromMap(current, "name"))).
+		SetStatus(firstNonEmpty(derefString(req.Status), stringFromMap(current, "status"), "active")).
+		SetMetadata(nonNilMap(metadata))
+	if description == "" {
+		update.ClearDescription()
+	} else {
+		update.SetDescription(description)
+	}
+	err = update.Exec(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusConflict, "ROLE_UPDATE_FAILED", "Failed to update Role.", err.Error())
 		return
@@ -1770,11 +2156,17 @@ func (s *Server) handleRoleUpdate(w http.ResponseWriter, r *http.Request, spaceI
 }
 
 func (s *Server) loadRoleInSpace(ctx context.Context, spaceID, roleID string) (map[string]any, error) {
-	return queryOneMap(ctx, s.pool, `
-		SELECT id, space_id, key, name, description, status, metadata, created_at, updated_at, deleted_at
-		FROM roles
-		WHERE id = $1 AND space_id = $2 AND deleted_at IS NULL
-	`, roleID, spaceID)
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.Role.Query().Where(entrole.ID(roleID), entrole.SpaceID(spaceID), entrole.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	if err != nil {
+		return nil, err
+	}
+	return roleMap(row), nil
 }
 
 type memberRoleMutationRequest struct {
@@ -1806,15 +2198,19 @@ func (s *Server) handleSpaceMemberRoles(w http.ResponseWriter, r *http.Request, 
 				writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "MemberRole references are invalid.", err.Error())
 				return
 			}
-			metadata, err := json.Marshal(nonNilMap(req.Metadata))
-			if err != nil {
-				writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+			client, ok := s.requireEnt(w, r)
+			if !ok {
 				return
 			}
-			_, err = s.pool.Exec(r.Context(), `
-				INSERT INTO member_roles (id, member_id, role_id, space_id, scope_anchor_group_id, status, metadata)
-				VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $7::jsonb)
-			`, req.ID, req.MemberID, req.RoleID, spaceID, derefString(req.ScopeAnchorGroupID), firstNonEmpty(derefString(req.Status), "active"), metadata)
+			_, err := client.MemberRole.Create().
+				SetID(req.ID).
+				SetMemberID(req.MemberID).
+				SetRoleID(req.RoleID).
+				SetSpaceID(spaceID).
+				SetNillableScopeAnchorGroupID(optionalString(derefString(req.ScopeAnchorGroupID))).
+				SetStatus(firstNonEmpty(derefString(req.Status), "active")).
+				SetMetadata(nonNilMap(req.Metadata)).
+				Save(r.Context())
 			if err != nil {
 				writeError(w, r, http.StatusConflict, "MEMBER_ROLE_CREATE_FAILED", "Failed to create MemberRole.", err.Error())
 				return
@@ -1872,46 +2268,63 @@ func (s *Server) handleSpaceMemberRoles(w http.ResponseWriter, r *http.Request, 
 
 func (s *Server) listMemberRoles(w http.ResponseWriter, r *http.Request, spaceID string) {
 	limit := limitFrom(r, 50)
-	rows, err := queryMaps(r.Context(), s.pool, `
-		SELECT mr.id, mr.space_id, mr.member_id, m.display_name AS member_display_name,
-			mr.role_id, ro.key AS role_key, ro.name AS role_name,
-			mr.scope_anchor_group_id, g.path AS scope_anchor_path,
-			mr.status, mr.metadata, mr.created_at, mr.updated_at, mr.deleted_at
-		FROM member_roles mr
-		JOIN members m ON m.id = mr.member_id
-		JOIN roles ro ON ro.id = mr.role_id
-		LEFT JOIN groups g ON g.id = mr.scope_anchor_group_id
-		WHERE mr.space_id = $1 AND mr.deleted_at IS NULL
-		ORDER BY m.display_name, ro.key
-		LIMIT $2
-	`, spaceID, limit)
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	memberRoles, err := client.MemberRole.Query().
+		Where(entmemberrole.SpaceID(spaceID), entmemberrole.DeletedAtIsNil()).
+		Limit(limit).
+		All(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list MemberRoles.", err.Error())
 		return
 	}
+	rows := make([]map[string]any, 0, len(memberRoles))
+	for _, memberRole := range memberRoles {
+		row, err := s.memberRoleMapWithRefs(r.Context(), memberRole)
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list MemberRoles.", err.Error())
+			return
+		}
+		rows = append(rows, row)
+	}
+	sort.SliceStable(rows, func(i, j int) bool {
+		leftMember, _ := rows[i]["member_display_name"].(string)
+		rightMember, _ := rows[j]["member_display_name"].(string)
+		if leftMember != rightMember {
+			return leftMember < rightMember
+		}
+		leftRole, _ := rows[i]["role_key"].(string)
+		rightRole, _ := rows[j]["role_key"].(string)
+		return leftRole < rightRole
+	})
 	writeList(w, r, http.StatusOK, rows, limit)
 }
 
 func (s *Server) loadMemberRoleInSpace(ctx context.Context, spaceID, memberRoleID string) (map[string]any, error) {
-	return queryOneMap(ctx, s.pool, `
-		SELECT mr.id, mr.space_id, mr.member_id, m.display_name AS member_display_name,
-			mr.role_id, ro.key AS role_key, ro.name AS role_name,
-			mr.scope_anchor_group_id, g.path AS scope_anchor_path,
-			mr.status, mr.metadata, mr.created_at, mr.updated_at, mr.deleted_at
-		FROM member_roles mr
-		JOIN members m ON m.id = mr.member_id
-		JOIN roles ro ON ro.id = mr.role_id
-		LEFT JOIN groups g ON g.id = mr.scope_anchor_group_id
-		WHERE mr.id = $1 AND mr.space_id = $2 AND mr.deleted_at IS NULL
-	`, memberRoleID, spaceID)
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.MemberRole.Query().Where(entmemberrole.ID(memberRoleID), entmemberrole.SpaceID(spaceID), entmemberrole.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	if err != nil {
+		return nil, err
+	}
+	return s.memberRoleMapWithRefs(ctx, row)
 }
 
 func (s *Server) validateMemberRoleRefs(ctx context.Context, spaceID, memberID, roleID, anchorID string) error {
 	if err := s.validateMemberInSpace(ctx, spaceID, memberID); err != nil {
 		return err
 	}
-	var roleExists bool
-	if err := s.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM roles WHERE id = $1 AND space_id = $2 AND deleted_at IS NULL)`, roleID, spaceID).Scan(&roleExists); err != nil {
+	if s.ent == nil {
+		return errors.New("ent client is not configured")
+	}
+	roleExists, err := s.ent.Role.Query().Where(entrole.ID(roleID), entrole.SpaceID(spaceID), entrole.DeletedAtIsNil()).Exist(ctx)
+	if err != nil {
 		return err
 	}
 	if !roleExists {
@@ -1923,6 +2336,32 @@ func (s *Server) validateMemberRoleRefs(ctx context.Context, spaceID, memberID, 
 		}
 	}
 	return nil
+}
+
+func (s *Server) memberRoleMapWithRefs(ctx context.Context, row *coreent.MemberRole) (map[string]any, error) {
+	memberRecord, err := s.ent.Member.Query().Where(entmember.ID(row.MemberID), entmember.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		memberRecord = &coreent.Member{}
+	} else if err != nil {
+		return nil, err
+	}
+	roleRecord, err := s.ent.Role.Query().Where(entrole.ID(row.RoleID), entrole.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		roleRecord = &coreent.Role{}
+	} else if err != nil {
+		return nil, err
+	}
+	anchorPath := ""
+	if anchorID := derefString(row.ScopeAnchorGroupID); anchorID != "" {
+		groupRecord, err := s.ent.Group.Query().Where(entgroup.ID(anchorID), entgroup.DeletedAtIsNil()).Only(ctx)
+		if err != nil && !coreent.IsNotFound(err) {
+			return nil, err
+		}
+		if groupRecord != nil {
+			anchorPath = groupRecord.Path
+		}
+	}
+	return memberRoleMap(row, memberRecord.DisplayName, roleRecord.Key, roleRecord.Name, anchorPath), nil
 }
 
 type resourceMutationRequest struct {
@@ -1950,27 +2389,27 @@ func (s *Server) handleSpaceResources(w http.ResponseWriter, r *http.Request, sp
 			s.createResource(w, r, spaceID, req)
 		case http.MethodGet:
 			limit := limitFrom(r, 50)
-			args := []any{spaceID, limit}
-			where := []string{"res.space_id = $1", "res.deleted_at IS NULL"}
-			if resourceType := r.URL.Query().Get("resource_type"); resourceType != "" {
-				args = append(args, resourceType)
-				where = append(where, fmt.Sprintf("res.resource_type = $%d", len(args)))
+			client, ok := s.requireEnt(w, r)
+			if !ok {
+				return
 			}
-			rows, err := queryMaps(r.Context(), s.pool, `
-				SELECT res.id, res.resource_type, res.external_id, res.display_name, res.space_id, s.name AS space_name,
-					res.group_id, g.path AS group_path, res.owner_member_id, m.display_name AS owner_member_display_name,
-					res.visibility, res.metadata, res.status, res.created_at, res.updated_at, res.deleted_at
-				FROM resources res
-				JOIN spaces s ON s.id = res.space_id
-				LEFT JOIN groups g ON g.id = res.group_id
-				LEFT JOIN members m ON m.id = res.owner_member_id
-				WHERE `+strings.Join(where, " AND ")+`
-				ORDER BY res.resource_type, res.id
-				LIMIT $2
-			`, args...)
+			q := client.Resource.Query().Where(entresource.SpaceID(spaceID), entresource.DeletedAtIsNil())
+			if resourceType := r.URL.Query().Get("resource_type"); resourceType != "" {
+				q = q.Where(entresource.ResourceType(resourceType))
+			}
+			resources, err := q.Order(entresource.ByResourceType(), entresource.ByID()).Limit(limit).All(r.Context())
 			if err != nil {
 				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list Resources.", err.Error())
 				return
+			}
+			rows := make([]map[string]any, 0, len(resources))
+			for _, resource := range resources {
+				row, err := s.resourceMapWithRefs(r.Context(), resource)
+				if err != nil {
+					writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list Resources.", err.Error())
+					return
+				}
+				rows = append(rows, row)
 			}
 			writeList(w, r, http.StatusOK, rows, limit)
 		default:
@@ -2042,23 +2481,37 @@ func (s *Server) handleResourceUpdate(w http.ResponseWriter, r *http.Request, sp
 	if req.Metadata != nil {
 		metadata = req.Metadata
 	}
-	metadataJSON, err := json.Marshal(nonNilMap(metadata))
-	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+	client, ok := s.requireEnt(w, r)
+	if !ok {
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		UPDATE resources
-		SET external_id = NULLIF($3, ''),
-			display_name = NULLIF($4, ''),
-			group_id = NULLIF($5, ''),
-			owner_member_id = NULLIF($6, ''),
-			visibility = $7,
-			status = $8,
-			metadata = $9::jsonb,
-			updated_at = now()
-		WHERE id = $1 AND space_id = $2 AND deleted_at IS NULL
-	`, resourceID, spaceID, nullableFromRequest(req.ExternalID, stringFromMap(current, "external_id")), nullableFromRequest(req.DisplayName, stringFromMap(current, "display_name")), groupID, ownerMemberID, firstNonEmpty(derefString(req.Visibility), stringFromMap(current, "visibility"), "private"), firstNonEmpty(derefString(req.Status), stringFromMap(current, "status"), "active"), metadataJSON)
+	externalID := nullableFromRequest(req.ExternalID, stringFromMap(current, "external_id"))
+	displayName := nullableFromRequest(req.DisplayName, stringFromMap(current, "display_name"))
+	update := client.Resource.UpdateOneID(resourceID).
+		SetVisibility(firstNonEmpty(derefString(req.Visibility), stringFromMap(current, "visibility"), "private")).
+		SetStatus(firstNonEmpty(derefString(req.Status), stringFromMap(current, "status"), "active")).
+		SetMetadata(nonNilMap(metadata))
+	if externalID == "" {
+		update.ClearExternalID()
+	} else {
+		update.SetExternalID(externalID)
+	}
+	if displayName == "" {
+		update.ClearDisplayName()
+	} else {
+		update.SetDisplayName(displayName)
+	}
+	if groupID == "" {
+		update.ClearGroupID()
+	} else {
+		update.SetGroupID(groupID)
+	}
+	if ownerMemberID == "" {
+		update.ClearOwnerMemberID()
+	} else {
+		update.SetOwnerMemberID(ownerMemberID)
+	}
+	err = update.Exec(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusConflict, "RESOURCE_UPDATE_FAILED", "Failed to update Resource.", err.Error())
 		return
@@ -2073,16 +2526,17 @@ func (s *Server) handleResourceUpdate(w http.ResponseWriter, r *http.Request, sp
 }
 
 func (s *Server) loadResourceInSpace(ctx context.Context, spaceID, resourceID string) (map[string]any, error) {
-	return queryOneMap(ctx, s.pool, `
-		SELECT res.id, res.resource_type, res.external_id, res.display_name, res.space_id, s.name AS space_name,
-			res.group_id, g.path AS group_path, res.owner_member_id, m.display_name AS owner_member_display_name,
-			res.visibility, res.metadata, res.status, res.created_at, res.updated_at, res.deleted_at
-		FROM resources res
-		JOIN spaces s ON s.id = res.space_id
-		LEFT JOIN groups g ON g.id = res.group_id
-		LEFT JOIN members m ON m.id = res.owner_member_id
-		WHERE res.id = $1 AND res.space_id = $2 AND res.deleted_at IS NULL
-	`, resourceID, spaceID)
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.Resource.Query().Where(entresource.ID(resourceID), entresource.SpaceID(spaceID), entresource.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	if err != nil {
+		return nil, err
+	}
+	return s.resourceMapWithRefs(ctx, row)
 }
 
 func (s *Server) createResource(w http.ResponseWriter, r *http.Request, spaceID string, req resourceMutationRequest) {
@@ -2103,15 +2557,22 @@ func (s *Server) createResource(w http.ResponseWriter, r *http.Request, spaceID 
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Resource references are invalid.", err.Error())
 		return
 	}
-	metadata, err := json.Marshal(nonNilMap(req.Metadata))
-	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+	client, ok := s.requireEnt(w, r)
+	if !ok {
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		INSERT INTO resources (id, resource_type, external_id, display_name, space_id, group_id, owner_member_id, visibility, status, metadata)
-		VALUES ($1, $2, NULLIF($3, ''), NULLIF($4, ''), $5, NULLIF($6, ''), NULLIF($7, ''), $8, $9, $10::jsonb)
-	`, req.ID, req.ResourceType, derefString(req.ExternalID), derefString(req.DisplayName), spaceID, groupID, ownerMemberID, firstNonEmpty(derefString(req.Visibility), "private"), firstNonEmpty(derefString(req.Status), "active"), metadata)
+	_, err := client.Resource.Create().
+		SetID(req.ID).
+		SetResourceType(req.ResourceType).
+		SetNillableExternalID(optionalString(derefString(req.ExternalID))).
+		SetNillableDisplayName(optionalString(derefString(req.DisplayName))).
+		SetSpaceID(spaceID).
+		SetNillableGroupID(optionalString(groupID)).
+		SetNillableOwnerMemberID(optionalString(ownerMemberID)).
+		SetVisibility(firstNonEmpty(derefString(req.Visibility), "private")).
+		SetStatus(firstNonEmpty(derefString(req.Status), "active")).
+		SetMetadata(nonNilMap(req.Metadata)).
+		Save(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusConflict, "RESOURCE_CREATE_FAILED", "Failed to create Resource.", err.Error())
 		return
@@ -2132,29 +2593,57 @@ func (s *Server) handleSpaceAuditLogs(w http.ResponseWriter, r *http.Request, sp
 			return
 		}
 		limit := limitFrom(r, 50)
-		sqlText := `SELECT id, space_id, actor_user_id, actor_member_id, actor_user_member_id, action, resource_type, resource_id, decision, COALESCE(deny_code, '') AS deny_code, request_id, ip_address, user_agent, created_at FROM audit_logs`
-		args := []any{spaceID}
-		where := []string{"space_id = $1"}
+		if s.ent == nil {
+			writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Ent client is not configured.", nil)
+			return
+		}
+		q := s.ent.AuditLog.Query().Where(auditlog.SpaceID(spaceID))
 		for _, filter := range []string{"actor_user_id", "actor_member_id", "actor_user_member_id", "resource_type", "resource_id", "decision", "deny_code", "request_id"} {
 			if value := r.URL.Query().Get(filter); value != "" {
-				args = append(args, value)
-				where = append(where, fmt.Sprintf("%s = $%d", filter, len(args)))
+				switch filter {
+				case "actor_user_id":
+					q = q.Where(auditlog.ActorUserID(value))
+				case "actor_member_id":
+					q = q.Where(auditlog.ActorMemberID(value))
+				case "actor_user_member_id":
+					q = q.Where(auditlog.ActorUserMemberID(value))
+				case "resource_type":
+					q = q.Where(auditlog.ResourceType(value))
+				case "resource_id":
+					q = q.Where(auditlog.ResourceID(value))
+				case "decision":
+					q = q.Where(auditlog.Decision(value))
+				case "deny_code":
+					q = q.Where(auditlog.DenyCode(value))
+				case "request_id":
+					q = q.Where(auditlog.RequestID(value))
+				}
 			}
 		}
 		if from := r.URL.Query().Get("created_at_from"); from != "" {
-			args = append(args, from)
-			where = append(where, fmt.Sprintf("created_at >= $%d::timestamptz", len(args)))
+			parsed, err := time.Parse(time.RFC3339, from)
+			if err != nil {
+				writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "created_at_from must be RFC3339.", err.Error())
+				return
+			}
+			q = q.Where(auditlog.CreatedAtGTE(parsed))
 		}
 		if to := r.URL.Query().Get("created_at_to"); to != "" {
-			args = append(args, to)
-			where = append(where, fmt.Sprintf("created_at <= $%d::timestamptz", len(args)))
+			parsed, err := time.Parse(time.RFC3339, to)
+			if err != nil {
+				writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "created_at_to must be RFC3339.", err.Error())
+				return
+			}
+			q = q.Where(auditlog.CreatedAtLTE(parsed))
 		}
-		args = append(args, limit)
-		sqlText += " WHERE " + strings.Join(where, " AND ") + fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d", len(args))
-		rows, err := queryMaps(r.Context(), s.pool, sqlText, args...)
+		logs, err := q.Order(auditlog.ByCreatedAt(entsql.OrderDesc())).Limit(limit).All(r.Context())
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list AuditLogs.", err.Error())
 			return
+		}
+		rows := make([]map[string]any, 0, len(logs))
+		for _, log := range logs {
+			rows = append(rows, auditLogListItem(log))
 		}
 		writeList(w, r, http.StatusOK, rows, limit)
 		return
@@ -2164,8 +2653,12 @@ func (s *Server) handleSpaceAuditLogs(w http.ResponseWriter, r *http.Request, sp
 			writeMethodNotAllowed(w, r)
 			return
 		}
-		row, err := queryOneMap(r.Context(), s.pool, `SELECT * FROM audit_logs WHERE id = $1 AND space_id = $2`, parts[0], spaceID)
-		if errors.Is(err, pgx.ErrNoRows) {
+		if s.ent == nil {
+			writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Ent client is not configured.", nil)
+			return
+		}
+		log, err := s.ent.AuditLog.Query().Where(auditlog.ID(parts[0]), auditlog.SpaceID(spaceID)).Only(r.Context())
+		if coreent.IsNotFound(err) {
 			writeError(w, r, http.StatusNotFound, "AUDIT_LOG_NOT_FOUND", "AuditLog was not found.", nil)
 			return
 		}
@@ -2173,7 +2666,7 @@ func (s *Server) handleSpaceAuditLogs(w http.ResponseWriter, r *http.Request, sp
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load AuditLog.", err.Error())
 			return
 		}
-		writeData(w, r, http.StatusOK, row)
+		writeData(w, r, http.StatusOK, auditLogDetail(log))
 		return
 	}
 	http.NotFound(w, r)
@@ -2181,31 +2674,95 @@ func (s *Server) handleSpaceAuditLogs(w http.ResponseWriter, r *http.Request, sp
 
 func (s *Server) handleGroupDetail(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/api/v1/groups/")
-	s.handleSingleByID(w, r, `SELECT id, space_id, parent_group_id, parent_group_id AS parent_id, name, display_name, path, depth, sort_order, status, metadata, created_at, updated_at, deleted_at FROM groups WHERE id = $1 AND deleted_at IS NULL`, id, "GROUP_NOT_FOUND")
+	if r.Method != http.MethodGet {
+		writeMethodNotAllowed(w, r)
+		return
+	}
+	if s.ent == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Ent client is not configured.", nil)
+		return
+	}
+	row, err := s.ent.Group.Query().Where(entgroup.ID(id), entgroup.DeletedAtIsNil()).Only(r.Context())
+	if coreent.IsNotFound(err) {
+		writeError(w, r, http.StatusNotFound, "GROUP_NOT_FOUND", "Group was not found.", nil)
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load Group.", err.Error())
+		return
+	}
+	writeData(w, r, http.StatusOK, groupMap(row))
 }
 
 func (s *Server) handleMemberDetail(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/api/v1/members/")
-	s.handleSingleByID(w, r, `SELECT id, space_id, display_name, member_type, status, metadata, created_at, updated_at, deleted_at FROM members WHERE id = $1 AND deleted_at IS NULL`, id, "MEMBER_NOT_FOUND")
+	if r.Method != http.MethodGet {
+		writeMethodNotAllowed(w, r)
+		return
+	}
+	if s.ent == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Ent client is not configured.", nil)
+		return
+	}
+	row, err := s.ent.Member.Query().Where(entmember.ID(id), entmember.DeletedAtIsNil()).Only(r.Context())
+	if coreent.IsNotFound(err) {
+		writeError(w, r, http.StatusNotFound, "MEMBER_NOT_FOUND", "Member was not found.", nil)
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load Member.", err.Error())
+		return
+	}
+	writeData(w, r, http.StatusOK, memberMap(row))
 }
 
 func (s *Server) handleUserMemberDetail(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/api/v1/user-members/")
-	s.handleSingleByID(w, r, `
-		SELECT um.id, um.user_id, u.email, um.member_id, m.display_name AS member_display_name,
-			um.space_id, um.relation_type, um.status, um.is_primary, um.expires_at,
-			um.linked_by_member_id, um.linked_at, um.revoked_at, um.revoked_reason,
-			um.metadata, um.created_at, um.updated_at, um.deleted_at
-		FROM user_members um
-		JOIN users u ON u.id = um.user_id
-		JOIN members m ON m.id = um.member_id
-		WHERE um.id = $1 AND um.deleted_at IS NULL
-	`, id, "USER_MEMBER_NOT_FOUND")
+	if r.Method != http.MethodGet {
+		writeMethodNotAllowed(w, r)
+		return
+	}
+	if s.ent == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Ent client is not configured.", nil)
+		return
+	}
+	row, err := s.ent.UserMember.Query().Where(entusermember.ID(id), entusermember.DeletedAtIsNil()).Only(r.Context())
+	if coreent.IsNotFound(err) {
+		writeError(w, r, http.StatusNotFound, "USER_MEMBER_NOT_FOUND", "UserMember was not found.", nil)
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load UserMember.", err.Error())
+		return
+	}
+	out, err := s.userMemberMapWithRefs(r.Context(), row)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load UserMember.", err.Error())
+		return
+	}
+	writeData(w, r, http.StatusOK, out)
 }
 
 func (s *Server) handleRoleDetail(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/api/v1/roles/")
-	s.handleSingleByID(w, r, `SELECT id, space_id, key, name, description, status, metadata, created_at, updated_at, deleted_at FROM roles WHERE id = $1 AND deleted_at IS NULL`, id, "ROLE_NOT_FOUND")
+	if r.Method != http.MethodGet {
+		writeMethodNotAllowed(w, r)
+		return
+	}
+	if s.ent == nil {
+		writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Ent client is not configured.", nil)
+		return
+	}
+	row, err := s.ent.Role.Query().Where(entrole.ID(id), entrole.DeletedAtIsNil()).Only(r.Context())
+	if coreent.IsNotFound(err) {
+		writeError(w, r, http.StatusNotFound, "ROLE_NOT_FOUND", "Role was not found.", nil)
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load Role.", err.Error())
+		return
+	}
+	writeData(w, r, http.StatusOK, roleMap(row))
 }
 
 func (s *Server) handlePermissions(w http.ResponseWriter, r *http.Request) {
@@ -2217,7 +2774,23 @@ func (s *Server) handlePermissions(w http.ResponseWriter, r *http.Request) {
 		writeMethodNotAllowed(w, r)
 		return
 	}
-	s.handleQueryList(w, r, `SELECT id, resource, action, scope, description, status, metadata, created_at, updated_at, deleted_at FROM permissions WHERE deleted_at IS NULL ORDER BY resource, action, scope`)
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	permissions, err := client.Permission.Query().
+		Where(entpermission.DeletedAtIsNil()).
+		Order(entpermission.ByResource(), entpermission.ByAction(), entpermission.ByScope()).
+		All(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list Permissions.", err.Error())
+		return
+	}
+	rows := make([]map[string]any, 0, len(permissions))
+	for _, permission := range permissions {
+		rows = append(rows, permissionMap(permission))
+	}
+	writeList(w, r, http.StatusOK, rows, limitFrom(r, 50))
 }
 
 func (s *Server) handlePermissionDetail(w http.ResponseWriter, r *http.Request) {
@@ -2231,7 +2804,16 @@ func (s *Server) handlePermissionDetail(w http.ResponseWriter, r *http.Request) 
 	if len(parts) == 1 {
 		switch r.Method {
 		case http.MethodGet:
-			s.handleSingleByID(w, r, `SELECT id, resource, action, scope, description, status, metadata, created_at, updated_at, deleted_at FROM permissions WHERE id = $1 AND deleted_at IS NULL`, id, "PERMISSION_NOT_FOUND")
+			row, err := s.loadPermission(r.Context(), id)
+			if errors.Is(err, pgx.ErrNoRows) {
+				writeError(w, r, http.StatusNotFound, "PERMISSION_NOT_FOUND", "Permission was not found.", nil)
+				return
+			}
+			if err != nil {
+				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load Permission.", err.Error())
+				return
+			}
+			writeData(w, r, http.StatusOK, row)
 		case http.MethodPatch:
 			s.handlePermissionUpdate(w, r, id)
 		default:
@@ -2286,15 +2868,19 @@ func (s *Server) handlePermissionCreate(w http.ResponseWriter, r *http.Request) 
 	if req.Scope == string(authz.ScopeGlobal) {
 		status = "disabled"
 	}
-	metadata, err := json.Marshal(nonNilMap(req.Metadata))
-	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+	client, ok := s.requireEnt(w, r)
+	if !ok {
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		INSERT INTO permissions (id, resource, action, scope, description, status, metadata)
-		VALUES ($1, $2, $3, $4, NULLIF($5, ''), $6, $7::jsonb)
-	`, req.ID, req.Resource, req.Action, req.Scope, derefString(req.Description), status, metadata)
+	_, err := client.Permission.Create().
+		SetID(req.ID).
+		SetResource(req.Resource).
+		SetAction(req.Action).
+		SetScope(req.Scope).
+		SetNillableDescription(optionalString(derefString(req.Description))).
+		SetStatus(status).
+		SetMetadata(nonNilMap(req.Metadata)).
+		Save(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusConflict, "PERMISSION_CREATE_FAILED", "Failed to create Permission.", err.Error())
 		return
@@ -2333,22 +2919,23 @@ func (s *Server) handlePermissionUpdate(w http.ResponseWriter, r *http.Request, 
 	if req.Metadata != nil {
 		metadata = req.Metadata
 	}
-	metadataJSON, err := json.Marshal(nonNilMap(metadata))
-	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+	client, ok := s.requireEnt(w, r)
+	if !ok {
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		UPDATE permissions
-		SET resource = $2,
-			action = $3,
-			scope = $4,
-			description = NULLIF($5, ''),
-			status = $6,
-			metadata = $7::jsonb,
-			updated_at = now()
-		WHERE id = $1 AND deleted_at IS NULL
-	`, permissionID, resourceKey, actionKey, scope, nullableFromRequest(req.Description, stringFromMap(current, "description")), status, metadataJSON)
+	description := nullableFromRequest(req.Description, stringFromMap(current, "description"))
+	update := client.Permission.UpdateOneID(permissionID).
+		SetResource(resourceKey).
+		SetAction(actionKey).
+		SetScope(scope).
+		SetStatus(status).
+		SetMetadata(nonNilMap(metadata))
+	if description == "" {
+		update.ClearDescription()
+	} else {
+		update.SetDescription(description)
+	}
+	err = update.Exec(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusConflict, "PERMISSION_UPDATE_FAILED", "Failed to update Permission.", err.Error())
 		return
@@ -2363,11 +2950,17 @@ func (s *Server) handlePermissionUpdate(w http.ResponseWriter, r *http.Request, 
 }
 
 func (s *Server) loadPermission(ctx context.Context, permissionID string) (map[string]any, error) {
-	return queryOneMap(ctx, s.pool, `
-		SELECT id, resource, action, scope, description, status, metadata, created_at, updated_at, deleted_at
-		FROM permissions
-		WHERE id = $1 AND deleted_at IS NULL
-	`, permissionID)
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.Permission.Query().Where(entpermission.ID(permissionID), entpermission.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	if err != nil {
+		return nil, err
+	}
+	return permissionMap(row), nil
 }
 
 type rolePermissionMutationRequest struct {
@@ -2405,17 +2998,24 @@ func (s *Server) handleRolePermissions(w http.ResponseWriter, r *http.Request) {
 			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "permission_id is invalid.", nil)
 			return
 		}
-		metadata, err := json.Marshal(nonNilMap(req.Metadata))
-		if err != nil {
-			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+		client, ok := s.requireEnt(w, r)
+		if !ok {
 			return
 		}
-		_, err = s.pool.Exec(r.Context(), `
-			INSERT INTO role_permissions (id, role_id, permission_id, metadata)
-			VALUES ($1, $2, $3, $4::jsonb)
-			ON CONFLICT (role_id, permission_id)
-			DO UPDATE SET deleted_at = NULL, updated_at = now(), metadata = EXCLUDED.metadata
-		`, req.ID, req.RoleID, req.PermissionID, metadata)
+		existing, err := client.RolePermission.Query().Where(entrolepermission.RoleID(req.RoleID), entrolepermission.PermissionID(req.PermissionID)).Only(r.Context())
+		if coreent.IsNotFound(err) {
+			_, err = client.RolePermission.Create().
+				SetID(req.ID).
+				SetRoleID(req.RoleID).
+				SetPermissionID(req.PermissionID).
+				SetMetadata(nonNilMap(req.Metadata)).
+				Save(r.Context())
+		} else if err == nil {
+			err = client.RolePermission.UpdateOneID(existing.ID).
+				ClearDeletedAt().
+				SetMetadata(nonNilMap(req.Metadata)).
+				Exec(r.Context())
+		}
 		if err != nil {
 			writeError(w, r, http.StatusConflict, "ROLE_PERMISSION_CREATE_FAILED", "Failed to create RolePermission.", err.Error())
 			return
@@ -2429,20 +3029,37 @@ func (s *Server) handleRolePermissions(w http.ResponseWriter, r *http.Request) {
 		writeData(w, r, http.StatusCreated, row)
 	case http.MethodGet:
 		limit := limitFrom(r, 50)
-		rows, err := queryMaps(r.Context(), s.pool, `
-			SELECT rp.id, rp.role_id, ro.space_id, ro.key AS role_key, rp.permission_id,
-				p.resource, p.action, p.scope, rp.metadata, rp.created_at, rp.updated_at, rp.deleted_at
-			FROM role_permissions rp
-			JOIN roles ro ON ro.id = rp.role_id
-			JOIN permissions p ON p.id = rp.permission_id
-			WHERE rp.deleted_at IS NULL
-			ORDER BY ro.space_id, ro.key, p.resource, p.action, p.scope
-			LIMIT $1
-		`, limit)
+		client, ok := s.requireEnt(w, r)
+		if !ok {
+			return
+		}
+		rolePermissions, err := client.RolePermission.Query().
+			Where(entrolepermission.DeletedAtIsNil()).
+			Limit(limit).
+			All(r.Context())
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list RolePermissions.", err.Error())
 			return
 		}
+		rows := make([]map[string]any, 0, len(rolePermissions))
+		for _, rolePermission := range rolePermissions {
+			row, err := s.rolePermissionMapWithRefs(r.Context(), rolePermission)
+			if err != nil {
+				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list RolePermissions.", err.Error())
+				return
+			}
+			rows = append(rows, row)
+		}
+		sort.SliceStable(rows, func(i, j int) bool {
+			for _, key := range []string{"space_id", "role_key", "resource", "action", "scope"} {
+				left, _ := rows[i][key].(string)
+				right, _ := rows[j][key].(string)
+				if left != right {
+					return left < right
+				}
+			}
+			return false
+		})
 		writeList(w, r, http.StatusOK, rows, limit)
 	default:
 		writeMethodNotAllowed(w, r)
@@ -2479,7 +3096,11 @@ func (s *Server) handleRolePermissionSubroutes(w http.ResponseWriter, r *http.Re
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load RolePermission.", err.Error())
 			return
 		}
-		_, err = s.pool.Exec(r.Context(), `UPDATE role_permissions SET deleted_at = now(), updated_at = now() WHERE id = $1 AND deleted_at IS NULL`, id)
+		client, ok := s.requireEnt(w, r)
+		if !ok {
+			return
+		}
+		err = client.RolePermission.UpdateOneID(id).SetDeletedAt(time.Now().UTC()).Exec(r.Context())
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to revoke RolePermission.", err.Error())
 			return
@@ -2492,37 +3113,72 @@ func (s *Server) handleRolePermissionSubroutes(w http.ResponseWriter, r *http.Re
 }
 
 func (s *Server) loadRolePermission(ctx context.Context, id string) (map[string]any, error) {
-	return queryOneMap(ctx, s.pool, `
-		SELECT rp.id, rp.role_id, ro.space_id, ro.key AS role_key, rp.permission_id,
-			p.resource, p.action, p.scope, rp.metadata, rp.created_at, rp.updated_at, rp.deleted_at
-		FROM role_permissions rp
-		JOIN roles ro ON ro.id = rp.role_id
-		JOIN permissions p ON p.id = rp.permission_id
-		WHERE rp.id = $1 AND rp.deleted_at IS NULL
-	`, id)
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.RolePermission.Query().Where(entrolepermission.ID(id), entrolepermission.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	if err != nil {
+		return nil, err
+	}
+	return s.rolePermissionMapWithRefs(ctx, row)
 }
 
 func (s *Server) loadRolePermissionByPair(ctx context.Context, roleID, permissionID string) (map[string]any, error) {
-	return queryOneMap(ctx, s.pool, `
-		SELECT rp.id, rp.role_id, ro.space_id, ro.key AS role_key, rp.permission_id,
-			p.resource, p.action, p.scope, rp.metadata, rp.created_at, rp.updated_at, rp.deleted_at
-		FROM role_permissions rp
-		JOIN roles ro ON ro.id = rp.role_id
-		JOIN permissions p ON p.id = rp.permission_id
-		WHERE rp.role_id = $1 AND rp.permission_id = $2 AND rp.deleted_at IS NULL
-	`, roleID, permissionID)
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.RolePermission.Query().Where(entrolepermission.RoleID(roleID), entrolepermission.PermissionID(permissionID), entrolepermission.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	if err != nil {
+		return nil, err
+	}
+	return s.rolePermissionMapWithRefs(ctx, row)
 }
 
 func (s *Server) roleSpaceID(ctx context.Context, roleID string) (string, error) {
-	var spaceID string
-	err := s.pool.QueryRow(ctx, `SELECT space_id FROM roles WHERE id = $1 AND deleted_at IS NULL`, roleID).Scan(&spaceID)
-	return spaceID, err
+	if s.ent == nil {
+		return "", errors.New("ent client is not configured")
+	}
+	role, err := s.ent.Role.Query().Where(entrole.ID(roleID), entrole.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return "", pgx.ErrNoRows
+	}
+	if err != nil {
+		return "", err
+	}
+	return role.SpaceID, nil
 }
 
 func (s *Server) permissionExists(ctx context.Context, permissionID string) (bool, error) {
-	var exists bool
-	err := s.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM permissions WHERE id = $1 AND deleted_at IS NULL)`, permissionID).Scan(&exists)
-	return exists, err
+	if s.ent == nil {
+		return false, errors.New("ent client is not configured")
+	}
+	return s.ent.Permission.Query().Where(entpermission.ID(permissionID), entpermission.DeletedAtIsNil()).Exist(ctx)
+}
+
+func (s *Server) rolePermissionMapWithRefs(ctx context.Context, row *coreent.RolePermission) (map[string]any, error) {
+	roleRecord, err := s.ent.Role.Query().Where(entrole.ID(row.RoleID), entrole.DeletedAtIsNil()).Only(ctx)
+	if err != nil {
+		if coreent.IsNotFound(err) {
+			roleRecord = &coreent.Role{}
+		} else {
+			return nil, err
+		}
+	}
+	permissionRecord, err := s.ent.Permission.Query().Where(entpermission.ID(row.PermissionID), entpermission.DeletedAtIsNil()).Only(ctx)
+	if err != nil {
+		if coreent.IsNotFound(err) {
+			permissionRecord = &coreent.Permission{}
+		} else {
+			return nil, err
+		}
+	}
+	return rolePermissionMap(row, roleRecord.SpaceID, roleRecord.Key, permissionRecord), nil
 }
 
 func (s *Server) handleResources(w http.ResponseWriter, r *http.Request) {
@@ -2538,33 +3194,30 @@ func (s *Server) handleResources(w http.ResponseWriter, r *http.Request) {
 		writeMethodNotAllowed(w, r)
 		return
 	}
-	args := []any{}
-	where := []string{}
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	q := client.Resource.Query().Where(entresource.DeletedAtIsNil())
 	if spaceID := r.URL.Query().Get("space_id"); spaceID != "" {
-		args = append(args, spaceID)
-		where = append(where, fmt.Sprintf("res.space_id = $%d", len(args)))
+		q = q.Where(entresource.SpaceID(spaceID))
 	}
 	if resourceType := r.URL.Query().Get("resource_type"); resourceType != "" {
-		args = append(args, resourceType)
-		where = append(where, fmt.Sprintf("res.resource_type = $%d", len(args)))
+		q = q.Where(entresource.ResourceType(resourceType))
 	}
-	sql := `
-		SELECT res.id, res.resource_type, res.external_id, res.display_name, res.space_id, s.name AS space_name,
-			res.group_id, g.path AS group_path, res.owner_member_id, m.display_name AS owner_member_display_name,
-			res.visibility, res.metadata, res.status, res.created_at, res.updated_at, res.deleted_at
-		FROM resources res
-		JOIN spaces s ON s.id = res.space_id
-		LEFT JOIN groups g ON g.id = res.group_id
-		LEFT JOIN members m ON m.id = res.owner_member_id
-	`
-	if len(where) > 0 {
-		sql += " WHERE " + strings.Join(where, " AND ")
-	}
-	sql += " ORDER BY res.resource_type, res.id"
-	rows, err := queryMaps(r.Context(), s.pool, sql, args...)
+	resources, err := q.Order(entresource.ByResourceType(), entresource.ByID()).All(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list resources.", err.Error())
 		return
+	}
+	rows := make([]map[string]any, 0, len(resources))
+	for _, resource := range resources {
+		row, err := s.resourceMapWithRefs(r.Context(), resource)
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list resources.", err.Error())
+			return
+		}
+		rows = append(rows, row)
 	}
 	writeList(w, r, http.StatusOK, rows, limitFrom(r, 50))
 }
@@ -2573,16 +3226,29 @@ func (s *Server) handleResourceDetail(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/v1/resources/")
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) == 2 {
-		s.handleSingleByID(w, r, `
-			SELECT res.id, res.resource_type, res.external_id, res.display_name, res.space_id, s.name AS space_name,
-				res.group_id, g.path AS group_path, res.owner_member_id, m.display_name AS owner_member_display_name,
-				res.visibility, res.metadata, res.status, res.created_at, res.updated_at, res.deleted_at
-			FROM resources res
-			JOIN spaces s ON s.id = res.space_id
-			LEFT JOIN groups g ON g.id = res.group_id
-			LEFT JOIN members m ON m.id = res.owner_member_id
-			WHERE res.resource_type = $1 AND res.id = $2
-		`, parts[0], "RESOURCE_NOT_FOUND", parts[1])
+		if r.Method != http.MethodGet {
+			writeMethodNotAllowed(w, r)
+			return
+		}
+		if s.ent == nil {
+			writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Ent client is not configured.", nil)
+			return
+		}
+		resourceRow, err := s.ent.Resource.Query().Where(entresource.ResourceType(parts[0]), entresource.ID(parts[1]), entresource.DeletedAtIsNil()).Only(r.Context())
+		if coreent.IsNotFound(err) {
+			writeError(w, r, http.StatusNotFound, "RESOURCE_NOT_FOUND", "Resource was not found.", nil)
+			return
+		}
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load Resource.", err.Error())
+			return
+		}
+		row, err := s.resourceMapWithRefs(r.Context(), resourceRow)
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load Resource.", err.Error())
+			return
+		}
+		writeData(w, r, http.StatusOK, row)
 		return
 	}
 	http.NotFound(w, r)
@@ -2597,18 +3263,33 @@ func (s *Server) handleDataTables(w http.ResponseWriter, r *http.Request) {
 		writeMethodNotAllowed(w, r)
 		return
 	}
-	rows, err := queryMaps(r.Context(), s.pool, `
-		SELECT rt.key AS resource_type, rt.display_name, rt.source,
-			rm.storage_kind, rm.table_name, rm.id_field, rm.space_field, rm.group_field,
-			rm.owner_member_field, rm.visibility_field, rm.metadata_field, rm.status, rm.metadata
-		FROM resource_mappings rm
-		JOIN resource_types rt ON rt.id = rm.resource_type_id
-		ORDER BY rt.key
-	`)
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	mappings, err := client.ResourceMapping.Query().All(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list data tables.", err.Error())
 		return
 	}
+	rows := make([]map[string]any, 0, len(mappings))
+	for _, mapping := range mappings {
+		rt, err := client.ResourceType.Query().Where(entresourcetype.ID(mapping.ResourceTypeID)).Only(r.Context())
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list data tables.", err.Error())
+			return
+		}
+		row := resourceMappingMap(mapping)
+		row["resource_type"] = rt.Key
+		row["display_name"] = rt.DisplayName
+		row["source"] = rt.Source
+		rows = append(rows, row)
+	}
+	sort.SliceStable(rows, func(i, j int) bool {
+		left, _ := rows[i]["resource_type"].(string)
+		right, _ := rows[j]["resource_type"].(string)
+		return left < right
+	})
 	writeList(w, r, http.StatusOK, rows, limitFrom(r, 50))
 }
 
@@ -2629,42 +3310,42 @@ func (s *Server) handleDataRows(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(parts) == 1 && r.Method == http.MethodGet {
-		args := []any{resourceType}
-		where := []string{"res.resource_type = $1"}
-		if spaceID := r.URL.Query().Get("space_id"); spaceID != "" {
-			args = append(args, spaceID)
-			where = append(where, fmt.Sprintf("res.space_id = $%d", len(args)))
+		client, ok := s.requireEnt(w, r)
+		if !ok {
+			return
 		}
-		sql := `
-			SELECT res.id, res.resource_type, res.display_name, res.space_id, s.name AS space_name,
-				res.group_id, g.path AS group_path, res.owner_member_id, m.display_name AS owner_member_display_name,
-				res.visibility, res.metadata, res.status, res.created_at
-			FROM resources res
-			JOIN spaces s ON s.id = res.space_id
-			LEFT JOIN groups g ON g.id = res.group_id
-			LEFT JOIN members m ON m.id = res.owner_member_id
-			WHERE ` + strings.Join(where, " AND ") + `
-			ORDER BY res.id
-		`
-		rows, err := queryMaps(r.Context(), s.pool, sql, args...)
+		q := client.Resource.Query().Where(entresource.ResourceType(resourceType), entresource.DeletedAtIsNil())
+		if spaceID := r.URL.Query().Get("space_id"); spaceID != "" {
+			q = q.Where(entresource.SpaceID(spaceID))
+		}
+		resources, err := q.Order(entresource.ByID()).All(r.Context())
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list data rows.", err.Error())
 			return
+		}
+		rows := make([]map[string]any, 0, len(resources))
+		for _, resource := range resources {
+			row, err := s.resourceMapWithRefs(r.Context(), resource)
+			if err != nil {
+				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list data rows.", err.Error())
+				return
+			}
+			rows = append(rows, row)
 		}
 		writeList(w, r, http.StatusOK, rows, limitFrom(r, 50))
 		return
 	}
 	if len(parts) == 2 && r.Method == http.MethodGet {
-		s.handleSingleByID(w, r, `
-			SELECT res.id, res.resource_type, res.display_name, res.space_id, s.name AS space_name,
-				res.group_id, g.path AS group_path, res.owner_member_id, m.display_name AS owner_member_display_name,
-				res.visibility, res.metadata, res.status, res.created_at
-			FROM resources res
-			JOIN spaces s ON s.id = res.space_id
-			LEFT JOIN groups g ON g.id = res.group_id
-			LEFT JOIN members m ON m.id = res.owner_member_id
-			WHERE res.resource_type = $1 AND res.id = $2
-		`, resourceType, "RESOURCE_NOT_FOUND", parts[1])
+		row, err := s.loadResourceRow(r.Context(), resourceType, parts[1])
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeError(w, r, http.StatusNotFound, "RESOURCE_NOT_FOUND", "Resource was not found.", nil)
+			return
+		}
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load data row.", err.Error())
+			return
+		}
+		writeData(w, r, http.StatusOK, row)
 		return
 	}
 	if len(parts) == 2 && r.Method == http.MethodPatch {
@@ -2742,15 +3423,21 @@ func (s *Server) handleDataRowCreate(w http.ResponseWriter, r *http.Request, res
 		return
 	}
 
-	metadataJSON, err := json.Marshal(nonNilMap(req.Metadata))
-	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+	client, ok := s.requireEnt(w, r)
+	if !ok {
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		INSERT INTO resources (id, resource_type, display_name, space_id, group_id, owner_member_id, visibility, metadata, status)
-		VALUES ($1, $2, NULLIF($3, ''), $4, NULLIF($5, ''), NULLIF($6, ''), $7, $8::jsonb, $9)
-	`, req.ID, resourceType, derefString(req.DisplayName), req.SpaceID, groupID, ownerMemberID, firstNonEmpty(derefString(req.Visibility), "private"), metadataJSON, firstNonEmpty(derefString(req.Status), "active"))
+	_, err = client.Resource.Create().
+		SetID(req.ID).
+		SetResourceType(resourceType).
+		SetNillableDisplayName(optionalString(derefString(req.DisplayName))).
+		SetSpaceID(req.SpaceID).
+		SetNillableGroupID(optionalString(groupID)).
+		SetNillableOwnerMemberID(optionalString(ownerMemberID)).
+		SetVisibility(firstNonEmpty(derefString(req.Visibility), "private")).
+		SetMetadata(nonNilMap(req.Metadata)).
+		SetStatus(firstNonEmpty(derefString(req.Status), "active")).
+		Save(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to create data row.", err.Error())
 		return
@@ -2821,22 +3508,30 @@ func (s *Server) handleDataRowUpdate(w http.ResponseWriter, r *http.Request, res
 	if !ok {
 		return
 	}
-	metadataJSON, err := json.Marshal(nonNilMap(proposed.Resource.Metadata))
-	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "metadata must be JSON serializable.", err.Error())
+	client, ok := s.requireEnt(w, r)
+	if !ok {
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		UPDATE resources
-		SET display_name = NULLIF($3, ''),
-			group_id = NULLIF($4, ''),
-			owner_member_id = NULLIF($5, ''),
-			visibility = $6,
-			metadata = $7::jsonb,
-			status = $8,
-			updated_at = now()
-		WHERE resource_type = $1 AND id = $2
-	`, resourceType, resourceID, proposed.Resource.DisplayName, proposed.Resource.GroupID, proposed.Resource.OwnerMemberID, firstNonEmpty(proposed.Resource.Visibility, "private"), metadataJSON, firstNonEmpty(proposed.Resource.Status, "active"))
+	update := client.Resource.UpdateOneID(resourceID).
+		SetVisibility(firstNonEmpty(proposed.Resource.Visibility, "private")).
+		SetMetadata(nonNilMap(proposed.Resource.Metadata)).
+		SetStatus(firstNonEmpty(proposed.Resource.Status, "active"))
+	if proposed.Resource.DisplayName == "" {
+		update.ClearDisplayName()
+	} else {
+		update.SetDisplayName(proposed.Resource.DisplayName)
+	}
+	if proposed.Resource.GroupID == "" {
+		update.ClearGroupID()
+	} else {
+		update.SetGroupID(proposed.Resource.GroupID)
+	}
+	if proposed.Resource.OwnerMemberID == "" {
+		update.ClearOwnerMemberID()
+	} else {
+		update.SetOwnerMemberID(proposed.Resource.OwnerMemberID)
+	}
+	err = update.Exec(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to update data row.", err.Error())
 		return
@@ -2875,7 +3570,11 @@ func (s *Server) handleDataRowDelete(w http.ResponseWriter, r *http.Request, res
 	if !ok {
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `UPDATE resources SET status = 'deleted', updated_at = now() WHERE resource_type = $1 AND id = $2`, resourceType, resourceID)
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	err = client.Resource.UpdateOneID(resourceID).SetStatus("deleted").Exec(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to soft-delete data row.", err.Error())
 		return
@@ -2911,20 +3610,21 @@ func (s *Server) authorizeTarget(w http.ResponseWriter, r *http.Request, actor a
 }
 
 func (s *Server) requireInternalResourceMapping(ctx context.Context, resourceType string) error {
-	var storageKind, tableName string
-	err := s.pool.QueryRow(ctx, `
-		SELECT rm.storage_kind, COALESCE(rm.table_name, '')
-		FROM resource_mappings rm
-		JOIN resource_types rt ON rt.id = rm.resource_type_id
-		WHERE rt.key = $1
-	`, resourceType).Scan(&storageKind, &tableName)
-	if errors.Is(err, pgx.ErrNoRows) {
+	rt, err := s.loadResourceTypeEntityByKey(ctx, resourceType)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrAPINotFound
+		}
+		return err
+	}
+	mapping, err := s.ent.ResourceMapping.Query().Where(entresourcemapping.ResourceTypeID(rt.ID)).Only(ctx)
+	if coreent.IsNotFound(err) {
 		return ErrAPINotFound
 	}
 	if err != nil {
 		return err
 	}
-	if storageKind != "internal_table" || tableName != "resources" {
+	if mapping.StorageKind != "internal_table" || derefString(mapping.TableName) != "resources" {
 		return ErrAPIUnsupportedMapping
 	}
 	return nil
@@ -2945,9 +3645,10 @@ func (s *Server) writeMappingError(w http.ResponseWriter, r *http.Request, err e
 }
 
 func (s *Server) resourceExists(ctx context.Context, resourceType, resourceID string) (bool, error) {
-	var exists bool
-	err := s.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM resources WHERE resource_type = $1 AND id = $2)`, resourceType, resourceID).Scan(&exists)
-	return exists, err
+	if s.ent == nil {
+		return false, errors.New("ent client is not configured")
+	}
+	return s.ent.Resource.Query().Where(entresource.ResourceType(resourceType), entresource.ID(resourceID), entresource.DeletedAtIsNil()).Exist(ctx)
 }
 
 func (s *Server) validateResourceRefs(ctx context.Context, spaceID, groupID, ownerMemberID string) error {
@@ -2968,8 +3669,10 @@ func (s *Server) validateMemberInSpace(ctx context.Context, spaceID, memberID st
 	if memberID == "" {
 		return nil
 	}
-	var exists bool
-	err := s.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM members WHERE id = $1 AND space_id = $2)`, memberID, spaceID).Scan(&exists)
+	if s.ent == nil {
+		return errors.New("ent client is not configured")
+	}
+	exists, err := s.ent.Member.Query().Where(entmember.ID(memberID), entmember.SpaceID(spaceID), entmember.DeletedAtIsNil()).Exist(ctx)
 	if err != nil {
 		return err
 	}
@@ -3004,43 +3707,47 @@ func (s *Server) loadGroupSnapshot(ctx context.Context, spaceID, groupID string)
 	if groupID == "" {
 		return nil, nil
 	}
-	var group authz.GroupSnapshot
-	err := s.pool.QueryRow(ctx, `SELECT id, space_id, path, status FROM groups WHERE id = $1 AND space_id = $2`, groupID, spaceID).Scan(&group.ID, &group.SpaceID, &group.Path, &group.Status)
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.Group.Query().Where(entgroup.ID(groupID), entgroup.SpaceID(spaceID), entgroup.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
 	if err != nil {
 		return nil, err
 	}
-	return &group, nil
+	return &authz.GroupSnapshot{
+		ID:      row.ID,
+		SpaceID: row.SpaceID,
+		Path:    row.Path,
+		Status:  row.Status,
+	}, nil
 }
 
 func (s *Server) loadResourceTarget(ctx context.Context, resourceType, resourceID string) (authz.TargetSnapshot, error) {
-	var target authz.TargetSnapshot
-	var groupID, ownerMemberID, displayName, visibility, status sql.NullString
-	var metadataBytes []byte
-	err := s.pool.QueryRow(ctx, `
-		SELECT id, resource_type, space_id, group_id, owner_member_id, display_name, visibility, status, metadata
-		FROM resources
-		WHERE resource_type = $1 AND id = $2
-	`, resourceType, resourceID).Scan(
-		&target.Resource.ID,
-		&target.Resource.Type,
-		&target.Resource.SpaceID,
-		&groupID,
-		&ownerMemberID,
-		&displayName,
-		&visibility,
-		&status,
-		&metadataBytes,
-	)
+	if s.ent == nil {
+		return authz.TargetSnapshot{}, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.Resource.Query().Where(entresource.ResourceType(resourceType), entresource.ID(resourceID), entresource.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return authz.TargetSnapshot{}, pgx.ErrNoRows
+	}
 	if err != nil {
 		return authz.TargetSnapshot{}, err
 	}
-	target.Resource.GroupID = nullStringValue(groupID)
-	target.Resource.OwnerMemberID = nullStringValue(ownerMemberID)
-	target.Resource.DisplayName = nullStringValue(displayName)
-	target.Resource.Visibility = nullStringValue(visibility)
-	target.Resource.Status = nullStringValue(status)
-	if len(metadataBytes) > 0 {
-		_ = json.Unmarshal(metadataBytes, &target.Resource.Metadata)
+	target := authz.TargetSnapshot{
+		Resource: authz.ResourceSnapshot{
+			ID:            row.ID,
+			Type:          row.ResourceType,
+			SpaceID:       row.SpaceID,
+			GroupID:       derefString(row.GroupID),
+			OwnerMemberID: derefString(row.OwnerMemberID),
+			DisplayName:   derefString(row.DisplayName),
+			Visibility:    row.Visibility,
+			Status:        row.Status,
+			Metadata:      nonNilMap(row.Metadata),
+		},
 	}
 	group, err := s.loadGroupSnapshot(ctx, target.Resource.SpaceID, target.Resource.GroupID)
 	if err != nil {
@@ -3051,16 +3758,51 @@ func (s *Server) loadResourceTarget(ctx context.Context, resourceType, resourceI
 }
 
 func (s *Server) loadResourceRow(ctx context.Context, resourceType, resourceID string) (map[string]any, error) {
-	return queryOneMap(ctx, s.pool, `
-		SELECT res.id, res.resource_type, res.display_name, res.space_id, s.name AS space_name,
-			res.group_id, g.path AS group_path, res.owner_member_id, m.display_name AS owner_member_display_name,
-			res.visibility, res.metadata, res.status, res.created_at, res.updated_at
-		FROM resources res
-		JOIN spaces s ON s.id = res.space_id
-		LEFT JOIN groups g ON g.id = res.group_id
-		LEFT JOIN members m ON m.id = res.owner_member_id
-		WHERE res.resource_type = $1 AND res.id = $2
-	`, resourceType, resourceID)
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.Resource.Query().Where(entresource.ResourceType(resourceType), entresource.ID(resourceID)).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	if err != nil {
+		return nil, err
+	}
+	return s.resourceMapWithRefs(ctx, row)
+}
+
+func (s *Server) resourceMapWithRefs(ctx context.Context, row *coreent.Resource) (map[string]any, error) {
+	spaceName := ""
+	if row.SpaceID != "" {
+		spaceRecord, err := s.ent.Space.Query().Where(entspace.ID(row.SpaceID), entspace.DeletedAtIsNil()).Only(ctx)
+		if err != nil && !coreent.IsNotFound(err) {
+			return nil, err
+		}
+		if spaceRecord != nil {
+			spaceName = spaceRecord.Name
+		}
+	}
+	groupPath := ""
+	if groupID := derefString(row.GroupID); groupID != "" {
+		groupRecord, err := s.ent.Group.Query().Where(entgroup.ID(groupID), entgroup.DeletedAtIsNil()).Only(ctx)
+		if err != nil && !coreent.IsNotFound(err) {
+			return nil, err
+		}
+		if groupRecord != nil {
+			groupPath = groupRecord.Path
+		}
+	}
+	ownerMemberDisplayName := ""
+	if memberID := derefString(row.OwnerMemberID); memberID != "" {
+		memberRecord, err := s.ent.Member.Query().Where(entmember.ID(memberID), entmember.DeletedAtIsNil()).Only(ctx)
+		if err != nil && !coreent.IsNotFound(err) {
+			return nil, err
+		}
+		if memberRecord != nil {
+			ownerMemberDisplayName = memberRecord.DisplayName
+		}
+	}
+	return resourceMap(row, spaceName, groupPath, ownerMemberDisplayName), nil
 }
 
 func (s *Server) handlePluginManifestValidation(w http.ResponseWriter, r *http.Request) {
@@ -3088,6 +3830,18 @@ type pluginInstallRequest struct {
 	Source   string           `json:"source"`
 }
 
+func pluginManifestMap(manifest plugins.Manifest) (map[string]any, error) {
+	raw, err := json.Marshal(manifest)
+	if err != nil {
+		return nil, err
+	}
+	var out map[string]any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (s *Server) handlePluginInstall(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeMethodNotAllowed(w, r)
@@ -3105,33 +3859,52 @@ func (s *Server) handlePluginInstall(w http.ResponseWriter, r *http.Request) {
 	}
 	source := firstNonEmpty(req.Source, req.Manifest.Source, "local")
 	status := firstNonEmpty(req.Manifest.Status, "installed")
-	manifestJSON, err := json.Marshal(req.Manifest)
+	manifestMap, err := pluginManifestMap(req.Manifest)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to encode plugin manifest.", err.Error())
 		return
 	}
-	_, err = s.pool.Exec(r.Context(), `
-		INSERT INTO plugins (id, key, name, description, version, source, status, manifest)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
-		ON CONFLICT (key) DO UPDATE SET
-			name = EXCLUDED.name,
-			description = EXCLUDED.description,
-			version = EXCLUDED.version,
-			source = EXCLUDED.source,
-			status = EXCLUDED.status,
-			manifest = EXCLUDED.manifest,
-			updated_at = now()
-	`, "plugin_"+safeIdentifier(req.Manifest.ID), req.Manifest.ID, req.Manifest.Name, req.Manifest.Description, req.Manifest.Version, source, status, manifestJSON)
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	pluginID := "plugin_" + safeIdentifier(req.Manifest.ID)
+	existing, err := client.Plugin.Query().Where(entplugin.Key(req.Manifest.ID)).Only(r.Context())
+	if coreent.IsNotFound(err) {
+		_, err = client.Plugin.Create().
+			SetID(pluginID).
+			SetKey(req.Manifest.ID).
+			SetName(req.Manifest.Name).
+			SetNillableDescription(optionalString(req.Manifest.Description)).
+			SetVersion(req.Manifest.Version).
+			SetSource(source).
+			SetStatus(status).
+			SetManifest(manifestMap).
+			Save(r.Context())
+	} else if err == nil {
+		update := client.Plugin.UpdateOneID(existing.ID).
+			SetName(req.Manifest.Name).
+			SetVersion(req.Manifest.Version).
+			SetSource(source).
+			SetStatus(status).
+			SetManifest(manifestMap)
+		if req.Manifest.Description == "" {
+			update.ClearDescription()
+		} else {
+			update.SetDescription(req.Manifest.Description)
+		}
+		err = update.Exec(r.Context())
+		pluginID = existing.ID
+	}
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to install plugin metadata.", err.Error())
 		return
 	}
-	pluginID := "plugin_" + safeIdentifier(req.Manifest.ID)
 	if err := s.installPluginManifestMetadata(r.Context(), pluginID, req.Manifest); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to install plugin declarations.", err.Error())
 		return
 	}
-	row, err := queryOneMap(r.Context(), s.pool, `SELECT id, key, name, description, version, source, status, manifest, created_at, updated_at FROM plugins WHERE key = $1`, req.Manifest.ID)
+	row, err := s.loadPluginByKey(r.Context(), req.Manifest.ID)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load installed plugin.", err.Error())
 		return
@@ -3140,114 +3913,192 @@ func (s *Server) handlePluginInstall(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) installPluginManifestMetadata(ctx context.Context, pluginID string, manifest plugins.Manifest) error {
-	metadata, err := json.Marshal(map[string]any{"plugin": manifest.ID})
-	if err != nil {
-		return err
+	if s.ent == nil {
+		return errors.New("ent client is not configured")
 	}
+	metadata := map[string]any{"plugin": manifest.ID}
 	for _, resource := range manifest.Resources {
 		resourceTypeID := "rt_" + safeIdentifier(manifest.ID+"_"+resource.Key)
-		if _, err := s.pool.Exec(ctx, `
-			INSERT INTO resource_types (id, key, display_name, description, status, source, metadata)
-			VALUES ($1, $2, $3, '', 'active', $4, $5::jsonb)
-			ON CONFLICT (key) DO UPDATE SET
-				display_name = EXCLUDED.display_name,
-				source = EXCLUDED.source,
-				metadata = EXCLUDED.metadata,
-				updated_at = now()
-		`, resourceTypeID, resource.Key, resource.DisplayName, "plugin:"+manifest.ID, metadata); err != nil {
+		existingRT, err := s.ent.ResourceType.Query().Where(entresourcetype.Key(resource.Key)).Only(ctx)
+		if coreent.IsNotFound(err) {
+			_, err = s.ent.ResourceType.Create().
+				SetID(resourceTypeID).
+				SetKey(resource.Key).
+				SetDisplayName(resource.DisplayName).
+				SetStatus("active").
+				SetSource("plugin:" + manifest.ID).
+				SetMetadata(metadata).
+				Save(ctx)
+		} else if err == nil {
+			err = s.ent.ResourceType.UpdateOneID(existingRT.ID).
+				SetDisplayName(resource.DisplayName).
+				SetSource("plugin:" + manifest.ID).
+				SetMetadata(metadata).
+				Exec(ctx)
+			resourceTypeID = existingRT.ID
+		}
+		if err != nil {
 			return err
 		}
-		if _, err := s.pool.Exec(ctx, `
-			INSERT INTO resource_mappings (
-				id, resource_type_id, storage_kind, table_name, id_field, space_field,
-				group_field, owner_member_field, visibility_field, metadata_field, status, metadata
-			)
-			VALUES ($1, $2, 'plugin_managed', NULL, 'id', 'space_id', 'group_id', 'owner_member_id', NULL, 'metadata', 'active', $3::jsonb)
-			ON CONFLICT (resource_type_id) DO UPDATE SET
-				storage_kind = EXCLUDED.storage_kind,
-				table_name = EXCLUDED.table_name,
-				id_field = EXCLUDED.id_field,
-				space_field = EXCLUDED.space_field,
-				group_field = EXCLUDED.group_field,
-				owner_member_field = EXCLUDED.owner_member_field,
-				visibility_field = EXCLUDED.visibility_field,
-				metadata_field = EXCLUDED.metadata_field,
-				status = EXCLUDED.status,
-				metadata = EXCLUDED.metadata,
-				updated_at = now()
-		`, "rm_"+safeIdentifier(manifest.ID+"_"+resource.Key), resourceTypeID, metadata); err != nil {
+		existingMapping, err := s.ent.ResourceMapping.Query().Where(entresourcemapping.ResourceTypeID(resourceTypeID)).Only(ctx)
+		if coreent.IsNotFound(err) {
+			_, err = s.ent.ResourceMapping.Create().
+				SetID("rm_" + safeIdentifier(manifest.ID+"_"+resource.Key)).
+				SetResourceTypeID(resourceTypeID).
+				SetStorageKind("plugin_managed").
+				SetIDField("id").
+				SetSpaceField("space_id").
+				SetGroupField("group_id").
+				SetOwnerMemberField("owner_member_id").
+				SetMetadataField("metadata").
+				SetStatus("active").
+				SetMetadata(metadata).
+				Save(ctx)
+		} else if err == nil {
+			err = s.ent.ResourceMapping.UpdateOneID(existingMapping.ID).
+				SetStorageKind("plugin_managed").
+				ClearTableName().
+				SetIDField("id").
+				SetSpaceField("space_id").
+				SetGroupField("group_id").
+				SetOwnerMemberField("owner_member_id").
+				ClearVisibilityField().
+				SetMetadataField("metadata").
+				SetStatus("active").
+				SetMetadata(metadata).
+				Exec(ctx)
+		}
+		if err != nil {
 			return err
 		}
 		for _, action := range resource.Actions {
-			if _, err := s.pool.Exec(ctx, `
-				INSERT INTO resource_actions (id, resource_type_id, key, display_name, description, risk_level, audit_default, metadata)
-				VALUES ($1, $2, $3, $4, '', $5, true, $6::jsonb)
-				ON CONFLICT (resource_type_id, key) DO UPDATE SET
-					display_name = EXCLUDED.display_name,
-					risk_level = EXCLUDED.risk_level,
-					audit_default = EXCLUDED.audit_default,
-					metadata = EXCLUDED.metadata,
-					updated_at = now()
-			`, "ra_"+safeIdentifier(manifest.ID+"_"+resource.Key+"_"+action.Key), resourceTypeID, action.Key, titleFromKey(action.Key), firstNonEmpty(action.RiskLevel, "normal"), metadata); err != nil {
+			existingAction, err := s.ent.ResourceAction.Query().Where(entresourceaction.ResourceTypeID(resourceTypeID), entresourceaction.Key(action.Key)).Only(ctx)
+			if coreent.IsNotFound(err) {
+				_, err = s.ent.ResourceAction.Create().
+					SetID("ra_" + safeIdentifier(manifest.ID+"_"+resource.Key+"_"+action.Key)).
+					SetResourceTypeID(resourceTypeID).
+					SetKey(action.Key).
+					SetDisplayName(titleFromKey(action.Key)).
+					SetRiskLevel(firstNonEmpty(action.RiskLevel, "normal")).
+					SetAuditDefault(true).
+					SetMetadata(metadata).
+					Save(ctx)
+			} else if err == nil {
+				err = s.ent.ResourceAction.UpdateOneID(existingAction.ID).
+					SetDisplayName(titleFromKey(action.Key)).
+					SetRiskLevel(firstNonEmpty(action.RiskLevel, "normal")).
+					SetAuditDefault(true).
+					SetMetadata(metadata).
+					Exec(ctx)
+			}
+			if err != nil {
 				return err
 			}
 		}
 	}
 	for _, permission := range manifest.Permissions {
 		for _, scope := range permission.Scopes {
-			if _, err := s.pool.Exec(ctx, `
-				INSERT INTO permissions (id, resource, action, scope)
-				VALUES ($1, $2, $3, $4)
-				ON CONFLICT (resource, action, scope) DO UPDATE SET
-					resource = EXCLUDED.resource,
-					action = EXCLUDED.action,
-					scope = EXCLUDED.scope
-			`, "perm_"+safeIdentifier(manifest.ID+"_"+permission.Resource+"_"+permission.Action+"_"+scope), permission.Resource, permission.Action, scope); err != nil {
+			existingPermission, err := s.ent.Permission.Query().Where(entpermission.Resource(permission.Resource), entpermission.Action(permission.Action), entpermission.Scope(scope)).Only(ctx)
+			if coreent.IsNotFound(err) {
+				_, err = s.ent.Permission.Create().
+					SetID("perm_" + safeIdentifier(manifest.ID+"_"+permission.Resource+"_"+permission.Action+"_"+scope)).
+					SetResource(permission.Resource).
+					SetAction(permission.Action).
+					SetScope(scope).
+					Save(ctx)
+			} else if err == nil {
+				err = s.ent.Permission.UpdateOneID(existingPermission.ID).
+					SetResource(permission.Resource).
+					SetAction(permission.Action).
+					SetScope(scope).
+					Exec(ctx)
+			}
+			if err != nil {
 				return err
 			}
 		}
 	}
 	for _, event := range manifest.AuditEvents {
-		if _, err := s.pool.Exec(ctx, `
-			INSERT INTO audit_event_types (id, key, plugin_id, display_name, description, risk_level, default_audit, metadata)
-			VALUES ($1, $2, $3, $4, '', $5, true, $6::jsonb)
-			ON CONFLICT (key) DO UPDATE SET
-				plugin_id = EXCLUDED.plugin_id,
-				display_name = EXCLUDED.display_name,
-				risk_level = EXCLUDED.risk_level,
-				default_audit = EXCLUDED.default_audit,
-				metadata = EXCLUDED.metadata,
-				updated_at = now()
-		`, "aet_"+safeIdentifier(manifest.ID+"_"+event.Key), event.Key, pluginID, titleFromKey(event.Key), firstNonEmpty(event.RiskLevel, "normal"), metadata); err != nil {
+		existingEvent, err := s.ent.AuditEventType.Query().Where(entauditeventtype.Key(event.Key)).Only(ctx)
+		if coreent.IsNotFound(err) {
+			_, err = s.ent.AuditEventType.Create().
+				SetID("aet_" + safeIdentifier(manifest.ID+"_"+event.Key)).
+				SetKey(event.Key).
+				SetPluginID(pluginID).
+				SetDisplayName(titleFromKey(event.Key)).
+				SetRiskLevel(firstNonEmpty(event.RiskLevel, "normal")).
+				SetDefaultAudit(true).
+				SetMetadata(metadata).
+				Save(ctx)
+		} else if err == nil {
+			err = s.ent.AuditEventType.UpdateOneID(existingEvent.ID).
+				SetPluginID(pluginID).
+				SetDisplayName(titleFromKey(event.Key)).
+				SetRiskLevel(firstNonEmpty(event.RiskLevel, "normal")).
+				SetDefaultAudit(true).
+				SetMetadata(metadata).
+				Exec(ctx)
+		}
+		if err != nil {
 			return err
 		}
 	}
 	for i, menu := range manifest.AdminMenus {
-		if _, err := s.pool.Exec(ctx, `
-			INSERT INTO plugin_admin_menus (id, plugin_id, label, path, icon, required_permission, sort_order, metadata)
-			VALUES ($1, $2, $3, $4, NULL, NULLIF($5, ''), $6, $7::jsonb)
-			ON CONFLICT (id) DO UPDATE SET
-				label = EXCLUDED.label,
-				path = EXCLUDED.path,
-				required_permission = EXCLUDED.required_permission,
-				sort_order = EXCLUDED.sort_order,
-				metadata = EXCLUDED.metadata,
-				updated_at = now()
-		`, "pam_"+safeIdentifier(manifest.ID+"_"+menu.Label), pluginID, menu.Label, menu.Path, menu.RequiredPermission, 1000+i, metadata); err != nil {
+		menuID := "pam_" + safeIdentifier(manifest.ID+"_"+menu.Label)
+		existingMenu, err := s.ent.PluginAdminMenu.Query().Where(entpluginadminmenu.ID(menuID)).Only(ctx)
+		if coreent.IsNotFound(err) {
+			_, err = s.ent.PluginAdminMenu.Create().
+				SetID(menuID).
+				SetPluginID(pluginID).
+				SetLabel(menu.Label).
+				SetPath(menu.Path).
+				SetNillableRequiredPermission(optionalString(menu.RequiredPermission)).
+				SetSortOrder(1000 + i).
+				SetMetadata(metadata).
+				Save(ctx)
+		} else if err == nil {
+			update := s.ent.PluginAdminMenu.UpdateOneID(existingMenu.ID).
+				SetLabel(menu.Label).
+				SetPath(menu.Path).
+				SetSortOrder(1000 + i).
+				SetMetadata(metadata)
+			if menu.RequiredPermission == "" {
+				update.ClearRequiredPermission()
+			} else {
+				update.SetRequiredPermission(menu.RequiredPermission)
+			}
+			err = update.Exec(ctx)
+		}
+		if err != nil {
 			return err
 		}
 	}
 	for _, setting := range manifest.Settings {
 		scope := firstNonEmpty(setting.Scope, "space")
-		if _, err := s.pool.Exec(ctx, `
-			INSERT INTO plugin_settings_definitions (id, plugin_id, key, value_type, default_value, description, scope, metadata)
-			VALUES ($1, $2, $3, $4, 'null'::jsonb, $5, $6, $7::jsonb)
-			ON CONFLICT (plugin_id, key, scope) DO UPDATE SET
-				value_type = EXCLUDED.value_type,
-				description = EXCLUDED.description,
-				metadata = EXCLUDED.metadata,
-				updated_at = now()
-		`, "psd_"+safeIdentifier(manifest.ID+"_"+setting.Key+"_"+scope), pluginID, setting.Key, firstNonEmpty(setting.ValueType, "string"), setting.Description, scope, metadata); err != nil {
+		existingSetting, err := s.ent.PluginSettingsDefinition.Query().Where(entpluginsettingsdefinition.PluginID(pluginID), entpluginsettingsdefinition.Key(setting.Key), entpluginsettingsdefinition.Scope(scope)).Only(ctx)
+		if coreent.IsNotFound(err) {
+			_, err = s.ent.PluginSettingsDefinition.Create().
+				SetID("psd_" + safeIdentifier(manifest.ID+"_"+setting.Key+"_"+scope)).
+				SetPluginID(pluginID).
+				SetKey(setting.Key).
+				SetValueType(firstNonEmpty(setting.ValueType, "string")).
+				SetDefaultValue(map[string]any{}).
+				SetNillableDescription(optionalString(setting.Description)).
+				SetScope(scope).
+				SetMetadata(metadata).
+				Save(ctx)
+		} else if err == nil {
+			update := s.ent.PluginSettingsDefinition.UpdateOneID(existingSetting.ID).
+				SetValueType(firstNonEmpty(setting.ValueType, "string")).
+				SetMetadata(metadata)
+			if setting.Description == "" {
+				update.ClearDescription()
+			} else {
+				update.SetDescription(setting.Description)
+			}
+			err = update.Exec(ctx)
+		}
+		if err != nil {
 			return err
 		}
 	}
@@ -3259,20 +4110,45 @@ func (s *Server) handlePlugins(w http.ResponseWriter, r *http.Request) {
 		writeMethodNotAllowed(w, r)
 		return
 	}
-	rows, err := queryMaps(r.Context(), s.pool, `
-		SELECT p.id, p.key, p.name, p.description, p.version, p.source, p.status,
-			(SELECT count(*) FROM resource_types rt WHERE rt.source = 'plugin:' || p.key) AS resources_count,
-			(SELECT count(*) FROM permissions perm WHERE perm.resource IN (
-				SELECT rt.key FROM resource_types rt WHERE rt.source = 'plugin:' || p.key
-			)) AS permissions_count,
-			(SELECT count(*) FROM plugin_admin_menus pam WHERE pam.plugin_id = p.id) AS admin_menus_count,
-			p.created_at, p.updated_at
-		FROM plugins p
-		ORDER BY p.name
-	`)
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	pluginRows, err := client.Plugin.Query().Order(entplugin.ByName()).All(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list plugins.", err.Error())
 		return
+	}
+	rows := make([]map[string]any, 0, len(pluginRows))
+	for _, pluginRow := range pluginRows {
+		row := pluginMap(pluginRow)
+		resourceTypes, err := client.ResourceType.Query().Where(entresourcetype.Source("plugin:" + pluginRow.Key)).All(r.Context())
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list plugins.", err.Error())
+			return
+		}
+		resourceKeys := make([]string, 0, len(resourceTypes))
+		for _, resourceType := range resourceTypes {
+			resourceKeys = append(resourceKeys, resourceType.Key)
+		}
+		row["resources_count"] = len(resourceTypes)
+		if len(resourceKeys) > 0 {
+			count, err := client.Permission.Query().Where(entpermission.ResourceIn(resourceKeys...)).Count(r.Context())
+			if err != nil {
+				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list plugins.", err.Error())
+				return
+			}
+			row["permissions_count"] = count
+		} else {
+			row["permissions_count"] = 0
+		}
+		count, err := client.PluginAdminMenu.Query().Where(entpluginadminmenu.PluginID(pluginRow.ID)).Count(r.Context())
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list plugins.", err.Error())
+			return
+		}
+		row["admin_menus_count"] = count
+		rows = append(rows, row)
 	}
 	writeList(w, r, http.StatusOK, rows, limitFrom(r, 50))
 }
@@ -3287,39 +4163,168 @@ func (s *Server) handlePluginSubroutes(w http.ResponseWriter, r *http.Request) {
 	pluginKey := parts[0]
 	switch {
 	case len(parts) == 1:
-		s.handleSingleByID(w, r, `SELECT id, key, name, description, version, source, status, manifest, created_at, updated_at FROM plugins WHERE key = $1`, pluginKey, "PLUGIN_NOT_FOUND")
+		if r.Method != http.MethodGet {
+			writeMethodNotAllowed(w, r)
+			return
+		}
+		row, err := s.loadPluginByKey(r.Context(), pluginKey)
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeError(w, r, http.StatusNotFound, "PLUGIN_NOT_FOUND", "Plugin was not found.", nil)
+			return
+		}
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load plugin.", err.Error())
+			return
+		}
+		writeData(w, r, http.StatusOK, row)
 	case len(parts) == 2 && (parts[1] == "enable" || parts[1] == "disable" || parts[1] == "uninstall"):
 		s.handlePluginLifecycle(w, r, pluginKey, parts[1])
 	case len(parts) == 2 && parts[1] == "settings":
 		s.handlePluginSettings(w, r, pluginKey)
 	case len(parts) == 2 && parts[1] == "resources":
-		s.handleQueryList(w, r, `SELECT id, key, display_name, description, status, source, metadata FROM resource_types WHERE source = 'plugin:' || $1 ORDER BY key`, pluginKey)
+		s.handlePluginResources(w, r, pluginKey)
 	case len(parts) == 2 && parts[1] == "permissions":
-		s.handleQueryList(w, r, `
-			SELECT p.id, p.resource, p.action, p.scope, p.created_at
-			FROM permissions p
-			WHERE p.resource IN (SELECT rt.key FROM resource_types rt WHERE rt.source = 'plugin:' || $1)
-			ORDER BY p.resource, p.action, p.scope
-		`, pluginKey)
+		s.handlePluginPermissions(w, r, pluginKey)
 	case len(parts) == 2 && parts[1] == "audit-events":
-		s.handleQueryList(w, r, `
-			SELECT aet.id, aet.key, aet.display_name, aet.description, aet.risk_level, aet.default_audit, aet.metadata
-			FROM audit_event_types aet
-			JOIN plugins p ON p.id = aet.plugin_id
-			WHERE p.key = $1
-			ORDER BY aet.key
-		`, pluginKey)
+		s.handlePluginAuditEvents(w, r, pluginKey)
 	case len(parts) == 2 && parts[1] == "admin-menus":
-		s.handleQueryList(w, r, `
-			SELECT pam.id, pam.label, pam.path, pam.icon, pam.required_permission, pam.sort_order, pam.metadata
-			FROM plugin_admin_menus pam
-			JOIN plugins p ON p.id = pam.plugin_id
-			WHERE p.key = $1
-			ORDER BY pam.sort_order, pam.label
-		`, pluginKey)
+		s.handlePluginAdminMenus(w, r, pluginKey)
 	default:
 		http.NotFound(w, r)
 	}
+}
+
+func (s *Server) loadPluginByKey(ctx context.Context, key string) (map[string]any, error) {
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.Plugin.Query().Where(entplugin.Key(key)).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	if err != nil {
+		return nil, err
+	}
+	return pluginMap(row), nil
+}
+
+func (s *Server) handlePluginResources(w http.ResponseWriter, r *http.Request, pluginKey string) {
+	if r.Method != http.MethodGet {
+		writeMethodNotAllowed(w, r)
+		return
+	}
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	rows, err := client.ResourceType.Query().
+		Where(entresourcetype.Source("plugin:" + pluginKey)).
+		Order(entresourcetype.ByKey()).
+		All(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list plugin resources.", err.Error())
+		return
+	}
+	out := make([]map[string]any, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, resourceTypeMap(row))
+	}
+	writeList(w, r, http.StatusOK, out, limitFrom(r, 50))
+}
+
+func (s *Server) handlePluginPermissions(w http.ResponseWriter, r *http.Request, pluginKey string) {
+	if r.Method != http.MethodGet {
+		writeMethodNotAllowed(w, r)
+		return
+	}
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	resourceTypes, err := client.ResourceType.Query().Where(entresourcetype.Source("plugin:" + pluginKey)).All(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list plugin permissions.", err.Error())
+		return
+	}
+	keys := make([]string, 0, len(resourceTypes))
+	for _, resourceType := range resourceTypes {
+		keys = append(keys, resourceType.Key)
+	}
+	if len(keys) == 0 {
+		writeList(w, r, http.StatusOK, []map[string]any{}, limitFrom(r, 50))
+		return
+	}
+	permissions, err := client.Permission.Query().
+		Where(entpermission.ResourceIn(keys...)).
+		Order(entpermission.ByResource(), entpermission.ByAction(), entpermission.ByScope()).
+		All(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list plugin permissions.", err.Error())
+		return
+	}
+	out := make([]map[string]any, 0, len(permissions))
+	for _, permission := range permissions {
+		out = append(out, permissionMap(permission))
+	}
+	writeList(w, r, http.StatusOK, out, limitFrom(r, 50))
+}
+
+func (s *Server) handlePluginAuditEvents(w http.ResponseWriter, r *http.Request, pluginKey string) {
+	if r.Method != http.MethodGet {
+		writeMethodNotAllowed(w, r)
+		return
+	}
+	pluginID, err := s.loadPluginID(r.Context(), pluginKey)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, r, http.StatusNotFound, "PLUGIN_NOT_FOUND", "Plugin was not found.", nil)
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load plugin.", err.Error())
+		return
+	}
+	rows, err := s.ent.AuditEventType.Query().
+		Where(entauditeventtype.PluginID(pluginID)).
+		Order(entauditeventtype.ByKey()).
+		All(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list plugin audit events.", err.Error())
+		return
+	}
+	out := make([]map[string]any, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, auditEventTypeMap(row))
+	}
+	writeList(w, r, http.StatusOK, out, limitFrom(r, 50))
+}
+
+func (s *Server) handlePluginAdminMenus(w http.ResponseWriter, r *http.Request, pluginKey string) {
+	if r.Method != http.MethodGet {
+		writeMethodNotAllowed(w, r)
+		return
+	}
+	pluginID, err := s.loadPluginID(r.Context(), pluginKey)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, r, http.StatusNotFound, "PLUGIN_NOT_FOUND", "Plugin was not found.", nil)
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load plugin.", err.Error())
+		return
+	}
+	rows, err := s.ent.PluginAdminMenu.Query().
+		Where(entpluginadminmenu.PluginID(pluginID)).
+		Order(entpluginadminmenu.BySortOrder(), entpluginadminmenu.ByLabel()).
+		All(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list plugin admin menus.", err.Error())
+		return
+	}
+	out := make([]map[string]any, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, pluginAdminMenuMap(row))
+	}
+	writeList(w, r, http.StatusOK, out, limitFrom(r, 50))
 }
 
 func (s *Server) handlePluginLifecycle(w http.ResponseWriter, r *http.Request, pluginKey, action string) {
@@ -3332,16 +4337,25 @@ func (s *Server) handlePluginLifecycle(w http.ResponseWriter, r *http.Request, p
 		"disable":   "disabled",
 		"uninstall": "uninstalled",
 	}[action]
-	tag, err := s.pool.Exec(r.Context(), `UPDATE plugins SET status = $2, updated_at = now() WHERE key = $1`, pluginKey, status)
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	pluginRow, err := client.Plugin.Query().Where(entplugin.Key(pluginKey)).Only(r.Context())
+	if coreent.IsNotFound(err) {
+		writeError(w, r, http.StatusNotFound, "PLUGIN_NOT_FOUND", "Plugin was not found.", nil)
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load plugin.", err.Error())
+		return
+	}
+	err = client.Plugin.UpdateOneID(pluginRow.ID).SetStatus(status).Exec(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to update plugin status.", err.Error())
 		return
 	}
-	if tag.RowsAffected() == 0 {
-		writeError(w, r, http.StatusNotFound, "PLUGIN_NOT_FOUND", "Plugin was not found.", nil)
-		return
-	}
-	row, err := queryOneMap(r.Context(), s.pool, `SELECT id, key, name, description, version, source, status, manifest, created_at, updated_at FROM plugins WHERE key = $1`, pluginKey)
+	row, err := s.loadPluginByKey(r.Context(), pluginKey)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load plugin.", err.Error())
 		return
@@ -3387,8 +4401,11 @@ func (s *Server) handlePluginSettings(w http.ResponseWriter, r *http.Request, pl
 			return
 		}
 		for key, value := range req.Settings {
-			var exists bool
-			err := s.pool.QueryRow(r.Context(), `SELECT EXISTS (SELECT 1 FROM plugin_settings_definitions WHERE plugin_id = $1 AND key = $2)`, pluginID, key).Scan(&exists)
+			client, ok := s.requireEnt(w, r)
+			if !ok {
+				return
+			}
+			exists, err := client.PluginSettingsDefinition.Query().Where(entpluginsettingsdefinition.PluginID(pluginID), entpluginsettingsdefinition.Key(key)).Exist(r.Context())
 			if err != nil {
 				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to validate plugin setting.", err.Error())
 				return
@@ -3397,18 +4414,19 @@ func (s *Server) handlePluginSettings(w http.ResponseWriter, r *http.Request, pl
 				writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Unknown plugin setting.", map[string]string{"key": key})
 				return
 			}
-			valueJSON, err := json.Marshal(value)
-			if err != nil {
-				writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Setting value is not JSON serializable.", map[string]string{"key": key})
-				return
+			valueMap := pluginSettingValueMap(value)
+			existing, err := client.PluginSettingsValue.Query().Where(entpluginsettingsvalue.PluginID(pluginID), entpluginsettingsvalue.SpaceID(req.SpaceID), entpluginsettingsvalue.Key(key)).Only(r.Context())
+			if coreent.IsNotFound(err) {
+				_, err = client.PluginSettingsValue.Create().
+					SetID("psv_" + safeIdentifier(pluginID+"_"+req.SpaceID+"_"+key)).
+					SetPluginID(pluginID).
+					SetSpaceID(req.SpaceID).
+					SetKey(key).
+					SetValue(valueMap).
+					Save(r.Context())
+			} else if err == nil {
+				err = client.PluginSettingsValue.UpdateOneID(existing.ID).SetValue(valueMap).Exec(r.Context())
 			}
-			_, err = s.pool.Exec(r.Context(), `
-				INSERT INTO plugin_settings_values (id, plugin_id, space_id, key, value)
-				VALUES ($1, $2, $3, $4, $5::jsonb)
-				ON CONFLICT (plugin_id, space_id, key) DO UPDATE SET
-					value = EXCLUDED.value,
-					updated_at = now()
-			`, "psv_"+safeIdentifier(pluginID+"_"+req.SpaceID+"_"+key), pluginID, req.SpaceID, key, valueJSON)
 			if err != nil {
 				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to update plugin setting.", err.Error())
 				return
@@ -3426,30 +4444,56 @@ func (s *Server) handlePluginSettings(w http.ResponseWriter, r *http.Request, pl
 }
 
 func (s *Server) loadPluginSettings(ctx context.Context, pluginKey, spaceID string) ([]map[string]any, error) {
-	if _, err := s.loadPluginID(ctx, pluginKey); err != nil {
+	pluginID, err := s.loadPluginID(ctx, pluginKey)
+	if err != nil {
 		return nil, err
 	}
-	args := []any{pluginKey}
-	join := `psv.plugin_id = p.id AND psv.key = psd.key AND psv.space_id = ''`
-	if spaceID != "" {
-		args = append(args, spaceID)
-		join = `psv.plugin_id = p.id AND psv.key = psd.key AND psv.space_id = $2`
+	definitions, err := s.ent.PluginSettingsDefinition.Query().
+		Where(entpluginsettingsdefinition.PluginID(pluginID)).
+		Order(entpluginsettingsdefinition.ByKey()).
+		All(ctx)
+	if err != nil {
+		return nil, err
 	}
-	return queryMaps(ctx, s.pool, `
-		SELECT psd.id, psd.key, psd.value_type, psd.default_value, COALESCE(psv.value, psd.default_value) AS value,
-			psd.description, psd.scope, psd.metadata, psd.created_at, psd.updated_at
-		FROM plugin_settings_definitions psd
-		JOIN plugins p ON p.id = psd.plugin_id
-		LEFT JOIN plugin_settings_values psv ON `+join+`
-		WHERE p.key = $1
-		ORDER BY psd.key
-	`, args...)
+	rows := make([]map[string]any, 0, len(definitions))
+	for _, definition := range definitions {
+		value := definition.DefaultValue
+		settingValue, err := s.ent.PluginSettingsValue.Query().
+			Where(entpluginsettingsvalue.PluginID(pluginID), entpluginsettingsvalue.Key(definition.Key), entpluginsettingsvalue.SpaceID(spaceID)).
+			Only(ctx)
+		if err != nil && !coreent.IsNotFound(err) {
+			return nil, err
+		}
+		if settingValue != nil {
+			value = settingValue.Value
+		}
+		rows = append(rows, pluginSettingsDefinitionMap(definition, value))
+	}
+	return rows, nil
 }
 
 func (s *Server) loadPluginID(ctx context.Context, pluginKey string) (string, error) {
-	var pluginID string
-	err := s.pool.QueryRow(ctx, `SELECT id FROM plugins WHERE key = $1`, pluginKey).Scan(&pluginID)
-	return pluginID, err
+	if s.ent == nil {
+		return "", errors.New("ent client is not configured")
+	}
+	pluginRow, err := s.ent.Plugin.Query().Where(entplugin.Key(pluginKey)).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return "", pgx.ErrNoRows
+	}
+	if err != nil {
+		return "", err
+	}
+	return pluginRow.ID, nil
+}
+
+func pluginSettingValueMap(value any) map[string]any {
+	if value == nil {
+		return map[string]any{}
+	}
+	if typed, ok := value.(map[string]any); ok {
+		return typed
+	}
+	return map[string]any{"value": value}
 }
 
 type templateManifest struct {
@@ -3573,7 +4617,7 @@ func (s *Server) handleTemplateInstall(w http.ResponseWriter, r *http.Request, t
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Failed to apply template defaults.", err.Error())
 		return
 	}
-	snapshot, err := json.Marshal(tpl)
+	snapshot, err := templateManifestMap(tpl)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to encode template manifest.", err.Error())
 		return
@@ -3581,12 +4625,20 @@ func (s *Server) handleTemplateInstall(w http.ResponseWriter, r *http.Request, t
 	installationID := "ti_" + safeIdentifier(tpl.ID+"_"+strconv.FormatInt(time.Now().UTC().UnixNano(), 10))
 	installedByUserID := firstNonEmpty(req.InstalledByUserID, req.ActorUserID)
 	installedByMemberID := firstNonEmpty(req.InstalledByMemberID, req.ActorMemberID)
-	_, err = s.pool.Exec(r.Context(), `
-		INSERT INTO template_installations (
-			id, template_id, template_version, space_id, status, manifest_snapshot, installed_by_user_id, installed_by_member_id
-		)
-		VALUES ($1, $2, $3, NULLIF($4, ''), 'installed', $5::jsonb, NULLIF($6, ''), NULLIF($7, ''))
-	`, installationID, tpl.ID, tpl.Version, req.SpaceID, snapshot, installedByUserID, installedByMemberID)
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	_, err = client.TemplateInstallation.Create().
+		SetID(installationID).
+		SetTemplateID(tpl.ID).
+		SetTemplateVersion(tpl.Version).
+		SetNillableSpaceID(optionalString(req.SpaceID)).
+		SetStatus("installed").
+		SetManifestSnapshot(snapshot).
+		SetNillableInstalledByUserID(optionalString(installedByUserID)).
+		SetNillableInstalledByMemberID(optionalString(installedByMemberID)).
+		Save(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to record template installation.", err.Error())
 		return
@@ -3611,6 +4663,18 @@ func (s *Server) validateTemplateCoreVersion(tpl templateManifest) error {
 	return nil
 }
 
+func templateManifestMap(tpl templateManifest) (map[string]any, error) {
+	raw, err := json.Marshal(tpl)
+	if err != nil {
+		return nil, err
+	}
+	var out map[string]any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (s *Server) applyTemplateDefaults(ctx context.Context, tpl templateManifest, req templateInstallRequest) (map[string]any, error) {
 	applied := map[string]any{
 		"spaces":           []string{},
@@ -3623,9 +4687,12 @@ func (s *Server) applyTemplateDefaults(ctx context.Context, tpl templateManifest
 	if targetSpaceID == "" && len(tpl.Spaces) > 0 {
 		targetSpaceID = "space_" + safeIdentifier(tpl.ID+"_"+tpl.Spaces[0].Key)
 	}
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
 	if req.SpaceID != "" {
-		var exists bool
-		if err := s.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM spaces WHERE id = $1)`, req.SpaceID).Scan(&exists); err != nil {
+		exists, err := s.ent.Space.Query().Where(entspace.ID(req.SpaceID), entspace.DeletedAtIsNil()).Exist(ctx)
+		if err != nil {
 			return nil, err
 		}
 		if !exists {
@@ -3635,11 +4702,14 @@ func (s *Server) applyTemplateDefaults(ctx context.Context, tpl templateManifest
 	} else {
 		for _, space := range tpl.Spaces {
 			spaceID := "space_" + safeIdentifier(tpl.ID+"_"+space.Key)
-			if _, err := s.pool.Exec(ctx, `
-				INSERT INTO spaces (id, name, status)
-				VALUES ($1, $2, 'active')
-				ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, status = EXCLUDED.status, updated_at = now()
-			`, spaceID, firstNonEmpty(space.Name, titleFromKey(space.Key))); err != nil {
+			name := firstNonEmpty(space.Name, titleFromKey(space.Key))
+			existing, err := s.ent.Space.Query().Where(entspace.ID(spaceID)).Only(ctx)
+			if coreent.IsNotFound(err) {
+				_, err = s.ent.Space.Create().SetID(spaceID).SetName(name).SetStatus("active").Save(ctx)
+			} else if err == nil {
+				err = s.ent.Space.UpdateOneID(existing.ID).SetName(name).SetStatus("active").Exec(ctx)
+			}
+			if err != nil {
 				return nil, err
 			}
 			applied["spaces"] = append(applied["spaces"].([]string), spaceID)
@@ -3653,11 +4723,27 @@ func (s *Server) applyTemplateDefaults(ctx context.Context, tpl templateManifest
 	}
 	for _, group := range tpl.Groups {
 		groupID := "group_" + safeIdentifier(targetSpaceID+"_"+group.Key)
-		if _, err := s.pool.Exec(ctx, `
-			INSERT INTO groups (id, space_id, parent_group_id, display_name, path, status)
-			VALUES ($1, $2, NULL, $3, $4, 'active')
-			ON CONFLICT (space_id, path) DO UPDATE SET display_name = EXCLUDED.display_name, status = EXCLUDED.status, updated_at = now()
-		`, groupID, targetSpaceID, firstNonEmpty(group.Name, titleFromKey(group.Key)), group.Key); err != nil {
+		name := firstNonEmpty(group.Name, titleFromKey(group.Key))
+		existing, err := s.ent.Group.Query().Where(entgroup.SpaceID(targetSpaceID), entgroup.Path(group.Key)).Only(ctx)
+		if coreent.IsNotFound(err) {
+			_, err = s.ent.Group.Create().
+				SetID(groupID).
+				SetSpaceID(targetSpaceID).
+				SetName(name).
+				SetDisplayName(name).
+				SetPath(group.Key).
+				SetDepth(pathDepth(group.Key)).
+				SetStatus("active").
+				Save(ctx)
+		} else if err == nil {
+			err = s.ent.Group.UpdateOneID(existing.ID).
+				SetName(name).
+				SetDisplayName(name).
+				SetStatus("active").
+				Exec(ctx)
+			groupID = existing.ID
+		}
+		if err != nil {
 			return nil, err
 		}
 		applied["groups"] = append(applied["groups"].([]string), groupID)
@@ -3665,11 +4751,19 @@ func (s *Server) applyTemplateDefaults(ctx context.Context, tpl templateManifest
 	roleIDs := map[string]string{}
 	for _, role := range tpl.Roles {
 		roleID := "role_" + safeIdentifier(targetSpaceID+"_"+role.Key)
-		if _, err := s.pool.Exec(ctx, `
-			INSERT INTO roles (id, space_id, key)
-			VALUES ($1, $2, $3)
-			ON CONFLICT (space_id, key) DO UPDATE SET key = EXCLUDED.key, updated_at = now()
-		`, roleID, targetSpaceID, role.Key); err != nil {
+		existing, err := s.ent.Role.Query().Where(entrole.SpaceID(targetSpaceID), entrole.Key(role.Key)).Only(ctx)
+		if coreent.IsNotFound(err) {
+			_, err = s.ent.Role.Create().
+				SetID(roleID).
+				SetSpaceID(targetSpaceID).
+				SetKey(role.Key).
+				SetName(titleFromKey(role.Key)).
+				Save(ctx)
+		} else if err == nil {
+			err = s.ent.Role.UpdateOneID(existing.ID).SetKey(role.Key).Exec(ctx)
+			roleID = existing.ID
+		}
+		if err != nil {
 			return nil, err
 		}
 		roleIDs[role.Key] = roleID
@@ -3681,22 +4775,38 @@ func (s *Server) applyTemplateDefaults(ctx context.Context, tpl templateManifest
 			return nil, fmt.Errorf("template permission references unknown role %q", permission.Role)
 		}
 		permissionID := "perm_" + safeIdentifier(permission.Resource+"_"+permission.Action+"_"+permission.Scope)
-		if _, err := s.pool.Exec(ctx, `
-			INSERT INTO permissions (id, resource, action, scope)
-			VALUES ($1, $2, $3, $4)
-			ON CONFLICT (resource, action, scope) DO UPDATE SET
-				resource = EXCLUDED.resource,
-				action = EXCLUDED.action,
-				scope = EXCLUDED.scope
-		`, permissionID, permission.Resource, permission.Action, permission.Scope); err != nil {
+		existingPermission, err := s.ent.Permission.Query().Where(entpermission.Resource(permission.Resource), entpermission.Action(permission.Action), entpermission.Scope(permission.Scope)).Only(ctx)
+		if coreent.IsNotFound(err) {
+			_, err = s.ent.Permission.Create().
+				SetID(permissionID).
+				SetResource(permission.Resource).
+				SetAction(permission.Action).
+				SetScope(permission.Scope).
+				Save(ctx)
+		} else if err == nil {
+			permissionID = existingPermission.ID
+			err = s.ent.Permission.UpdateOneID(existingPermission.ID).
+				SetResource(permission.Resource).
+				SetAction(permission.Action).
+				SetScope(permission.Scope).
+				Exec(ctx)
+		}
+		if err != nil {
 			return nil, err
 		}
 		rolePermissionID := "rp_" + safeIdentifier(roleID+"_"+permissionID)
-		if _, err := s.pool.Exec(ctx, `
-			INSERT INTO role_permissions (id, role_id, permission_id)
-			VALUES ($1, $2, $3)
-			ON CONFLICT (role_id, permission_id) DO UPDATE SET updated_at = now()
-		`, rolePermissionID, roleID, permissionID); err != nil {
+		existingRolePermission, err := s.ent.RolePermission.Query().Where(entrolepermission.RoleID(roleID), entrolepermission.PermissionID(permissionID)).Only(ctx)
+		if coreent.IsNotFound(err) {
+			_, err = s.ent.RolePermission.Create().
+				SetID(rolePermissionID).
+				SetRoleID(roleID).
+				SetPermissionID(permissionID).
+				Save(ctx)
+		} else if err == nil {
+			rolePermissionID = existingRolePermission.ID
+			err = s.ent.RolePermission.UpdateOneID(existingRolePermission.ID).ClearDeletedAt().Exec(ctx)
+		}
+		if err != nil {
 			return nil, err
 		}
 		applied["permissions"] = append(applied["permissions"].([]string), permissionID)
@@ -3706,6 +4816,9 @@ func (s *Server) applyTemplateDefaults(ctx context.Context, tpl templateManifest
 }
 
 func (s *Server) writeTemplateInstallAudit(ctx context.Context, tpl templateManifest, req templateInstallRequest, installationID string, applied map[string]any, missing []string) error {
+	if s.ent == nil {
+		return errors.New("ent client is not configured")
+	}
 	actorUserID := firstNonEmpty(req.ActorUserID, req.InstalledByUserID)
 	actorMemberID := firstNonEmpty(req.ActorMemberID, req.InstalledByMemberID)
 	actorUserMemberID := req.ActorUserMemberID
@@ -3717,15 +4830,25 @@ func (s *Server) writeTemplateInstallAudit(ctx context.Context, tpl templateMani
 		}
 	}
 	if actorUserMemberID == "" && actorUserID != "" && actorMemberID != "" {
-		_ = s.pool.QueryRow(ctx, `
-			SELECT id
-			FROM user_members
-			WHERE user_id = $1 AND member_id = $2 AND space_id = $3
-				AND status = 'active'
-				AND (expires_at IS NULL OR expires_at > now())
-			ORDER BY is_primary DESC, created_at DESC
-			LIMIT 1
-		`, actorUserID, actorMemberID, spaceID).Scan(&actorUserMemberID)
+		userMembers, err := s.ent.UserMember.Query().
+			Where(
+				entusermember.UserID(actorUserID),
+				entusermember.MemberID(actorMemberID),
+				entusermember.SpaceID(spaceID),
+				entusermember.Status("active"),
+				entusermember.DeletedAtIsNil(),
+				entusermember.Or(entusermember.ExpiresAtIsNil(), entusermember.ExpiresAtGT(time.Now().UTC())),
+			).
+			All(ctx)
+		if err == nil && len(userMembers) > 0 {
+			sort.SliceStable(userMembers, func(i, j int) bool {
+				if userMembers[i].IsPrimary != userMembers[j].IsPrimary {
+					return userMembers[i].IsPrimary
+				}
+				return userMembers[i].CreatedAt.After(userMembers[j].CreatedAt)
+			})
+			actorUserMemberID = userMembers[0].ID
+		}
 	}
 	if actorUserID == "" || actorMemberID == "" || actorUserMemberID == "" || spaceID == "" {
 		return fmt.Errorf("actor_user_id, actor_member_id, actor_user_member_id, and space_id are required for template install audit")
@@ -3742,33 +4865,40 @@ func (s *Server) writeTemplateInstallAudit(ctx context.Context, tpl templateMani
 			"installation_id": installationID,
 		},
 	}
-	traceJSON, err := json.Marshal(trace)
-	if err != nil {
-		return err
+	if s.ent == nil {
+		return errors.New("ent client is not configured")
 	}
-	_, err = s.pool.Exec(ctx, `
-		INSERT INTO audit_logs (
-			id, space_id, actor_user_id, actor_member_id, actor_user_member_id,
-			action, resource_type, resource_id, decision, trace, request_id
-		)
-		VALUES ($1, $2, $3, $4, $5, 'template.install', 'template', $6, 'allow', $7::jsonb, $8)
-	`, "audit_"+safeIdentifier(installationID), spaceID, actorUserID, actorMemberID, actorUserMemberID, tpl.ID, traceJSON, installationID)
+	_, err := s.ent.AuditLog.Create().
+		SetID("audit_" + safeIdentifier(installationID)).
+		SetSpaceID(spaceID).
+		SetActorUserID(actorUserID).
+		SetActorMemberID(actorMemberID).
+		SetActorUserMemberID(actorUserMemberID).
+		SetAction("template.install").
+		SetResourceType("template").
+		SetResourceID(tpl.ID).
+		SetDecision("allow").
+		SetTrace(trace).
+		SetRequestID(installationID).
+		Save(ctx)
 	return err
 }
 
 func (s *Server) missingTemplatePlugins(ctx context.Context, tpl templateManifest) ([]string, error) {
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
 	missing := []string{}
 	for _, key := range tpl.RequiredPlugins {
-		var status string
-		err := s.pool.QueryRow(ctx, `SELECT status FROM plugins WHERE key = $1`, key).Scan(&status)
-		if errors.Is(err, pgx.ErrNoRows) {
+		pluginRow, err := s.ent.Plugin.Query().Where(entplugin.Key(key)).Only(ctx)
+		if coreent.IsNotFound(err) {
 			missing = append(missing, key)
 			continue
 		}
 		if err != nil {
 			return nil, err
 		}
-		if status != "enabled" && status != "installed" {
+		if pluginRow.Status != "enabled" && pluginRow.Status != "installed" {
 			missing = append(missing, key)
 		}
 	}
@@ -3839,37 +4969,6 @@ func templateByID(id string) (templateManifest, bool) {
 		}
 	}
 	return templateManifest{}, false
-}
-
-func (s *Server) handleQueryList(w http.ResponseWriter, r *http.Request, sql string, args ...any) {
-	if r.Method != http.MethodGet {
-		writeMethodNotAllowed(w, r)
-		return
-	}
-	rows, err := queryMaps(r.Context(), s.pool, sql, args...)
-	if err != nil {
-		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Query failed.", err.Error())
-		return
-	}
-	writeList(w, r, http.StatusOK, rows, limitFrom(r, 50))
-}
-
-func (s *Server) handleSingleByID(w http.ResponseWriter, r *http.Request, sql, id, notFoundCode string, extraArgs ...any) {
-	if r.Method != http.MethodGet {
-		writeMethodNotAllowed(w, r)
-		return
-	}
-	args := append([]any{id}, extraArgs...)
-	row, err := queryOneMap(r.Context(), s.pool, sql, args...)
-	if errors.Is(err, pgx.ErrNoRows) {
-		writeError(w, r, http.StatusNotFound, notFoundCode, "Resource was not found.", nil)
-		return
-	}
-	if err != nil {
-		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Query failed.", err.Error())
-		return
-	}
-	writeData(w, r, http.StatusOK, row)
 }
 
 type contextKey string
@@ -4203,55 +5302,6 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	_ = json.NewEncoder(w).Encode(payload)
 }
 
-func queryOneMap(ctx context.Context, pool *pgxpool.Pool, sql string, args ...any) (map[string]any, error) {
-	rows, err := queryMaps(ctx, pool, sql, args...)
-	if err != nil {
-		return nil, err
-	}
-	if len(rows) == 0 {
-		return nil, pgx.ErrNoRows
-	}
-	return rows[0], nil
-}
-
-func queryMaps(ctx context.Context, pool *pgxpool.Pool, sql string, args ...any) ([]map[string]any, error) {
-	rows, err := pool.Query(ctx, sql, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	fields := rows.FieldDescriptions()
-	var out []map[string]any
-	for rows.Next() {
-		values, err := rows.Values()
-		if err != nil {
-			return nil, err
-		}
-		row := map[string]any{}
-		for i, field := range fields {
-			row[string(field.Name)] = normalizeValue(values[i])
-		}
-		out = append(out, row)
-	}
-	return out, rows.Err()
-}
-
-func normalizeValue(value any) any {
-	switch typed := value.(type) {
-	case []byte:
-		var decoded any
-		if json.Unmarshal(typed, &decoded) == nil {
-			return decoded
-		}
-		return string(typed)
-	case time.Time:
-		return typed.UTC().Format(time.RFC3339)
-	default:
-		return value
-	}
-}
-
 func limitFrom(r *http.Request, fallback int) int {
 	if raw := r.URL.Query().Get("limit"); raw != "" {
 		limit, err := strconv.Atoi(raw)
@@ -4278,13 +5328,6 @@ func derefString(value *string) string {
 	return *value
 }
 
-func nullStringValue(value sql.NullString) string {
-	if !value.Valid {
-		return ""
-	}
-	return value.String
-}
-
 func nonNilMap(value map[string]any) map[string]any {
 	if value == nil {
 		return map[string]any{}
@@ -4304,38 +5347,66 @@ func (s *Server) updateStatus(ctx context.Context, table, id, status string) (ma
 	if !allowedStatusTable(table) {
 		return nil, fmt.Errorf("unsupported status table %s", table)
 	}
-	rows, err := queryMaps(ctx, s.pool, fmt.Sprintf(`
-		UPDATE %s
-		SET status = $2, updated_at = now()
-		WHERE id = $1 AND deleted_at IS NULL
-		RETURNING *
-	`, table), id, status)
-	if err != nil {
-		return nil, err
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
 	}
-	if len(rows) == 0 {
-		return nil, pgx.ErrNoRows
+	switch table {
+	case "users":
+		if err := s.ent.User.UpdateOneID(id).SetStatus(status).Exec(ctx); err != nil {
+			return nil, err
+		}
+		return s.loadUser(ctx, id)
+	case "spaces":
+		if err := s.ent.Space.UpdateOneID(id).SetStatus(status).Exec(ctx); err != nil {
+			return nil, err
+		}
+		return s.loadSpace(ctx, id)
+	case "permissions":
+		if err := s.ent.Permission.UpdateOneID(id).SetStatus(status).Exec(ctx); err != nil {
+			return nil, err
+		}
+		return s.loadPermission(ctx, id)
+	default:
+		return nil, fmt.Errorf("unsupported unscoped status table %s", table)
 	}
-	return rows[0], nil
 }
 
 func (s *Server) updateScopedStatus(ctx context.Context, table, id, spaceID, status string) (map[string]any, error) {
 	if !allowedStatusTable(table) {
 		return nil, fmt.Errorf("unsupported status table %s", table)
 	}
-	rows, err := queryMaps(ctx, s.pool, fmt.Sprintf(`
-		UPDATE %s
-		SET status = $3, updated_at = now()
-		WHERE id = $1 AND space_id = $2 AND deleted_at IS NULL
-		RETURNING *
-	`, table), id, spaceID, status)
-	if err != nil {
-		return nil, err
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
 	}
-	if len(rows) == 0 {
-		return nil, pgx.ErrNoRows
+	switch table {
+	case "groups":
+		if err := s.ent.Group.UpdateOneID(id).SetStatus(status).Exec(ctx); err != nil {
+			return nil, err
+		}
+		return s.loadGroupInSpace(ctx, spaceID, id)
+	case "members":
+		if err := s.ent.Member.UpdateOneID(id).SetStatus(status).Exec(ctx); err != nil {
+			return nil, err
+		}
+		return s.loadMemberInSpace(ctx, spaceID, id)
+	case "roles":
+		if err := s.ent.Role.UpdateOneID(id).SetStatus(status).Exec(ctx); err != nil {
+			return nil, err
+		}
+		return s.loadRoleInSpace(ctx, spaceID, id)
+	case "member_roles":
+		if err := s.ent.MemberRole.UpdateOneID(id).SetStatus(status).Exec(ctx); err != nil {
+			return nil, err
+		}
+		return s.loadMemberRoleInSpace(ctx, spaceID, id)
+	case "resources":
+		if err := s.ent.Resource.UpdateOneID(id).SetStatus(status).Exec(ctx); err != nil {
+			return nil, err
+		}
+		return s.loadResourceInSpace(ctx, spaceID, id)
+	default:
+		return nil, fmt.Errorf("unsupported scoped status table %s", table)
 	}
-	return rows[0], nil
 }
 
 func allowedStatusTable(table string) bool {
@@ -4369,17 +5440,24 @@ func (s *Server) recordMutationAudit(ctx context.Context, r *http.Request, actor
 		"details":    details,
 		"created_at": time.Now().UTC().Format(time.RFC3339),
 	}
-	traceJSON, err := json.Marshal(trace)
-	if err != nil {
+	if s.ent == nil {
 		return
 	}
-	_, _ = s.pool.Exec(ctx, `
-		INSERT INTO audit_logs (id, space_id, actor_user_id, actor_member_id, actor_user_member_id,
-			action, resource_type, resource_id, decision, deny_code, trace, request_id, ip_address, user_agent)
-		VALUES ($1, $2, NULLIF($3, ''), NULLIF($4, ''), NULLIF($5, ''),
-			$6, $7, $8, 'allow', NULL, $9::jsonb, $10, NULLIF($11, ''), NULLIF($12, ''))
-	`, newEntityID("audit"), spaceID, actor.UserID, actor.MemberID, actor.UserMemberID,
-		action, resourceType, resourceID, traceJSON, requestIDFrom(r), remoteIPFrom(r), r.UserAgent())
+	_, _ = s.ent.AuditLog.Create().
+		SetID(newEntityID("audit")).
+		SetSpaceID(spaceID).
+		SetNillableActorUserID(optionalString(actor.UserID)).
+		SetNillableActorMemberID(optionalString(actor.MemberID)).
+		SetNillableActorUserMemberID(optionalString(actor.UserMemberID)).
+		SetAction(action).
+		SetResourceType(resourceType).
+		SetResourceID(resourceID).
+		SetDecision(string(authz.DecisionAllow)).
+		SetTrace(trace).
+		SetNillableRequestID(optionalString(requestIDFrom(r))).
+		SetNillableIPAddress(optionalString(remoteIPFrom(r))).
+		SetNillableUserAgent(optionalString(r.UserAgent())).
+		Save(ctx)
 }
 
 func stringFromMap(values map[string]any, key string) string {
