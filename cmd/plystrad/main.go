@@ -16,6 +16,7 @@ import (
 )
 
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
+const defaultSessionSecret = "change-me-session-secret-at-least-32-characters"
 const defaultJWTSecret = "change-me-to-at-least-32-characters"
 const defaultAdminToken = "change-me-admin-token-at-least-32-characters"
 
@@ -80,9 +81,9 @@ func validateProductionConfig() error {
 	if databaseURL() == defaultDatabaseURL || strings.Contains(databaseURL(), "://plystra:plystra@") {
 		return fmt.Errorf("DATABASE_URL must not use the default development database credentials in production")
 	}
-	jwtSecret := firstEnv("JWT_SECRET", "PLYSTRA_JWT_SECRET")
-	if len(jwtSecret) < 32 || jwtSecret == defaultJWTSecret {
-		return fmt.Errorf("JWT_SECRET must be changed and at least 32 characters in production")
+	sessionSecret := firstEnv("PLYSTRA_SESSION_SECRET", "SESSION_SECRET", "JWT_SECRET", "PLYSTRA_JWT_SECRET")
+	if len(sessionSecret) < 32 || sessionSecret == defaultSessionSecret || sessionSecret == defaultJWTSecret {
+		return fmt.Errorf("PLYSTRA_SESSION_SECRET or JWT_SECRET must be changed and at least 32 characters in production")
 	}
 	adminToken := firstEnv("PLYSTRA_ADMIN_TOKEN", "ADMIN_TOKEN")
 	if len(adminToken) < 32 || adminToken == defaultAdminToken {

@@ -199,7 +199,8 @@ The demo writes audit logs for both `allow` and `deny` decisions. `audit_logs.tr
 ## Production Notes
 
 - Run `make migrate` before starting or upgrading `plystrad`.
-- Use `SERVER_MODE=production`, `DATABASE_URL`, a strong `JWT_SECRET`, a strong `PLYSTRA_ADMIN_TOKEN`, explicit `CORS_ALLOWED_ORIGINS`, and a stable non-localhost `SERVER_PUBLIC_URL`.
+- Use `SERVER_MODE=production`, `DATABASE_URL`, a strong `PLYSTRA_SESSION_SECRET` (or compatibility alias `JWT_SECRET`), a strong `PLYSTRA_ADMIN_TOKEN`, explicit `CORS_ALLOWED_ORIGINS`, and a stable non-localhost `SERVER_PUBLIC_URL`.
+- Plystra v1.0 uses opaque bearer sessions; the session secret HMACs stored token hashes and is not used to issue JWT claims.
 - Put Plystra Core behind a reverse proxy such as Caddy, Nginx, or a managed load balancer for TLS termination.
 - Back up PostgreSQL regularly; audit logs are append-only and should have an explicit retention/export plan.
 - Do not run Ent auto migration in production. Use versioned migrations through `plystractl migrate up`.

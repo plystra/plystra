@@ -387,8 +387,17 @@ func newToken(prefix string) string {
 }
 
 func tokenHash(token string) string {
+	if secret := sessionTokenSecret(); secret != "" {
+		mac := hmac.New(sha256.New, []byte(secret))
+		_, _ = mac.Write([]byte(token))
+		return hex.EncodeToString(mac.Sum(nil))
+	}
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
+}
+
+func sessionTokenSecret() string {
+	return firstEnv("PLYSTRA_SESSION_SECRET", "SESSION_SECRET", "JWT_SECRET", "PLYSTRA_JWT_SECRET")
 }
 
 func verifyPassword(password, encoded string) bool {

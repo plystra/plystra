@@ -731,8 +731,9 @@ func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load created User.", err.Error())
 			return
 		}
-		s.recordMutationAudit(r.Context(), r, req.Actor, req.AuditSpaceID, "user.created", "user", req.ID, row)
-		writeData(w, r, http.StatusCreated, row)
+		response := userResponse(row)
+		s.recordMutationAudit(r.Context(), r, req.Actor, req.AuditSpaceID, "user.created", "user", req.ID, response)
+		writeData(w, r, http.StatusCreated, response)
 	case http.MethodGet:
 		limit := limitFrom(r, 50)
 		rows, err := queryMaps(r.Context(), s.pool, `
@@ -772,7 +773,7 @@ func (s *Server) handleUserSubroutes(w http.ResponseWriter, r *http.Request) {
 				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load User.", err.Error())
 				return
 			}
-			writeData(w, r, http.StatusOK, row)
+			writeData(w, r, http.StatusOK, userResponse(row))
 		case http.MethodPatch:
 			var req userMutationRequest
 			if !decodeJSON(w, r, &req) {
@@ -821,8 +822,9 @@ func (s *Server) handleUserSubroutes(w http.ResponseWriter, r *http.Request) {
 				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load updated User.", err.Error())
 				return
 			}
-			s.recordMutationAudit(r.Context(), r, req.Actor, req.AuditSpaceID, "user.updated", "user", userID, row)
-			writeData(w, r, http.StatusOK, row)
+			response := userResponse(row)
+			s.recordMutationAudit(r.Context(), r, req.Actor, req.AuditSpaceID, "user.updated", "user", userID, response)
+			writeData(w, r, http.StatusOK, response)
 		default:
 			writeMethodNotAllowed(w, r)
 		}
@@ -848,8 +850,9 @@ func (s *Server) handleUserSubroutes(w http.ResponseWriter, r *http.Request) {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to update User status.", err.Error())
 			return
 		}
-		s.recordMutationAudit(r.Context(), r, req.Actor, req.AuditSpaceID, action, "user", userID, row)
-		writeData(w, r, http.StatusOK, row)
+		response := userResponse(row)
+		s.recordMutationAudit(r.Context(), r, req.Actor, req.AuditSpaceID, action, "user", userID, response)
+		writeData(w, r, http.StatusOK, response)
 		return
 	}
 	http.NotFound(w, r)
@@ -861,6 +864,20 @@ func (s *Server) loadUser(ctx context.Context, id string) (map[string]any, error
 		FROM users
 		WHERE id = $1 AND deleted_at IS NULL
 	`, id)
+}
+
+func userResponse(row map[string]any) map[string]any {
+	if row == nil {
+		return nil
+	}
+	response := make(map[string]any, len(row))
+	for key, value := range row {
+		if key == "password_hash" {
+			continue
+		}
+		response[key] = value
+	}
+	return response
 }
 
 func (s *Server) handleSpaces(w http.ResponseWriter, r *http.Request) {

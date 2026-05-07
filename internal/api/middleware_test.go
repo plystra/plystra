@@ -220,6 +220,44 @@ func TestHTTPAuthzIgnoresClientSuppliedAuditMetadata(t *testing.T) {
 	}
 }
 
+func TestUserResponseNeverIncludesPasswordHash(t *testing.T) {
+	row := map[string]any{
+		"id":            "user_alice",
+		"email":         "alice@example.com",
+		"password_hash": "hashed-secret",
+		"status":        "active",
+	}
+
+	response := userResponse(row)
+
+	if _, ok := response["password_hash"]; ok {
+		t.Fatalf("user response leaked password_hash: %#v", response)
+	}
+	if row["password_hash"] != "hashed-secret" {
+		t.Fatalf("userResponse mutated the persistence row: %#v", row)
+	}
+	response["email"] = "changed@example.com"
+	if row["email"] == response["email"] {
+		t.Fatalf("userResponse did not return an isolated DTO copy")
+	}
+}
+
+func TestTokenHashUsesConfiguredSessionSecret(t *testing.T) {
+	t.Setenv("JWT_SECRET", "legacy-session-secret-at-least-32-characters")
+	t.Setenv("PLYSTRA_SESSION_SECRET", "primary-session-secret-at-least-32-characters")
+
+	primaryHash := tokenHash("ply_at_test_token")
+	if sessionTokenSecret() != "primary-session-secret-at-least-32-characters" {
+		t.Fatalf("session token secret did not prefer PLYSTRA_SESSION_SECRET")
+	}
+
+	t.Setenv("PLYSTRA_SESSION_SECRET", "rotated-session-secret-at-least-32-characters")
+	rotatedHash := tokenHash("ply_at_test_token")
+	if primaryHash == rotatedHash {
+		t.Fatalf("token hash did not change when the session secret changed")
+	}
+}
+
 type captureAuthzStore struct {
 	lastDecision authz.Decision
 }
