@@ -51,6 +51,9 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/v1/auth/refresh", s.handleAuthRefresh)
 	mux.HandleFunc("/api/v1/actor/context", s.handleActorContext)
 	mux.HandleFunc("/api/v1/actor/switch-member", s.handleActorSwitchMember)
+	mux.HandleFunc("/api/v1/admin/me", s.handleAdminMe)
+	mux.HandleFunc("/api/v1/admin/grants", s.handleAdminGrants)
+	mux.HandleFunc("/api/v1/admin/grants/", s.handleAdminGrantSubroutes)
 	mux.HandleFunc("/api/v1/authz/check", s.handleAuthzCheck)
 	mux.HandleFunc("/api/v1/authz/explain", s.handleAuthzExplain)
 	mux.HandleFunc("/api/v1/audit/logs", s.handleAuditLogs)
@@ -81,5 +84,5 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/v1/plugins/", s.handlePluginSubroutes)
 	mux.HandleFunc("/api/v1/templates", s.handleTemplates)
 	mux.HandleFunc("/api/v1/templates/", s.handleTemplateSubroutes)
-	return requestMiddleware(mux)
+	return s.requestMiddleware(mux)
 }

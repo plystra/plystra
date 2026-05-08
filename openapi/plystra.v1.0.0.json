@@ -142,11 +142,11 @@
       }
     },
     "securitySchemes": {
-      "AdminToken": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "X-Plystra-Admin-Token",
-        "description": "Required for non-public Core API routes."
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "opaque-session-token",
+        "description": "Required for non-public Core API routes. The session user must hold an active admin grant."
       }
     }
   },
@@ -210,6 +210,84 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "Create a user session",
+        "responses": {
+          "200": {
+            "description": "Bearer access token and refresh token"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "summary": "Rotate an access token using a refresh token",
+        "responses": {
+          "200": {
+            "description": "New Bearer access token"
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "summary": "Revoke the current session token",
+        "responses": {
+          "200": {
+            "description": "Session revoked"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/me": {
+      "get": {
+        "summary": "Get current admin grant context",
+        "responses": {
+          "200": {
+            "description": "Current session and admin grants"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/grants": {
+      "get": {
+        "summary": "List AdminGrants",
+        "responses": {
+          "200": {
+            "description": "AdminGrant list"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create AdminGrant",
+        "responses": {
+          "201": {
+            "description": "Created AdminGrant"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/grants/{admin_grant_id}": {
+      "get": {
+        "summary": "Get AdminGrant",
+        "responses": {
+          "200": {
+            "description": "AdminGrant detail"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/grants/{admin_grant_id}/revoke": {
+      "post": {
+        "summary": "Revoke AdminGrant",
+        "responses": {
+          "200": {
+            "description": "Revoked AdminGrant"
           }
         }
       }

@@ -30,6 +30,9 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 		"/api/v1/ready",
 		"/api/v1/version",
 		"/system/health",
+		"/api/v1/auth/login",
+		"/api/v1/admin/me",
+		"/api/v1/admin/grants",
 		"/api/v1/authz/check",
 		"/api/v1/authz/explain",
 		"/api/v1/users",
@@ -67,7 +70,7 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 	if _, ok := errEnvelope["meta"]; !ok {
 		t.Fatalf("ErrorEnvelope.meta is missing")
 	}
-	if _, ok := doc.Components.SecuritySchemes["AdminToken"]; !ok {
-		t.Fatalf("OpenAPI AdminToken security scheme is missing")
+	if _, ok := doc.Components.SecuritySchemes["BearerAuth"]; !ok {
+		t.Fatalf("OpenAPI BearerAuth security scheme is missing")
 	}
 }

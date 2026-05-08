@@ -18,7 +18,6 @@ import (
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
 const defaultSessionSecret = "change-me-session-secret-at-least-32-characters"
 const defaultJWTSecret = "change-me-to-at-least-32-characters"
-const defaultAdminToken = "change-me-admin-token-at-least-32-characters"
 
 func main() {
 	ctx := context.Background()
@@ -84,10 +83,6 @@ func validateProductionConfig() error {
 	sessionSecret := firstEnv("PLYSTRA_SESSION_SECRET", "SESSION_SECRET", "JWT_SECRET", "PLYSTRA_JWT_SECRET")
 	if len(sessionSecret) < 32 || sessionSecret == defaultSessionSecret || sessionSecret == defaultJWTSecret {
 		return fmt.Errorf("PLYSTRA_SESSION_SECRET or JWT_SECRET must be changed and at least 32 characters in production")
-	}
-	adminToken := firstEnv("PLYSTRA_ADMIN_TOKEN", "ADMIN_TOKEN")
-	if len(adminToken) < 32 || adminToken == defaultAdminToken {
-		return fmt.Errorf("PLYSTRA_ADMIN_TOKEN must be changed and at least 32 characters in production")
 	}
 	corsOrigins := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS"))
 	if corsOrigins == "" || wildcardListContains(corsOrigins) {

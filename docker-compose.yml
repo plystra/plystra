@@ -16,7 +16,6 @@ services:
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       PLYSTRA_SESSION_SECRET: ${PLYSTRA_SESSION_SECRET:-change-me-session-secret-at-least-32-characters}
       JWT_SECRET: ${JWT_SECRET:-change-me-to-at-least-32-characters}
-      PLYSTRA_ADMIN_TOKEN: ${PLYSTRA_ADMIN_TOKEN:-change-me-admin-token-at-least-32-characters}
       DATA_CONSOLE_ENABLED: ${DATA_CONSOLE_ENABLED:-false}
       METRICS_ENABLED: ${METRICS_ENABLED:-false}
       METRICS_TOKEN: ${METRICS_TOKEN:-}

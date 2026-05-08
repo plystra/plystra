@@ -215,7 +215,7 @@ func (s *Server) loadUser(ctx context.Context, id string) (map[string]any, error
 	if err != nil {
 		return nil, err
 	}
-	return userMap(row), nil
+	return userPersistenceMap(row), nil
 }
 
 func userResponse(row map[string]any) map[string]any {

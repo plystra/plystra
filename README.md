@@ -28,10 +28,12 @@ Default local database URL:
 $env:PLYSTRA_DATABASE_URL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
 ```
 
-Non-public API routes require the bootstrap admin token:
+Non-public API routes require a Bearer session for a user with an active admin grant. The demo seed makes Alice the local instance super admin:
 
-```http
-X-Plystra-Admin-Token: <PLYSTRA_ADMIN_TOKEN>
+```powershell
+$login = Invoke-RestMethod -Method Post http://localhost:8080/api/v1/auth/login -ContentType "application/json" -Body '{"email":"alice@example.com","password":"plystra-demo"}'
+$token = $login.data.access_token
+Invoke-RestMethod -Headers @{ Authorization = "Bearer $token" } http://localhost:8080/api/v1/admin/me
 ```
 
 ## Development

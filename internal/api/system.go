@@ -20,7 +20,7 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusNotFound, "FEATURE_DISABLED", "Metrics endpoint is disabled.", nil)
 		return
 	}
-	if !metricsAuthorized(r) {
+	if !s.metricsAuthorized(r) {
 		writeError(w, r, http.StatusUnauthorized, "METRICS_TOKEN_REQUIRED", "A valid metrics token is required.", nil)
 		return
 	}

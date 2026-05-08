@@ -10,11 +10,13 @@ import (
 	"testing"
 	"time"
 
+	coreent "github.com/plystra/plystra/ent"
 	"github.com/plystra/plystra/internal/authz"
 )
 
 func TestResponseEnvelopeRequestIDCompatibility(t *testing.T) {
-	handler := requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
+	handler := server.requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeData(w, r, http.StatusOK, map[string]any{"ok": true})
 	}))
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
@@ -43,7 +45,8 @@ func TestResponseEnvelopeRequestIDCompatibility(t *testing.T) {
 }
 
 func TestErrorEnvelopeIncludesMetaRequestID(t *testing.T) {
-	handler := requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
+	handler := server.requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "bad request", nil)
 	}))
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
@@ -70,7 +73,8 @@ func TestErrorEnvelopeIncludesMetaRequestID(t *testing.T) {
 
 func TestRecoveryHidesPanicDetailsInProduction(t *testing.T) {
 	t.Setenv("SERVER_MODE", "production")
-	handler := requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
+	handler := server.requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		panic("secret panic detail")
 	}))
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
@@ -130,29 +134,30 @@ func TestStructuredLogContainsReleaseFields(t *testing.T) {
 	}
 }
 
-func TestAdminTokenProtectsSensitiveRoutes(t *testing.T) {
-	t.Setenv("PLYSTRA_ADMIN_TOKEN", "test-admin-token-at-least-32-characters")
-	handler := requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func TestBearerSessionProtectsSensitiveRoutes(t *testing.T) {
+	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
+	handler := server.requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeData(w, r, http.StatusOK, map[string]any{"ok": true})
 	}))
 
 	unauthorized := httptest.NewRecorder()
 	handler.ServeHTTP(unauthorized, httptest.NewRequest(http.MethodGet, "/api/v1/audit-logs", nil))
 	if unauthorized.Code != http.StatusUnauthorized {
-		t.Fatalf("status without admin token = %d, want %d", unauthorized.Code, http.StatusUnauthorized)
+		t.Fatalf("status without bearer session = %d, want %d", unauthorized.Code, http.StatusUnauthorized)
 	}
 
-	authorizedReq := httptest.NewRequest(http.MethodGet, "/api/v1/audit-logs", nil)
-	authorizedReq.Header.Set("X-Plystra-Admin-Token", "test-admin-token-at-least-32-characters")
-	authorized := httptest.NewRecorder()
-	handler.ServeHTTP(authorized, authorizedReq)
-	if authorized.Code != http.StatusOK {
-		t.Fatalf("status with admin token = %d, want %d", authorized.Code, http.StatusOK)
+	tokenReq := httptest.NewRequest(http.MethodGet, "/api/v1/audit-logs", nil)
+	tokenReq.Header.Set("X-Plystra-Admin-Token", "test-admin-token-at-least-32-characters")
+	tokenRec := httptest.NewRecorder()
+	handler.ServeHTTP(tokenRec, tokenReq)
+	if tokenRec.Code != http.StatusUnauthorized {
+		t.Fatalf("status with legacy admin token header = %d, want %d", tokenRec.Code, http.StatusUnauthorized)
 	}
 }
 
-func TestPublicOperationalRoutesDoNotRequireAdminToken(t *testing.T) {
-	handler := requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func TestPublicOperationalRoutesDoNotRequireBearerSession(t *testing.T) {
+	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
+	handler := server.requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeData(w, r, http.StatusOK, map[string]any{"ok": true})
 	}))
 	for _, path := range []string{"/api/v1/health", "/api/v1/ready", "/api/v1/version", "/system/health"} {
@@ -161,6 +166,45 @@ func TestPublicOperationalRoutesDoNotRequireAdminToken(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Fatalf("%s status = %d, want %d", path, rec.Code, http.StatusOK)
 		}
+	}
+}
+
+func TestAdminGrantPermissionMatching(t *testing.T) {
+	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
+	for _, tc := range []struct {
+		name        string
+		grant       *coreent.AdminGrant
+		requirement adminRequirement
+		want        bool
+	}{
+		{
+			name:        "super admin allows everything",
+			grant:       &coreent.AdminGrant{Level: adminLevelInstanceSuper, PermissionKey: "users:read"},
+			requirement: adminRequirement{PermissionKey: "templates:manage"},
+			want:        true,
+		},
+		{
+			name:        "instance admin manage implies read",
+			grant:       &coreent.AdminGrant{Level: adminLevelInstance, PermissionKey: "users:manage"},
+			requirement: adminRequirement{PermissionKey: "users:read"},
+			want:        true,
+		},
+		{
+			name:        "instance admin does not cross permission domain",
+			grant:       &coreent.AdminGrant{Level: adminLevelInstance, PermissionKey: "users:read"},
+			requirement: adminRequirement{PermissionKey: "spaces:read"},
+			want:        false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := server.adminGrantAllows(context.Background(), tc.grant, tc.requirement)
+			if err != nil {
+				t.Fatalf("adminGrantAllows error: %v", err)
+			}
+			if got != tc.want {
+				t.Fatalf("allowed = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
 

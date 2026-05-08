@@ -4,19 +4,25 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type contextKey string
 
-const requestIDKey contextKey = "request_id"
+const (
+	requestIDKey      contextKey = "request_id"
+	adminPrincipalKey contextKey = "admin_principal"
+)
 
-func requestMiddleware(next http.Handler) http.Handler {
+func (s *Server) requestMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		recorder := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
@@ -25,7 +31,7 @@ func requestMiddleware(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Vary", "Origin")
 		}
-		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-ID, X-Plystra-Admin-Token, X-Plystra-Metrics-Token")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-ID, X-Plystra-Metrics-Token")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
 		requestID := r.Header.Get(requestIDHeader())
 		if requestID == "" {
@@ -48,15 +54,26 @@ func requestMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		if !publicRoute(ctxReq) {
-			token := adminToken()
-			if token == "" {
-				writeError(recorder, ctxReq, http.StatusServiceUnavailable, "ADMIN_TOKEN_NOT_CONFIGURED", "Admin token is not configured.", nil)
+			session, err := s.sessionFromRequest(ctxReq.Context(), ctxReq)
+			if errors.Is(err, pgx.ErrNoRows) {
+				writeError(recorder, ctxReq, http.StatusUnauthorized, "AUTHENTICATION_REQUIRED", "A valid access token is required.", nil)
 				return
 			}
-			if !adminAuthorized(ctxReq) {
-				writeError(recorder, ctxReq, http.StatusUnauthorized, "ADMIN_TOKEN_REQUIRED", "A valid admin token is required.", nil)
+			if err != nil {
+				writeError(recorder, ctxReq, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load session.", err.Error())
 				return
 			}
+			requirement := adminRequirementFor(ctxReq.Method, ctxReq.URL.Path, ctxReq.URL.Query().Get("space_id"))
+			principal, allowed, err := s.adminSessionAllowed(ctxReq.Context(), session, requirement)
+			if err != nil {
+				writeError(recorder, ctxReq, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate admin permissions.", err.Error())
+				return
+			}
+			if !allowed {
+				writeError(recorder, ctxReq, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "The current user does not have the required admin permission.", map[string]any{"permission": requirement.PermissionKey})
+				return
+			}
+			ctxReq = ctxReq.WithContext(context.WithValue(ctxReq.Context(), adminPrincipalKey, principal))
 		}
 		next.ServeHTTP(recorder, ctxReq)
 	})
@@ -137,24 +154,7 @@ func publicRoute(r *http.Request) bool {
 	return r.Method == http.MethodGet && path == "/api/v1/actor/context"
 }
 
-func adminAuthorized(r *http.Request) bool {
-	configured := adminToken()
-	if configured == "" {
-		return false
-	}
-	for _, provided := range []string{
-		strings.TrimSpace(r.Header.Get("X-Plystra-Admin-Token")),
-		strings.TrimSpace(r.Header.Get("X-Admin-Token")),
-		bearerToken(r),
-	} {
-		if constantTimeStringEqual(provided, configured) {
-			return true
-		}
-	}
-	return false
-}
-
-func metricsAuthorized(r *http.Request) bool {
+func (s *Server) metricsAuthorized(r *http.Request) bool {
 	configured := firstEnv("METRICS_TOKEN", "PLYSTRA_METRICS_TOKEN")
 	if configured != "" {
 		for _, provided := range []string{
@@ -168,11 +168,12 @@ func metricsAuthorized(r *http.Request) bool {
 		}
 		return false
 	}
-	return adminAuthorized(r)
-}
-
-func adminToken() string {
-	return strings.TrimSpace(firstEnv("PLYSTRA_ADMIN_TOKEN", "ADMIN_TOKEN"))
+	session, err := s.sessionFromRequest(r.Context(), r)
+	if err != nil {
+		return false
+	}
+	_, allowed, err := s.adminSessionAllowed(r.Context(), session, adminRequirement{PermissionKey: "metrics:read"})
+	return err == nil && allowed
 }
 
 func constantTimeStringEqual(left, right string) bool {

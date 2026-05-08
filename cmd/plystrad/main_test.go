@@ -29,7 +29,6 @@ func setValidProductionEnv(t *testing.T) {
 	t.Setenv("SERVER_MODE", "production")
 	t.Setenv("DATABASE_URL", "postgres://prod_user:prod_password@db.example.com:5432/plystra?sslmode=require")
 	t.Setenv("PLYSTRA_SESSION_SECRET", "production-session-secret-at-least-32-characters")
-	t.Setenv("PLYSTRA_ADMIN_TOKEN", "production-admin-token-at-least-32-characters")
 	t.Setenv("CORS_ALLOWED_ORIGINS", "https://console.example.com")
 	t.Setenv("SERVER_PUBLIC_URL", "https://plystra.example.com")
 }

@@ -26,7 +26,6 @@ import (
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
 const defaultSessionSecret = "change-me-session-secret-at-least-32-characters"
 const defaultJWTSecret = "change-me-to-at-least-32-characters"
-const defaultAdminToken = "change-me-admin-token-at-least-32-characters"
 
 type migrationFile struct {
 	Version  string
@@ -94,7 +93,7 @@ func runEnt(ctx context.Context, command string) error {
 			"member_roles", "role_permissions", "resources", "audit_logs", "resource_types",
 			"resource_actions", "resource_mappings", "plugins", "plugin_admin_menus",
 			"plugin_settings_definitions", "plugin_settings_values", "audit_event_types",
-			"background_jobs", "template_installations", "sessions",
+			"background_jobs", "template_installations", "sessions", "admin_grants",
 		}
 		for _, table := range tables {
 			var exists bool
@@ -237,10 +236,6 @@ func runDoctor(ctx context.Context) error {
 	if len(sessionSecret) < 32 || sessionSecret == defaultSessionSecret || sessionSecret == defaultJWTSecret {
 		fmt.Println("warning: PLYSTRA_SESSION_SECRET or JWT_SECRET is unset, default, or shorter than 32 characters")
 	}
-	adminToken := firstEnv("PLYSTRA_ADMIN_TOKEN", "ADMIN_TOKEN")
-	if len(adminToken) < 32 || adminToken == defaultAdminToken {
-		fmt.Println("warning: PLYSTRA_ADMIN_TOKEN is unset, default, or shorter than 32 characters")
-	}
 	return nil
 }
 
@@ -257,10 +252,6 @@ func validateDoctorConfig(mode string) error {
 	sessionSecret := firstEnv("PLYSTRA_SESSION_SECRET", "SESSION_SECRET", "JWT_SECRET", "PLYSTRA_JWT_SECRET")
 	if len(sessionSecret) < 32 || sessionSecret == defaultSessionSecret || sessionSecret == defaultJWTSecret {
 		return fmt.Errorf("PLYSTRA_SESSION_SECRET or JWT_SECRET must be changed and at least 32 characters in production")
-	}
-	adminToken := firstEnv("PLYSTRA_ADMIN_TOKEN", "ADMIN_TOKEN")
-	if len(adminToken) < 32 || adminToken == defaultAdminToken {
-		return fmt.Errorf("PLYSTRA_ADMIN_TOKEN must be changed and at least 32 characters in production")
 	}
 	corsOrigins := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS"))
 	if corsOrigins == "" || wildcardListContains(corsOrigins) {

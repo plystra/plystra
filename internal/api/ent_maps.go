@@ -19,16 +19,43 @@ func optionalTime(value *time.Time) any {
 
 func userMap(row *coreent.User) map[string]any {
 	return map[string]any{
-		"id":            row.ID,
-		"email":         row.Email,
-		"username":      derefString(row.Username),
-		"phone":         derefString(row.Phone),
-		"password_hash": derefString(row.PasswordHash),
-		"status":        row.Status,
-		"metadata":      nonNilMap(row.Metadata),
-		"created_at":    formatTime(row.CreatedAt),
-		"updated_at":    formatTime(row.UpdatedAt),
-		"deleted_at":    optionalTime(row.DeletedAt),
+		"id":         row.ID,
+		"email":      row.Email,
+		"username":   derefString(row.Username),
+		"phone":      derefString(row.Phone),
+		"status":     row.Status,
+		"metadata":   nonNilMap(row.Metadata),
+		"created_at": formatTime(row.CreatedAt),
+		"updated_at": formatTime(row.UpdatedAt),
+		"deleted_at": optionalTime(row.DeletedAt),
+	}
+}
+
+func userPersistenceMap(row *coreent.User) map[string]any {
+	out := userMap(row)
+	out["password_hash"] = derefString(row.PasswordHash)
+	return out
+}
+
+func adminGrantMap(row *coreent.AdminGrant) map[string]any {
+	return map[string]any{
+		"id":                   row.ID,
+		"user_id":              row.UserID,
+		"member_id":            derefString(row.MemberID),
+		"space_id":             derefString(row.SpaceID),
+		"group_id":             derefString(row.GroupID),
+		"level":                row.Level,
+		"permission_key":       row.PermissionKey,
+		"status":               row.Status,
+		"granted_by_user_id":   derefString(row.GrantedByUserID),
+		"granted_by_member_id": derefString(row.GrantedByMemberID),
+		"expires_at":           optionalTime(row.ExpiresAt),
+		"revoked_at":           optionalTime(row.RevokedAt),
+		"revoked_reason":       derefString(row.RevokedReason),
+		"metadata":             nonNilMap(row.Metadata),
+		"created_at":           formatTime(row.CreatedAt),
+		"updated_at":           formatTime(row.UpdatedAt),
+		"deleted_at":           optionalTime(row.DeletedAt),
 	}
 }
 
