@@ -2,6 +2,7 @@ package api
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
@@ -9,6 +10,18 @@ import (
 	"strconv"
 	"strings"
 )
+
+const passwordHashIterations = 120000
+
+func hashPassword(password string) (string, error) {
+	var salt [16]byte
+	if _, err := rand.Read(salt[:]); err != nil {
+		return "", err
+	}
+	encodedSalt := hex.EncodeToString(salt[:])
+	key := pbkdf2Key([]byte(password), []byte(encodedSalt), passwordHashIterations, sha256.Size, sha256.New)
+	return "pbkdf2_sha256$" + strconv.Itoa(passwordHashIterations) + "$" + encodedSalt + "$" + hex.EncodeToString(key), nil
+}
 
 func verifyPassword(password, encoded string) bool {
 	parts := strings.Split(encoded, "$")

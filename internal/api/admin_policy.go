@@ -108,7 +108,13 @@ func adminRequirementFor(method, path, querySpaceID string) adminRequirement {
 		return adminRequirement{PermissionKey: "resources:" + readOrManage, SpaceID: querySpaceID}
 	}
 	if strings.HasPrefix(path, "/api/v1/resources/") {
-		return adminRequirement{PermissionKey: "resources:" + readOrManage, EntityKind: "resource", EntityID: strings.TrimPrefix(path, "/api/v1/resources/")}
+		resourcePath := strings.TrimPrefix(path, "/api/v1/resources/")
+		resourceParts := pathParts(resourcePath)
+		resourceID := resourcePath
+		if len(resourceParts) >= 2 {
+			resourceID = resourceParts[len(resourceParts)-1]
+		}
+		return adminRequirement{PermissionKey: "resources:" + readOrManage, EntityKind: "resource", EntityID: resourceID}
 	}
 	if strings.HasPrefix(path, "/api/v1/data/") {
 		return adminRequirement{PermissionKey: "data:" + readOrManage}

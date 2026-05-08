@@ -208,6 +208,19 @@ func TestAdminGrantPermissionMatching(t *testing.T) {
 	}
 }
 
+func TestAdminRequirementParsesTypedResourceDetailPath(t *testing.T) {
+	req := adminRequirementFor(http.MethodGet, "/api/v1/resources/invoice/invoice_001", "")
+	if req.PermissionKey != "resources:read" {
+		t.Fatalf("permission = %q, want resources:read", req.PermissionKey)
+	}
+	if req.EntityKind != "resource" {
+		t.Fatalf("entity kind = %q, want resource", req.EntityKind)
+	}
+	if req.EntityID != "invoice_001" {
+		t.Fatalf("entity id = %q, want invoice_001", req.EntityID)
+	}
+}
+
 func TestDataConsoleAndMetricsDisabledByDefault(t *testing.T) {
 	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
 
@@ -286,6 +299,20 @@ func TestUserResponseNeverIncludesPasswordHash(t *testing.T) {
 	}
 }
 
+func TestPasswordHashInputIsIgnoredWithoutPlaintextPassword(t *testing.T) {
+	var req userMutationRequest
+	if err := json.Unmarshal([]byte(`{"password_hash":"client-controlled-hash"}`), &req); err != nil {
+		t.Fatalf("decode request: %v", err)
+	}
+	got, ok := (&Server{}).passwordHashFromRequest(httptest.NewRecorder(), httptest.NewRequest(http.MethodPatch, "/api/v1/users/user_alice", nil), req, "existing-hash")
+	if !ok {
+		t.Fatalf("passwordHashFromRequest rejected request")
+	}
+	if got != "existing-hash" {
+		t.Fatalf("password hash = %q, want existing hash", got)
+	}
+}
+
 func TestTokenHashUsesConfiguredSessionSecret(t *testing.T) {
 	t.Setenv("JWT_SECRET", "legacy-session-secret-at-least-32-characters")
 	t.Setenv("PLYSTRA_SESSION_SECRET", "primary-session-secret-at-least-32-characters")
@@ -299,6 +326,19 @@ func TestTokenHashUsesConfiguredSessionSecret(t *testing.T) {
 	rotatedHash := tokenHash("ply_at_test_token")
 	if primaryHash == rotatedHash {
 		t.Fatalf("token hash did not change when the session secret changed")
+	}
+}
+
+func TestHashPasswordProducesVerifiableEncodedHash(t *testing.T) {
+	encoded, err := hashPassword("new-user-password")
+	if err != nil {
+		t.Fatalf("hashPassword error: %v", err)
+	}
+	if !verifyPassword("new-user-password", encoded) {
+		t.Fatalf("hashed password did not verify")
+	}
+	if verifyPassword("wrong-password", encoded) {
+		t.Fatalf("wrong password verified")
 	}
 }
 

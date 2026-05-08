@@ -21,7 +21,7 @@ type userMutationRequest struct {
 	Email        string             `json:"email"`
 	Username     *string            `json:"username"`
 	Phone        *string            `json:"phone"`
-	PasswordHash *string            `json:"password_hash"`
+	Password     *string            `json:"password"`
 	Status       *string            `json:"status"`
 	Metadata     map[string]any     `json:"metadata"`
 }
@@ -45,12 +45,16 @@ func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
 			req.ID = newEntityID("user")
 		}
 		status := firstNonEmpty(derefString(req.Status), "active")
+		passwordHash, ok := s.passwordHashFromRequest(w, r, req, "")
+		if !ok {
+			return
+		}
 		_, err := client.User.Create().
 			SetID(req.ID).
 			SetEmail(req.Email).
 			SetNillableUsername(optionalString(derefString(req.Username))).
 			SetNillablePhone(optionalString(derefString(req.Phone))).
-			SetNillablePasswordHash(optionalString(derefString(req.PasswordHash))).
+			SetNillablePasswordHash(optionalString(passwordHash)).
 			SetStatus(status).
 			SetMetadata(nonNilMap(req.Metadata)).
 			Save(r.Context())
@@ -134,7 +138,10 @@ func (s *Server) handleUserSubroutes(w http.ResponseWriter, r *http.Request) {
 			}
 			username := nullableFromRequest(req.Username, stringFromMap(current, "username"))
 			phone := nullableFromRequest(req.Phone, stringFromMap(current, "phone"))
-			passwordHash := nullableFromRequest(req.PasswordHash, stringFromMap(current, "password_hash"))
+			passwordHash, ok := s.passwordHashFromRequest(w, r, req, stringFromMap(current, "password_hash"))
+			if !ok {
+				return
+			}
 			client, ok := s.requireEnt(w, r)
 			if !ok {
 				return
@@ -202,6 +209,23 @@ func (s *Server) handleUserSubroutes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.NotFound(w, r)
+}
+
+func (s *Server) passwordHashFromRequest(w http.ResponseWriter, r *http.Request, req userMutationRequest, currentHash string) (string, bool) {
+	if req.Password != nil {
+		password := strings.TrimSpace(derefString(req.Password))
+		if password == "" {
+			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "password must not be empty.", nil)
+			return "", false
+		}
+		hash, err := hashPassword(password)
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to hash password.", err.Error())
+			return "", false
+		}
+		return hash, true
+	}
+	return currentHash, true
 }
 
 func (s *Server) loadUser(ctx context.Context, id string) (map[string]any, error) {
