@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"flag"
 	"fmt"
 	"net/url"
 	"os"
@@ -21,6 +22,9 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/plystra/plystra/ent"
+	entadmingrant "github.com/plystra/plystra/ent/admingrant"
+	entuser "github.com/plystra/plystra/ent/user"
+	entusermember "github.com/plystra/plystra/ent/usermember"
 )
 
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
@@ -66,6 +70,15 @@ func main() {
 			fmt.Fprintf(os.Stderr, "doctor: %v\n", err)
 			os.Exit(1)
 		}
+	case "admin":
+		if len(os.Args) < 3 {
+			usage()
+			os.Exit(1)
+		}
+		if err := runAdmin(ctx, os.Args[2], os.Args[3:]); err != nil {
+			fmt.Fprintf(os.Stderr, "admin %s: %v\n", os.Args[2], err)
+			os.Exit(1)
+		}
 	default:
 		usage()
 		os.Exit(1)
@@ -75,7 +88,104 @@ func main() {
 func usage() {
 	fmt.Fprintln(os.Stderr, "usage: plystractl migrate <status|plan|up|verify>")
 	fmt.Fprintln(os.Stderr, "       plystractl ent <status|plan|check|apply>")
+	fmt.Fprintln(os.Stderr, "       plystractl admin bootstrap-super-admin --user-id <user_id> [--member-id <member_id>] [--grant-id <admin_grant_id>]")
 	fmt.Fprintln(os.Stderr, "       plystractl doctor")
+}
+
+func runAdmin(ctx context.Context, command string, args []string) error {
+	switch command {
+	case "bootstrap-super-admin":
+		return bootstrapSuperAdmin(ctx, args)
+	default:
+		return fmt.Errorf("unknown admin command %q", command)
+	}
+}
+
+func bootstrapSuperAdmin(ctx context.Context, args []string) error {
+	flags := flag.NewFlagSet("bootstrap-super-admin", flag.ContinueOnError)
+	flags.SetOutput(os.Stderr)
+	userID := flags.String("user-id", "", "existing User ID to receive the first instance super admin grant")
+	memberID := flags.String("member-id", "", "optional Member ID to annotate the grant")
+	grantID := flags.String("grant-id", "", "optional AdminGrant ID")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*userID) == "" {
+		return fmt.Errorf("--user-id is required")
+	}
+	client, db, err := openEntClient(ctx)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	defer db.Close()
+
+	now := time.Now().UTC()
+	count, err := client.AdminGrant.Query().
+		Where(
+			entadmingrant.Level("instance_super_admin"),
+			entadmingrant.Status("active"),
+			entadmingrant.DeletedAtIsNil(),
+			entadmingrant.RevokedAtIsNil(),
+			entadmingrant.Or(entadmingrant.ExpiresAtIsNil(), entadmingrant.ExpiresAtGT(now)),
+		).
+		Count(ctx)
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		return fmt.Errorf("active instance_super_admin grant already exists; use the AdminGrant API as an existing super admin")
+	}
+	if _, err := client.User.Query().Where(entuser.ID(strings.TrimSpace(*userID)), entuser.DeletedAtIsNil()).Only(ctx); err != nil {
+		if ent.IsNotFound(err) {
+			return fmt.Errorf("user %q was not found", strings.TrimSpace(*userID))
+		}
+		return err
+	}
+	resolvedMemberID := strings.TrimSpace(*memberID)
+	if resolvedMemberID == "" {
+		binding, err := client.UserMember.Query().
+			Where(
+				entusermember.UserID(strings.TrimSpace(*userID)),
+				entusermember.Status("active"),
+				entusermember.DeletedAtIsNil(),
+				entusermember.RevokedAtIsNil(),
+				entusermember.Or(entusermember.ExpiresAtIsNil(), entusermember.ExpiresAtGT(now)),
+			).
+			Order(entusermember.ByIsPrimary(), entusermember.ByCreatedAt()).
+			First(ctx)
+		if err == nil {
+			resolvedMemberID = binding.MemberID
+		} else if !ent.IsNotFound(err) {
+			return err
+		}
+	}
+	id := strings.TrimSpace(*grantID)
+	if id == "" {
+		id = "ag_" + strings.NewReplacer("-", "_", ".", "_", "@", "_").Replace(strings.TrimSpace(*userID)) + "_instance_super_admin"
+	}
+	grant, err := client.AdminGrant.Create().
+		SetID(id).
+		SetUserID(strings.TrimSpace(*userID)).
+		SetNillableMemberID(optionalStringPtr(resolvedMemberID)).
+		SetLevel("instance_super_admin").
+		SetPermissionKey("*").
+		SetStatus("active").
+		SetMetadata(map[string]any{"source": "plystractl bootstrap-super-admin"}).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("created instance_super_admin grant %s for user %s\n", grant.ID, grant.UserID)
+	return nil
+}
+
+func optionalStringPtr(value string) *string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+	return &value
 }
 
 func runEnt(ctx context.Context, command string) error {

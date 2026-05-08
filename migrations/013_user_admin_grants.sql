@@ -1,4 +1,4 @@
--- purpose: move Core management authorization from bootstrap admin tokens to
+-- purpose: move Core management authorization from legacy bootstrap tokens to
 -- user/session-backed admin grants.
 -- affected tables: admin_grants.
 -- rollback strategy: restore from backup before applying this control-plane
