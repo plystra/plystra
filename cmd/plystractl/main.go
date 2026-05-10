@@ -363,6 +363,9 @@ func validateDoctorConfig(mode string) error {
 	if len(sessionSecret) < 32 || sessionSecret == defaultSessionSecret || sessionSecret == defaultJWTSecret {
 		return fmt.Errorf("PLYSTRA_SESSION_SECRET or JWT_SECRET must be changed and at least 32 characters in production")
 	}
+	if err := validatePreviousSessionSecrets(); err != nil {
+		return err
+	}
 	corsOrigins := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS"))
 	if corsOrigins == "" || wildcardListContains(corsOrigins) {
 		return fmt.Errorf("CORS_ALLOWED_ORIGINS must be explicit and must not include * in production")
@@ -373,6 +376,21 @@ func validateDoctorConfig(mode string) error {
 	}
 	if isLocalPublicURL(publicURL) {
 		return fmt.Errorf("SERVER_PUBLIC_URL must not point to localhost in production")
+	}
+	return nil
+}
+
+func validatePreviousSessionSecrets() error {
+	for _, key := range []string{"PLYSTRA_SESSION_SECRET_PREVIOUS", "SESSION_SECRET_PREVIOUS"} {
+		for _, value := range strings.Split(os.Getenv(key), ",") {
+			value = strings.TrimSpace(value)
+			if value == "" {
+				continue
+			}
+			if len(value) < 32 || value == defaultSessionSecret || value == defaultJWTSecret {
+				return fmt.Errorf("%s contains an unsafe previous session secret", key)
+			}
+		}
 	}
 	return nil
 }

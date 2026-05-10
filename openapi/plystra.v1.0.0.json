@@ -226,10 +226,10 @@
     },
     "/api/v1/auth/refresh": {
       "post": {
-        "summary": "Rotate an access token using a refresh token",
+        "summary": "Rotate access and refresh tokens using a refresh token",
         "responses": {
           "200": {
-            "description": "New Bearer access token"
+            "description": "New Bearer access token and refresh token"
           }
         }
       }

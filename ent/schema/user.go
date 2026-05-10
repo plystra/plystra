@@ -18,6 +18,8 @@ func (User) Fields() []ent.Field {
 		field.String("phone").Optional().Nillable(),
 		statusField("active"),
 		field.String("password_hash").Optional().Nillable(),
+		field.Time("password_changed_at").Optional().Nillable(),
+		field.Time("last_login_at").Optional().Nillable(),
 		metadataField(),
 		createdAt(),
 		updatedAt(),

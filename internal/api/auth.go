@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -52,15 +51,22 @@ func (s *Server) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is invalid JSON.", err.Error())
 		return
 	}
+	req.Email = normalizeEmail(req.Email)
+	throttleKeys := loginThrottleKeys(req.Email, r)
+	if retryAfter := s.authLimiter.retryAfter(throttleKeys); retryAfter > 0 {
+		writeAuthRateLimited(w, r, retryAfter)
+		return
+	}
 	client, ok := s.requireEnt(w, r)
 	if !ok {
 		return
 	}
 	u, err := client.User.Query().
-		Where(entuser.EmailEqualFold(strings.TrimSpace(req.Email)), entuser.DeletedAtIsNil()).
+		Where(entuser.EmailEqualFold(req.Email), entuser.DeletedAtIsNil()).
 		Only(r.Context())
 	if coreent.IsNotFound(err) {
-		writeError(w, r, http.StatusUnauthorized, "AUTHENTICATION_REQUIRED", "Email or password is incorrect.", nil)
+		consumePasswordCheck(req.Password)
+		s.recordLoginFailure(w, r, throttleKeys)
 		return
 	}
 	if err != nil {
@@ -68,12 +74,26 @@ func (s *Server) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if u.Status != "active" {
-		writeError(w, r, http.StatusForbidden, "ACTOR_USER_INACTIVE", "User is not active.", nil)
+		consumePasswordCheck(req.Password)
+		s.recordLoginFailure(w, r, throttleKeys)
 		return
 	}
 	if !verifyPassword(req.Password, derefString(u.PasswordHash)) {
-		writeError(w, r, http.StatusUnauthorized, "AUTHENTICATION_REQUIRED", "Email or password is incorrect.", nil)
+		s.recordLoginFailure(w, r, throttleKeys)
 		return
+	}
+	s.authLimiter.reset(throttleKeys)
+
+	if passwordNeedsRehash(derefString(u.PasswordHash)) {
+		upgradedHash, err := hashPassword(req.Password)
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to upgrade password hash.", err.Error())
+			return
+		}
+		if err := client.User.UpdateOneID(u.ID).SetPasswordHash(upgradedHash).Exec(r.Context()); err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to upgrade password hash.", err.Error())
+			return
+		}
 	}
 
 	actor, available, err := s.defaultActorForUser(r.Context(), u.ID)
@@ -86,16 +106,30 @@ func (s *Server) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken := newToken("ply_at")
-	refreshToken := newToken("ply_rt")
+	accessToken, err := newToken("ply_at")
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to generate access token.", err.Error())
+		return
+	}
+	refreshToken, err := newToken("ply_rt")
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to generate refresh token.", err.Error())
+		return
+	}
+	sessionIDToken, err := newToken("")
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to generate session id.", err.Error())
+		return
+	}
+	now := time.Now().UTC()
 	session := sessionRecord{
-		ID:                 "sess_" + safeIdentifier(newToken("")),
+		ID:                 "sess_" + safeIdentifier(sessionIDToken),
 		UserID:             u.ID,
 		ActiveSpaceID:      stringMapValue(actor, "space_id"),
 		ActiveMemberID:     stringMapValue(actor, "member_id"),
 		ActiveUserMemberID: stringMapValue(actor, "user_member_id"),
-		ExpiresAt:          time.Now().UTC().Add(accessTokenTTL),
-		RefreshExpiresAt:   time.Now().UTC().Add(refreshTokenTTL),
+		ExpiresAt:          now.Add(accessTokenTTL),
+		RefreshExpiresAt:   now.Add(refreshTokenTTL),
 	}
 	_, err = client.Session.Create().
 		SetID(session.ID).
@@ -114,6 +148,7 @@ func (s *Server) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to create session.", err.Error())
 		return
 	}
+	_ = client.User.UpdateOneID(u.ID).SetLastLoginAt(now).Exec(r.Context())
 
 	writeData(w, r, http.StatusOK, map[string]any{
 		"access_token":       accessToken,
@@ -147,7 +182,16 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken := newToken("ply_at")
+	accessToken, err := newToken("ply_at")
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to generate access token.", err.Error())
+		return
+	}
+	refreshToken, err := newToken("ply_rt")
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to generate refresh token.", err.Error())
+		return
+	}
 	expiresAt := time.Now().UTC().Add(accessTokenTTL)
 	client, ok := s.requireEnt(w, r)
 	if !ok {
@@ -156,6 +200,7 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 	_, err = client.Session.Update().
 		Where(entsession.ID(session.ID)).
 		SetAccessTokenHash(tokenHash(accessToken)).
+		SetRefreshTokenHash(tokenHash(refreshToken)).
 		SetExpiresAt(expiresAt).
 		Save(r.Context())
 	if err != nil {
@@ -164,6 +209,7 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 	writeData(w, r, http.StatusOK, map[string]any{
 		"access_token":       accessToken,
+		"refresh_token":      refreshToken,
 		"token_type":         "Bearer",
 		"expires_at":         expiresAt.UTC().Format(time.RFC3339),
 		"refresh_expires_at": session.RefreshExpiresAt.UTC().Format(time.RFC3339),
@@ -186,11 +232,16 @@ func (s *Server) handleAuthLogout(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			return
 		}
+		hashes := tokenHashesForLookup(token)
+		if len(hashes) == 0 {
+			writeData(w, r, http.StatusOK, map[string]any{"logged_out": true})
+			return
+		}
 		now := time.Now().UTC()
 		_, _ = client.Session.Update().
 			Where(entsession.Or(
-				entsession.AccessTokenHash(tokenHash(token)),
-				entsession.RefreshTokenHash(tokenHash(token)),
+				entsession.AccessTokenHashIn(hashes...),
+				entsession.RefreshTokenHashIn(hashes...),
 			)).
 			SetRevokedAt(now).
 			Save(r.Context())

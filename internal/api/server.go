@@ -14,6 +14,7 @@ type Server struct {
 	ent         *coreent.Client
 	authzStore  authz.Store
 	coreVersion string
+	authLimiter *loginAttemptLimiter
 }
 
 type entClientProvider interface {
@@ -30,6 +31,7 @@ func NewServer(pool *pgxpool.Pool, authzStore authz.Store, coreVersion string) *
 		ent:         entClient,
 		authzStore:  authzStore,
 		coreVersion: coreVersion,
+		authLimiter: newLoginAttemptLimiterFromEnv(),
 	}
 }
 

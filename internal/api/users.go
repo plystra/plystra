@@ -6,7 +6,9 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
+	entsession "github.com/plystra/plystra/ent/session"
 	entuser "github.com/plystra/plystra/ent/user"
 
 	"github.com/jackc/pgx/v5"
@@ -37,7 +39,8 @@ func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
 		if !decodeJSON(w, r, &req) {
 			return
 		}
-		if strings.TrimSpace(req.Email) == "" {
+		req.Email = normalizeEmail(req.Email)
+		if req.Email == "" {
 			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "email is required.", nil)
 			return
 		}
@@ -49,15 +52,19 @@ func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			return
 		}
-		_, err := client.User.Create().
+		create := client.User.Create().
 			SetID(req.ID).
 			SetEmail(req.Email).
 			SetNillableUsername(optionalString(derefString(req.Username))).
 			SetNillablePhone(optionalString(derefString(req.Phone))).
 			SetNillablePasswordHash(optionalString(passwordHash)).
 			SetStatus(status).
-			SetMetadata(nonNilMap(req.Metadata)).
-			Save(r.Context())
+			SetMetadata(nonNilMap(req.Metadata))
+		if passwordHash != "" {
+			now := time.Now().UTC()
+			create.SetPasswordChangedAt(now)
+		}
+		_, err := create.Save(r.Context())
 		if err != nil {
 			writeError(w, r, http.StatusConflict, "USER_CREATE_FAILED", "Failed to create User.", err.Error())
 			return
@@ -130,7 +137,7 @@ func (s *Server) handleUserSubroutes(w http.ResponseWriter, r *http.Request) {
 				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load User.", err.Error())
 				return
 			}
-			email := firstNonEmpty(req.Email, stringFromMap(current, "email"))
+			email := firstNonEmpty(normalizeEmail(req.Email), stringFromMap(current, "email"))
 			status := firstNonEmpty(derefString(req.Status), stringFromMap(current, "status"), "active")
 			metadata := mapFromAny(current["metadata"])
 			if req.Metadata != nil {
@@ -165,10 +172,20 @@ func (s *Server) handleUserSubroutes(w http.ResponseWriter, r *http.Request) {
 			} else {
 				update.SetPasswordHash(passwordHash)
 			}
+			passwordChanged := req.Password != nil && passwordHash != stringFromMap(current, "password_hash")
+			if passwordChanged {
+				update.SetPasswordChangedAt(time.Now().UTC())
+			}
 			err = update.Exec(r.Context())
 			if err != nil {
 				writeError(w, r, http.StatusConflict, "USER_UPDATE_FAILED", "Failed to update User.", err.Error())
 				return
+			}
+			if passwordChanged {
+				if err := s.revokeUserSessions(r.Context(), userID); err != nil {
+					writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to revoke existing sessions after password change.", err.Error())
+					return
+				}
 			}
 			row, err := s.loadUser(r.Context(), userID)
 			if err != nil {
@@ -213,9 +230,9 @@ func (s *Server) handleUserSubroutes(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) passwordHashFromRequest(w http.ResponseWriter, r *http.Request, req userMutationRequest, currentHash string) (string, bool) {
 	if req.Password != nil {
-		password := strings.TrimSpace(derefString(req.Password))
-		if password == "" {
-			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "password must not be empty.", nil)
+		password := derefString(req.Password)
+		if message, ok := validatePlaintextPassword(password); !ok {
+			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", message, nil)
 			return "", false
 		}
 		hash, err := hashPassword(password)
@@ -226,6 +243,17 @@ func (s *Server) passwordHashFromRequest(w http.ResponseWriter, r *http.Request,
 		return hash, true
 	}
 	return currentHash, true
+}
+
+func (s *Server) revokeUserSessions(ctx context.Context, userID string) error {
+	if s.ent == nil {
+		return errors.New("ent client is not configured")
+	}
+	_, err := s.ent.Session.Update().
+		Where(entsession.UserID(userID), entsession.RevokedAtIsNil()).
+		SetRevokedAt(time.Now().UTC()).
+		Save(ctx)
+	return err
 }
 
 func (s *Server) loadUser(ctx context.Context, id string) (map[string]any, error) {

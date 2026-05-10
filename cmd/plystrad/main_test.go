@@ -24,6 +24,16 @@ func TestValidateProductionConfigAcceptsSessionSecretAlias(t *testing.T) {
 	}
 }
 
+func TestValidateProductionConfigRejectsUnsafePreviousSessionSecret(t *testing.T) {
+	setValidProductionEnv(t)
+	t.Setenv("PLYSTRA_SESSION_SECRET_PREVIOUS", defaultSessionSecret)
+
+	err := validateProductionConfig()
+	if err == nil || !strings.Contains(err.Error(), "PLYSTRA_SESSION_SECRET_PREVIOUS") {
+		t.Fatalf("validateProductionConfig error = %v, want previous secret rejection", err)
+	}
+}
+
 func setValidProductionEnv(t *testing.T) {
 	t.Helper()
 	t.Setenv("SERVER_MODE", "production")

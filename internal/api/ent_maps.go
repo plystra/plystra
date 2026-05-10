@@ -19,15 +19,17 @@ func optionalTime(value *time.Time) any {
 
 func userMap(row *coreent.User) map[string]any {
 	return map[string]any{
-		"id":         row.ID,
-		"email":      row.Email,
-		"username":   derefString(row.Username),
-		"phone":      derefString(row.Phone),
-		"status":     row.Status,
-		"metadata":   nonNilMap(row.Metadata),
-		"created_at": formatTime(row.CreatedAt),
-		"updated_at": formatTime(row.UpdatedAt),
-		"deleted_at": optionalTime(row.DeletedAt),
+		"id":                  row.ID,
+		"email":               row.Email,
+		"username":            derefString(row.Username),
+		"phone":               derefString(row.Phone),
+		"status":              row.Status,
+		"metadata":            nonNilMap(row.Metadata),
+		"password_changed_at": optionalTime(row.PasswordChangedAt),
+		"last_login_at":       optionalTime(row.LastLoginAt),
+		"created_at":          formatTime(row.CreatedAt),
+		"updated_at":          formatTime(row.UpdatedAt),
+		"deleted_at":          optionalTime(row.DeletedAt),
 	}
 }
 

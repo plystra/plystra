@@ -9,7 +9,6 @@ import (
 	"errors"
 	"net/http"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -31,9 +30,13 @@ func (s *Server) sessionFromRequest(ctx context.Context, r *http.Request) (sessi
 	if s.ent == nil {
 		return sessionRecord{}, errors.New("ent client is not configured")
 	}
+	hashes := tokenHashesForLookup(token)
+	if len(hashes) == 0 {
+		return sessionRecord{}, pgx.ErrNoRows
+	}
 	record, err := s.ent.Session.Query().
 		Where(
-			entsession.AccessTokenHash(tokenHash(token)),
+			entsession.AccessTokenHashIn(hashes...),
 			entsession.RevokedAtIsNil(),
 			entsession.ExpiresAtGT(time.Now().UTC()),
 		).
@@ -44,6 +47,9 @@ func (s *Server) sessionFromRequest(ctx context.Context, r *http.Request) (sessi
 	if err != nil {
 		return sessionRecord{}, err
 	}
+	if err := s.sessionUserActive(ctx, record.UserID); err != nil {
+		return sessionRecord{}, err
+	}
 	return sessionRecordFromEnt(record), nil
 }
 
@@ -51,9 +57,13 @@ func (s *Server) sessionByRefreshToken(ctx context.Context, token string) (sessi
 	if s.ent == nil {
 		return sessionRecord{}, errors.New("ent client is not configured")
 	}
+	hashes := tokenHashesForLookup(token)
+	if len(hashes) == 0 {
+		return sessionRecord{}, pgx.ErrNoRows
+	}
 	record, err := s.ent.Session.Query().
 		Where(
-			entsession.RefreshTokenHash(tokenHash(token)),
+			entsession.RefreshTokenHashIn(hashes...),
 			entsession.RevokedAtIsNil(),
 			entsession.RefreshExpiresAtGT(time.Now().UTC()),
 		).
@@ -64,7 +74,20 @@ func (s *Server) sessionByRefreshToken(ctx context.Context, token string) (sessi
 	if err != nil {
 		return sessionRecord{}, err
 	}
+	if err := s.sessionUserActive(ctx, record.UserID); err != nil {
+		return sessionRecord{}, err
+	}
 	return sessionRecordFromEnt(record), nil
+}
+
+func (s *Server) sessionUserActive(ctx context.Context, userID string) error {
+	record, err := s.ent.User.Query().
+		Where(entuser.ID(userID), entuser.Status("active"), entuser.DeletedAtIsNil()).
+		Only(ctx)
+	if coreent.IsNotFound(err) || record == nil {
+		return pgx.ErrNoRows
+	}
+	return err
 }
 
 func (s *Server) defaultActorForUser(ctx context.Context, userID string) (map[string]any, []map[string]any, error) {
@@ -252,27 +275,80 @@ func bearerToken(r *http.Request) string {
 	return strings.TrimSpace(parts[1])
 }
 
-func newToken(prefix string) string {
+func newToken(prefix string) (string, error) {
 	var buf [32]byte
 	if _, err := rand.Read(buf[:]); err != nil {
-		return prefix + hex.EncodeToString([]byte(strconv.FormatInt(time.Now().UTC().UnixNano(), 10)))
+		return "", err
 	}
 	if prefix == "" {
-		return hex.EncodeToString(buf[:])
+		return hex.EncodeToString(buf[:]), nil
 	}
-	return prefix + "_" + hex.EncodeToString(buf[:])
+	return prefix + "_" + hex.EncodeToString(buf[:]), nil
 }
 
 func tokenHash(token string) string {
-	if secret := sessionTokenSecret(); secret != "" {
-		mac := hmac.New(sha256.New, []byte(secret))
-		_, _ = mac.Write([]byte(token))
-		return hex.EncodeToString(mac.Sum(nil))
+	hashes := tokenHashesForLookup(token)
+	if len(hashes) == 0 {
+		return ""
 	}
+	return hashes[0]
+}
+
+func tokenHashesForLookup(token string) []string {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return nil
+	}
+	secrets := sessionTokenSecrets()
+	hashes := make([]string, 0, len(secrets))
+	seen := map[string]struct{}{}
+	if len(secrets) == 0 {
+		hash := sha256TokenHash(token)
+		return []string{hash}
+	}
+	for _, secret := range secrets {
+		hash := hmacTokenHash(token, secret)
+		if _, ok := seen[hash]; ok {
+			continue
+		}
+		seen[hash] = struct{}{}
+		hashes = append(hashes, hash)
+	}
+	return hashes
+}
+
+func hmacTokenHash(token, secret string) string {
+	mac := hmac.New(sha256.New, []byte(secret))
+	_, _ = mac.Write([]byte(token))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func sha256TokenHash(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
 }
 
 func sessionTokenSecret() string {
 	return firstEnv("PLYSTRA_SESSION_SECRET", "SESSION_SECRET", "JWT_SECRET", "PLYSTRA_JWT_SECRET")
+}
+
+func sessionTokenSecrets() []string {
+	primary := strings.TrimSpace(sessionTokenSecret())
+	if primary == "" {
+		return nil
+	}
+	secrets := []string{primary}
+	for _, key := range []string{"PLYSTRA_SESSION_SECRET_PREVIOUS", "SESSION_SECRET_PREVIOUS"} {
+		for _, value := range strings.Split(osEnv(key), ",") {
+			value = strings.TrimSpace(value)
+			if value != "" {
+				secrets = append(secrets, value)
+			}
+		}
+	}
+	return secrets
+}
+
+func osEnv(key string) string {
+	return strings.TrimSpace(firstEnv(key))
 }

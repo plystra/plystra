@@ -89,7 +89,7 @@ paths:
   /api/v1/auth/login:
     post: { summary: Create a user session, responses: { "200": { description: Bearer access token and refresh token } } }
   /api/v1/auth/refresh:
-    post: { summary: Rotate an access token using a refresh token, responses: { "200": { description: New Bearer access token } } }
+    post: { summary: Rotate access and refresh tokens using a refresh token, responses: { "200": { description: New Bearer access token and refresh token } } }
   /api/v1/auth/logout:
     post: { summary: Revoke the current session token, responses: { "200": { description: Session revoked } } }
   /api/v1/admin/me:

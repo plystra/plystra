@@ -2,6 +2,7 @@ package entstore
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -99,29 +100,30 @@ func TestEntStoreIntegrationSameSpaceHooks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open() error = %v", err)
 	}
-	cleanupEntHookFixtures(t, ctx, store)
+	fixtures := newEntHookFixtureIDs()
+	cleanupEntHookFixtures(t, ctx, store, fixtures)
 	defer func() {
-		cleanupEntHookFixtures(t, ctx, store)
+		cleanupEntHookFixtures(t, ctx, store, fixtures)
 		_ = store.Close()
 	}()
 
-	if _, err := store.client.Space.Create().SetID("space_ent_hook_other").SetName("Other").Save(ctx); err != nil {
+	if _, err := store.client.Space.Create().SetID(fixtures.SpaceID).SetName("Other").Save(ctx); err != nil {
 		t.Fatalf("create fixture space: %v", err)
 	}
-	if _, err := store.client.Member.Create().SetID("member_ent_hook_other").SetSpaceID("space_ent_hook_other").SetDisplayName("Other Member").Save(ctx); err != nil {
+	if _, err := store.client.Member.Create().SetID(fixtures.MemberID).SetSpaceID(fixtures.SpaceID).SetDisplayName("Other Member").Save(ctx); err != nil {
 		t.Fatalf("create fixture member: %v", err)
 	}
-	if _, err := store.client.Role.Create().SetID("role_ent_hook_other").SetSpaceID("space_ent_hook_other").SetKey("other_role").SetName("Other Role").Save(ctx); err != nil {
+	if _, err := store.client.Role.Create().SetID(fixtures.RoleID).SetSpaceID(fixtures.SpaceID).SetKey(fixtures.RoleKey).SetName("Other Role").Save(ctx); err != nil {
 		t.Fatalf("create fixture role: %v", err)
 	}
-	if _, err := store.client.Group.Create().SetID("group_ent_hook_other").SetSpaceID("space_ent_hook_other").SetPath("other").SetName("Other").SetDisplayName("Other").Save(ctx); err != nil {
+	if _, err := store.client.Group.Create().SetID(fixtures.GroupID).SetSpaceID(fixtures.SpaceID).SetPath(fixtures.GroupPath).SetName("Other").SetDisplayName("Other").Save(ctx); err != nil {
 		t.Fatalf("create fixture group: %v", err)
 	}
 
 	if _, err := store.client.UserMember.Create().
-		SetID("um_ent_hook_cross_space").
+		SetID(fixtures.UserMemberID).
 		SetUserID("user_alice").
-		SetMemberID("member_ent_hook_other").
+		SetMemberID(fixtures.MemberID).
 		SetSpaceID("space_acme").
 		SetRelationType("delegate").
 		Save(ctx); err == nil {
@@ -129,25 +131,52 @@ func TestEntStoreIntegrationSameSpaceHooks(t *testing.T) {
 	}
 
 	if _, err := store.client.MemberRole.Create().
-		SetID("mr_ent_hook_cross_space").
+		SetID(fixtures.MemberRoleID).
 		SetMemberID("member_finance_reviewer").
-		SetRoleID("role_ent_hook_other").
+		SetRoleID(fixtures.RoleID).
 		SetSpaceID("space_acme").
 		Save(ctx); err == nil {
 		t.Fatalf("cross-space MemberRole creation unexpectedly succeeded")
 	}
 
 	if _, err := store.client.Resource.Create().
-		SetID("resource_ent_hook_cross_space").
+		SetID(fixtures.ResourceID).
 		SetResourceType("invoice").
 		SetSpaceID("space_acme").
-		SetGroupID("group_ent_hook_other").
+		SetGroupID(fixtures.GroupID).
 		Save(ctx); err == nil {
 		t.Fatalf("cross-space Resource group assignment unexpectedly succeeded")
 	}
 }
 
-func cleanupEntHookFixtures(t *testing.T, ctx context.Context, store *Store) {
+type entHookFixtureIDs struct {
+	SpaceID      string
+	MemberID     string
+	RoleID       string
+	RoleKey      string
+	GroupID      string
+	GroupPath    string
+	UserMemberID string
+	MemberRoleID string
+	ResourceID   string
+}
+
+func newEntHookFixtureIDs() entHookFixtureIDs {
+	suffix := fmt.Sprintf("ent_hook_%d", time.Now().UTC().UnixNano())
+	return entHookFixtureIDs{
+		SpaceID:      "space_" + suffix,
+		MemberID:     "member_" + suffix,
+		RoleID:       "role_" + suffix,
+		RoleKey:      "role_" + suffix,
+		GroupID:      "group_" + suffix,
+		GroupPath:    "other_" + suffix,
+		UserMemberID: "um_" + suffix,
+		MemberRoleID: "mr_" + suffix,
+		ResourceID:   "resource_" + suffix,
+	}
+}
+
+func cleanupEntHookFixtures(t *testing.T, ctx context.Context, store *Store, fixtures entHookFixtureIDs) {
 	t.Helper()
 	if store == nil || store.client == nil {
 		return
@@ -159,11 +188,11 @@ func cleanupEntHookFixtures(t *testing.T, ctx context.Context, store *Store) {
 			t.Fatalf("cleanup %s: %v", label, err)
 		}
 	}
-	ignoreNotFound("resource", store.client.Resource.UpdateOneID("resource_ent_hook_cross_space").SetDeletedAt(now).Exec(ctx))
-	ignoreNotFound("member_role", store.client.MemberRole.UpdateOneID("mr_ent_hook_cross_space").SetDeletedAt(now).Exec(ctx))
-	ignoreNotFound("user_member", store.client.UserMember.UpdateOneID("um_ent_hook_cross_space").SetDeletedAt(now).Exec(ctx))
-	ignoreNotFound("group", store.client.Group.UpdateOneID("group_ent_hook_other").SetDeletedAt(now).Exec(ctx))
-	ignoreNotFound("role", store.client.Role.UpdateOneID("role_ent_hook_other").SetDeletedAt(now).Exec(ctx))
-	ignoreNotFound("member", store.client.Member.UpdateOneID("member_ent_hook_other").SetDeletedAt(now).Exec(ctx))
-	ignoreNotFound("space", store.client.Space.UpdateOneID("space_ent_hook_other").SetDeletedAt(now).Exec(ctx))
+	ignoreNotFound("resource", store.client.Resource.UpdateOneID(fixtures.ResourceID).SetDeletedAt(now).Exec(ctx))
+	ignoreNotFound("member_role", store.client.MemberRole.UpdateOneID(fixtures.MemberRoleID).SetDeletedAt(now).Exec(ctx))
+	ignoreNotFound("user_member", store.client.UserMember.UpdateOneID(fixtures.UserMemberID).SetDeletedAt(now).Exec(ctx))
+	ignoreNotFound("group", store.client.Group.UpdateOneID(fixtures.GroupID).SetDeletedAt(now).Exec(ctx))
+	ignoreNotFound("role", store.client.Role.UpdateOneID(fixtures.RoleID).SetDeletedAt(now).Exec(ctx))
+	ignoreNotFound("member", store.client.Member.UpdateOneID(fixtures.MemberID).SetDeletedAt(now).Exec(ctx))
+	ignoreNotFound("space", store.client.Space.UpdateOneID(fixtures.SpaceID).SetDeletedAt(now).Exec(ctx))
 }
