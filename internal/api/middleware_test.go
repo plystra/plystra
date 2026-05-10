@@ -190,6 +190,12 @@ func TestAdminGrantPermissionMatching(t *testing.T) {
 			want:        true,
 		},
 		{
+			name:        "manage covers explicit create action",
+			grant:       &coreent.AdminGrant{Level: adminLevelInstance, PermissionKey: "api_keys:manage"},
+			requirement: adminRequirement{PermissionKey: "api_keys:create"},
+			want:        true,
+		},
+		{
 			name:        "instance admin does not cross permission domain",
 			grant:       &coreent.AdminGrant{Level: adminLevelInstance, PermissionKey: "users:read"},
 			requirement: adminRequirement{PermissionKey: "spaces:read"},
@@ -205,6 +211,56 @@ func TestAdminGrantPermissionMatching(t *testing.T) {
 				t.Fatalf("allowed = %v, want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestAPIKeyPermissionAndScopeMatching(t *testing.T) {
+	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
+	spaceID := "space_acme"
+	key := &coreent.ApiKey{
+		Level:          "space",
+		SpaceID:        &spaceID,
+		Status:         "active",
+		PermissionKeys: []string{"authz:check", "api_keys:create"},
+	}
+	allowed, err := server.apiKeyAllows(context.Background(), key, adminRequirement{PermissionKey: "authz:check", SpaceID: "space_acme"})
+	if err != nil {
+		t.Fatalf("apiKeyAllows error: %v", err)
+	}
+	if !allowed {
+		t.Fatalf("space API key did not allow matching space authz check")
+	}
+	allowed, err = server.apiKeyAllows(context.Background(), key, adminRequirement{PermissionKey: "authz:check", SpaceID: "space_other"})
+	if err != nil {
+		t.Fatalf("apiKeyAllows error: %v", err)
+	}
+	if allowed {
+		t.Fatalf("space API key allowed a different space")
+	}
+}
+
+func TestAPIKeyTokenFormatAndHashRotation(t *testing.T) {
+	t.Setenv("PLYSTRA_API_KEY_SECRET", "old-api-key-secret-at-least-32-characters")
+	token, err := newAPIKeyPlaintext("ak_test")
+	if err != nil {
+		t.Fatalf("newAPIKeyPlaintext error: %v", err)
+	}
+	if got := apiKeyIDFromToken(token); got != "ak_test" {
+		t.Fatalf("api key id = %q, want ak_test", got)
+	}
+	oldHash := apiKeyHash(token)
+
+	t.Setenv("PLYSTRA_API_KEY_SECRET", "new-api-key-secret-at-least-32-characters")
+	t.Setenv("PLYSTRA_API_KEY_SECRET_PREVIOUS", "old-api-key-secret-at-least-32-characters")
+	hashes := apiKeyHashesForLookup(token)
+	if len(hashes) != 2 {
+		t.Fatalf("hash count = %d, want primary and previous", len(hashes))
+	}
+	if hashes[0] == oldHash {
+		t.Fatalf("primary API key hash unexpectedly used previous secret first")
+	}
+	if hashes[1] != oldHash {
+		t.Fatalf("previous API key hash not present")
 	}
 }
 

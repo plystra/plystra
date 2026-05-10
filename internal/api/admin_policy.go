@@ -34,8 +34,10 @@ type adminRequirement struct {
 }
 
 type adminPrincipal struct {
-	Session sessionRecord
-	Grants  []*coreent.AdminGrant
+	CredentialType string
+	Session        sessionRecord
+	APIKey         *coreent.ApiKey
+	Grants         []*coreent.AdminGrant
 }
 
 func adminRequirementFor(method, path, querySpaceID string) adminRequirement {
@@ -60,6 +62,19 @@ func adminRequirementFor(method, path, querySpaceID string) adminRequirement {
 			return adminRequirement{PermissionKey: "admin_grants:read"}
 		}
 		return adminRequirement{PermissionKey: "admin_grants:manage"}
+	}
+	if strings.HasPrefix(path, "/api/v1/api-keys") {
+		switch method {
+		case "GET":
+			return adminRequirement{PermissionKey: "api_keys:read"}
+		case "POST":
+			if strings.HasSuffix(path, "/revoke") {
+				return adminRequirement{PermissionKey: "api_keys:revoke"}
+			}
+			return adminRequirement{PermissionKey: "api_keys:create"}
+		default:
+			return adminRequirement{PermissionKey: "api_keys:manage"}
+		}
 	}
 	if path == "/api/v1/admin/me" {
 		return adminRequirement{PermissionKey: "instance:read"}
@@ -198,20 +213,27 @@ func (s *Server) adminSessionAllowed(ctx context.Context, session sessionRecord,
 	if err != nil {
 		return adminPrincipal{}, false, err
 	}
+	principal := adminPrincipal{CredentialType: "session", Session: session, Grants: grants}
+	allowed, err := s.adminPrincipalAllows(ctx, principal, requirement)
+	return principal, allowed, err
+}
+
+func (s *Server) adminPrincipalAllows(ctx context.Context, principal adminPrincipal, requirement adminRequirement) (bool, error) {
 	resolved, err := s.resolveAdminRequirementScope(ctx, requirement)
 	if err != nil {
-		return adminPrincipal{}, false, err
+		return false, err
 	}
-	for _, grant := range grants {
-		allowed, err := s.adminGrantAllows(ctx, grant, resolved)
-		if err != nil {
-			return adminPrincipal{}, false, err
-		}
-		if allowed {
-			return adminPrincipal{Session: session, Grants: grants}, true, nil
+	if principal.CredentialType == "api_key" {
+		return s.apiKeyAllows(ctx, principal.APIKey, resolved)
+	}
+	for _, grant := range principal.Grants {
+		if allowed, err := s.adminGrantAllows(ctx, grant, resolved); err != nil {
+			return false, err
+		} else if allowed {
+			return true, nil
 		}
 	}
-	return adminPrincipal{Session: session, Grants: grants}, false, nil
+	return false, nil
 }
 
 func (s *Server) adminGrantAllows(ctx context.Context, grant *coreent.AdminGrant, requirement adminRequirement) (bool, error) {
@@ -228,9 +250,15 @@ func (s *Server) adminGrantAllows(ctx context.Context, grant *coreent.AdminGrant
 	case adminLevelInstance:
 		return true, nil
 	case adminLevelSpace:
+		if requirement.SpaceID == "" && requirement.GroupID == "" && adminPermissionMayResolveInHandler(requirement.PermissionKey) {
+			return true, nil
+		}
 		grantSpaceID := derefString(grant.SpaceID)
 		return grantSpaceID != "" && requirement.SpaceID != "" && grantSpaceID == requirement.SpaceID, nil
 	case adminLevelGroup:
+		if requirement.SpaceID == "" && requirement.GroupID == "" && adminPermissionMayResolveInHandler(requirement.PermissionKey) {
+			return true, nil
+		}
 		grantGroupID := derefString(grant.GroupID)
 		if grantGroupID == "" || requirement.GroupID == "" {
 			return false, nil
@@ -254,10 +282,17 @@ func adminPermissionMatches(grantKey, requiredKey string) bool {
 	if grantKey == requiredDomain+":*" {
 		return true
 	}
+	if grantKey == requiredDomain+":manage" {
+		return true
+	}
 	if requiredAction == "read" && grantKey == requiredDomain+":manage" {
 		return true
 	}
 	return false
+}
+
+func adminPermissionMayResolveInHandler(permissionKey string) bool {
+	return strings.HasPrefix(permissionKey, "api_keys:") || permissionKey == "authz:check"
 }
 
 func (s *Server) resolveAdminRequirementScope(ctx context.Context, req adminRequirement) (adminRequirement, error) {

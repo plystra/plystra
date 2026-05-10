@@ -147,6 +147,12 @@
         "scheme": "bearer",
         "bearerFormat": "opaque-session-token",
         "description": "Required for non-public Core API routes. The session user must hold an active admin grant."
+      },
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Plystra-API-Key",
+        "description": "Server-to-server API key. API keys are scoped to instance, Space, or Group and carry explicit permission keys."
       }
     }
   },
@@ -1033,6 +1039,44 @@
         "responses": {
           "200": {
             "description": "AuditLog detail"
+          }
+        }
+      }
+    },
+    "/api/v1/api-keys": {
+      "get": {
+        "summary": "List API keys visible to the current credential",
+        "responses": {
+          "200": {
+            "description": "API key list"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create scoped API key",
+        "responses": {
+          "201": {
+            "description": "Created API key. The plaintext api_key is returned once."
+          }
+        }
+      }
+    },
+    "/api/v1/api-keys/{api_key_id}": {
+      "get": {
+        "summary": "Get API key metadata",
+        "responses": {
+          "200": {
+            "description": "API key detail without secret material"
+          }
+        }
+      }
+    },
+    "/api/v1/api-keys/{api_key_id}/revoke": {
+      "post": {
+        "summary": "Revoke API key",
+        "responses": {
+          "200": {
+            "description": "Revoked API key"
           }
         }
       }

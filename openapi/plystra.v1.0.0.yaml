@@ -12,6 +12,11 @@ components:
       scheme: bearer
       bearerFormat: opaque-session-token
       description: Required for non-public Core API routes. The session user must hold an active admin grant.
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Plystra-API-Key
+      description: Server-to-server API key. API keys are scoped to instance, Space, or Group and carry explicit permission keys.
   schemas:
     Envelope:
       type: object
@@ -101,6 +106,13 @@ paths:
     get: { summary: Get AdminGrant, responses: { "200": { description: AdminGrant detail } } }
   /api/v1/admin/grants/{admin_grant_id}/revoke:
     post: { summary: Revoke AdminGrant, responses: { "200": { description: Revoked AdminGrant } } }
+  /api/v1/api-keys:
+    get: { summary: List API keys visible to the current credential, responses: { "200": { description: API key list } } }
+    post: { summary: Create scoped API key, responses: { "201": { description: Created API key. The plaintext api_key is returned once. } } }
+  /api/v1/api-keys/{api_key_id}:
+    get: { summary: Get API key metadata, responses: { "200": { description: API key detail without secret material } } }
+  /api/v1/api-keys/{api_key_id}/revoke:
+    post: { summary: Revoke API key, responses: { "200": { description: Revoked API key } } }
   /api/v1/authz/check:
     post: { summary: Run compact authorization check, responses: { "200": { description: Authorization decision } } }
   /api/v1/authz/explain:

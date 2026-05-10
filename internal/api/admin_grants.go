@@ -50,14 +50,22 @@ func (s *Server) handleAdminMe(w http.ResponseWriter, r *http.Request) {
 			capabilities["*"] = true
 		}
 	}
-	writeData(w, r, http.StatusOK, map[string]any{
-		"session_id":    principal.Session.ID,
-		"user_id":       principal.Session.UserID,
-		"active_space":  principal.Session.ActiveSpaceID,
-		"active_member": principal.Session.ActiveMemberID,
-		"grants":        grants,
-		"capabilities":  capabilities,
-	})
+	out := map[string]any{
+		"credential_type": principal.CredentialType,
+		"session_id":      principal.Session.ID,
+		"user_id":         principal.Session.UserID,
+		"active_space":    principal.Session.ActiveSpaceID,
+		"active_member":   principal.Session.ActiveMemberID,
+		"grants":          grants,
+		"capabilities":    capabilities,
+	}
+	if principal.CredentialType == "api_key" && principal.APIKey != nil {
+		for _, key := range principal.APIKey.PermissionKeys {
+			capabilities[key] = true
+		}
+		out["api_key"] = apiKeyMap(principal.APIKey)
+	}
+	writeData(w, r, http.StatusOK, out)
 }
 
 func (s *Server) handleAdminGrants(w http.ResponseWriter, r *http.Request) {

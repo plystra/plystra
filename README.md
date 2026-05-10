@@ -13,6 +13,7 @@ This repository contains only the Core service, Ent schemas, migrations, CLI too
 ```powershell
 cp .env.example .env
 docker compose up -d postgres
+go run entgo.io/ent/cmd/ent generate .\ent\schema
 go run .\cmd\plystractl migrate up
 go run .\cmd\plystractl migrate verify
 go run .\cmd\plystractl ent check
@@ -28,7 +29,7 @@ Default local database URL:
 $env:PLYSTRA_DATABASE_URL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
 ```
 
-Non-public API routes require a Bearer session for a user with an active admin grant. The demo seed makes Alice the local instance super admin:
+Non-public API routes require either a Bearer session for a user with an active admin grant or a scoped API key with matching permission keys. The demo seed makes Alice the local instance super admin:
 
 ```powershell
 $login = Invoke-RestMethod -Method Post http://localhost:8080/api/v1/auth/login -ContentType "application/json" -Body '{"email":"alice@example.com","password":"plystra-demo"}'

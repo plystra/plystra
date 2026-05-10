@@ -74,6 +74,23 @@ func (s *Server) handleAuthz(w http.ResponseWriter, r *http.Request, explain boo
 	input.IP = remoteIPFrom(r)
 	input.UserAgent = r.UserAgent()
 	input.Explain = explain || req.Explain
+	if principal, ok := adminPrincipalFrom(r); ok {
+		scope := adminRequirement{
+			PermissionKey: "authz:check",
+			SpaceID:       firstNonEmpty(input.SpaceID, input.Actor.SpaceID),
+			EntityKind:    "resource",
+			EntityID:      input.ResourceID,
+		}
+		allowed, err := s.adminPrincipalAllows(r.Context(), principal, scope)
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate authz scope.", err.Error())
+			return
+		}
+		if !allowed {
+			writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "The current credential cannot run authz checks for this scope.", map[string]any{"permission": "authz:check"})
+			return
+		}
+	}
 
 	decision, err := authz.Check(r.Context(), s.authzStore, input)
 	if err != nil {

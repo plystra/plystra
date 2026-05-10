@@ -56,6 +56,8 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/v1/admin/me", s.handleAdminMe)
 	mux.HandleFunc("/api/v1/admin/grants", s.handleAdminGrants)
 	mux.HandleFunc("/api/v1/admin/grants/", s.handleAdminGrantSubroutes)
+	mux.HandleFunc("/api/v1/api-keys", s.handleAPIKeys)
+	mux.HandleFunc("/api/v1/api-keys/", s.handleAPIKeySubroutes)
 	mux.HandleFunc("/api/v1/authz/check", s.handleAuthzCheck)
 	mux.HandleFunc("/api/v1/authz/explain", s.handleAuthzExplain)
 	mux.HandleFunc("/api/v1/audit/logs", s.handleAuditLogs)

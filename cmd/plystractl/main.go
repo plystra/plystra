@@ -346,6 +346,12 @@ func runDoctor(ctx context.Context) error {
 	if len(sessionSecret) < 32 || sessionSecret == defaultSessionSecret || sessionSecret == defaultJWTSecret {
 		fmt.Println("warning: PLYSTRA_SESSION_SECRET or JWT_SECRET is unset, default, or shorter than 32 characters")
 	}
+	apiKeySecret := firstEnv("PLYSTRA_API_KEY_SECRET", "API_KEY_SECRET")
+	if len(apiKeySecret) < 32 || apiKeySecret == defaultSessionSecret || apiKeySecret == defaultJWTSecret {
+		fmt.Println("warning: PLYSTRA_API_KEY_SECRET is unset, default, or shorter than 32 characters")
+	} else if apiKeySecret == sessionSecret {
+		fmt.Println("warning: PLYSTRA_API_KEY_SECRET matches the session secret; use a distinct secret in production")
+	}
 	return nil
 }
 
@@ -363,7 +369,17 @@ func validateDoctorConfig(mode string) error {
 	if len(sessionSecret) < 32 || sessionSecret == defaultSessionSecret || sessionSecret == defaultJWTSecret {
 		return fmt.Errorf("PLYSTRA_SESSION_SECRET or JWT_SECRET must be changed and at least 32 characters in production")
 	}
+	apiKeySecret := firstEnv("PLYSTRA_API_KEY_SECRET", "API_KEY_SECRET")
+	if len(apiKeySecret) < 32 || apiKeySecret == defaultSessionSecret || apiKeySecret == defaultJWTSecret {
+		return fmt.Errorf("PLYSTRA_API_KEY_SECRET must be set and at least 32 characters in production")
+	}
+	if apiKeySecret == sessionSecret {
+		return fmt.Errorf("PLYSTRA_API_KEY_SECRET must be distinct from PLYSTRA_SESSION_SECRET in production")
+	}
 	if err := validatePreviousSessionSecrets(); err != nil {
+		return err
+	}
+	if err := validatePreviousAPIKeySecrets(); err != nil {
 		return err
 	}
 	corsOrigins := strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS"))
@@ -389,6 +405,21 @@ func validatePreviousSessionSecrets() error {
 			}
 			if len(value) < 32 || value == defaultSessionSecret || value == defaultJWTSecret {
 				return fmt.Errorf("%s contains an unsafe previous session secret", key)
+			}
+		}
+	}
+	return nil
+}
+
+func validatePreviousAPIKeySecrets() error {
+	for _, key := range []string{"PLYSTRA_API_KEY_SECRET_PREVIOUS", "API_KEY_SECRET_PREVIOUS"} {
+		for _, value := range strings.Split(os.Getenv(key), ",") {
+			value = strings.TrimSpace(value)
+			if value == "" {
+				continue
+			}
+			if len(value) < 32 || value == defaultSessionSecret || value == defaultJWTSecret {
+				return fmt.Errorf("%s contains an unsafe previous API key secret", key)
 			}
 		}
 	}

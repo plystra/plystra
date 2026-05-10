@@ -31,7 +31,7 @@ func (s *Server) requestMiddleware(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Vary", "Origin")
 		}
-		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-ID, X-Plystra-Metrics-Token")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-ID, X-Plystra-Metrics-Token, X-Plystra-API-Key")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
 		requestID := r.Header.Get(requestIDHeader())
 		if requestID == "" {
@@ -54,17 +54,12 @@ func (s *Server) requestMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		if !publicRoute(ctxReq) {
-			session, err := s.sessionFromRequest(ctxReq.Context(), ctxReq)
-			if errors.Is(err, pgx.ErrNoRows) {
-				writeError(recorder, ctxReq, http.StatusUnauthorized, "AUTHENTICATION_REQUIRED", "A valid access token is required.", nil)
-				return
-			}
-			if err != nil {
-				writeError(recorder, ctxReq, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load session.", err.Error())
-				return
-			}
 			requirement := adminRequirementFor(ctxReq.Method, ctxReq.URL.Path, ctxReq.URL.Query().Get("space_id"))
-			principal, allowed, err := s.adminSessionAllowed(ctxReq.Context(), session, requirement)
+			principal, allowed, err := s.adminCredentialAllowed(ctxReq.Context(), ctxReq, requirement)
+			if errors.Is(err, pgx.ErrNoRows) {
+				writeError(recorder, ctxReq, http.StatusUnauthorized, "AUTHENTICATION_REQUIRED", "A valid access token or API key is required.", nil)
+				return
+			}
 			if err != nil {
 				writeError(recorder, ctxReq, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate admin permissions.", err.Error())
 				return
@@ -168,11 +163,7 @@ func (s *Server) metricsAuthorized(r *http.Request) bool {
 		}
 		return false
 	}
-	session, err := s.sessionFromRequest(r.Context(), r)
-	if err != nil {
-		return false
-	}
-	_, allowed, err := s.adminSessionAllowed(r.Context(), session, adminRequirement{PermissionKey: "metrics:read"})
+	_, allowed, err := s.adminCredentialAllowed(r.Context(), r, adminRequirement{PermissionKey: "metrics:read"})
 	return err == nil && allowed
 }
 

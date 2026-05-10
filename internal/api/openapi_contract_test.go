@@ -33,6 +33,7 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 		"/api/v1/auth/login",
 		"/api/v1/admin/me",
 		"/api/v1/admin/grants",
+		"/api/v1/api-keys",
 		"/api/v1/authz/check",
 		"/api/v1/authz/explain",
 		"/api/v1/users",
@@ -72,5 +73,8 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 	}
 	if _, ok := doc.Components.SecuritySchemes["BearerAuth"]; !ok {
 		t.Fatalf("OpenAPI BearerAuth security scheme is missing")
+	}
+	if _, ok := doc.Components.SecuritySchemes["ApiKeyAuth"]; !ok {
+		t.Fatalf("OpenAPI ApiKeyAuth security scheme is missing")
 	}
 }

@@ -5,7 +5,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /out/plystrad ./cmd/plystrad \
+RUN go run entgo.io/ent/cmd/ent generate ./ent/schema \
+	&& CGO_ENABLED=0 GOOS=linux go build -o /out/plystrad ./cmd/plystrad \
 	&& CGO_ENABLED=0 GOOS=linux go build -o /out/plystractl ./cmd/plystractl
 
 FROM alpine:3.22
