@@ -3,127 +3,95 @@ package main
 import (
 	"context"
 	"fmt"
-	"net"
-	"net/http"
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-
-	"github.com/plystra/plystra/internal/api"
-	"github.com/plystra/plystra/internal/store/entstore"
 )
 
-const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
-const defaultSessionSecret = "change-me-session-secret-at-least-32-characters"
-const defaultJWTSecret = "change-me-to-at-least-32-characters"
-const defaultCoreVersion = "1.0.0-dev10"
-
-func main() {
-	ctx := context.Background()
-	if err := validateProductionConfig(); err != nil {
-		fmt.Fprintf(os.Stderr, "invalid configuration: %v\n", err)
-		os.Exit(1)
+func runDoctor(ctx context.Context) error {
+	mode := strings.ToLower(firstEnv("SERVER_MODE", "PLYSTRA_ENV"))
+	if mode == "" {
+		mode = "development"
 	}
+	fmt.Printf("environment: %s\n", mode)
+	if err := validateDoctorConfig(mode); err != nil {
+		return err
+	}
+	fmt.Println("configuration: ok")
+
 	pool, err := pgxpool.New(ctx, databaseURL())
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "configure database: %v\n", err)
-		os.Exit(1)
+		return err
 	}
 	defer pool.Close()
 	if err := pool.Ping(ctx); err != nil {
-		fmt.Fprintf(os.Stderr, "connect database: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("database connectivity failed: %w", err)
 	}
-
-	host := firstEnv("SERVER_HOST", "PLYSTRA_SERVER_HOST")
-	port := firstEnv("SERVER_PORT", "PLYSTRA_SERVER_PORT")
-	if port == "" {
-		port = "8080"
+	fmt.Println("database: ok")
+	if err := ensureMigrationTable(ctx, pool); err != nil {
+		return err
 	}
-	coreVersion := firstEnv("PLYSTRA_CORE_VERSION", "CORE_VERSION")
-	if coreVersion == "" {
-		coreVersion = defaultCoreVersion
-	}
-
-	authzStore, err := entstore.Open(ctx, databaseURL())
+	applied, err := loadApplied(ctx, pool)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "connect ent store: %v\n", err)
-		os.Exit(1)
+		return err
 	}
-	defer func() { _ = authzStore.Close() }()
-
-	apiServer := api.NewServer(pool, authzStore, coreVersion)
-	addr := ":" + port
-	if host != "" {
-		addr = net.JoinHostPort(host, port)
-	}
-	httpServer, err := newHTTPServer(addr, apiServer.Routes())
+	migrations, err := loadMigrations("migrations")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "configure http server: %v\n", err)
-		os.Exit(1)
+		return err
 	}
-	displayHost := host
-	if displayHost == "" || displayHost == "0.0.0.0" {
-		displayHost = "localhost"
+	pending := 0
+	for _, migration := range migrations {
+		record, ok := applied[migration.Version]
+		if !ok {
+			pending++
+			continue
+		}
+		if record.Checksum != migration.Checksum {
+			return fmt.Errorf("migration %s checksum mismatch", migration.Version)
+		}
 	}
-	fmt.Printf("plystrad listening on http://%s:%s\n", displayHost, port)
-	if err := httpServer.ListenAndServe(); err != nil {
-		fmt.Fprintf(os.Stderr, "serve: %v\n", err)
-		os.Exit(1)
+	if pending > 0 {
+		fmt.Printf("migrations: %d pending\n", pending)
+		return fmt.Errorf("migrations are pending; run plystractl migrate up")
+	} else {
+		fmt.Println("migrations: current")
 	}
+
+	client, db, err := openEntClient(ctx)
+	if err != nil {
+		return fmt.Errorf("schema readiness failed: %w", err)
+	}
+	defer client.Close()
+	defer db.Close()
+	plan, err := entMigrationPlan(ctx, client)
+	if err != nil {
+		return fmt.Errorf("schema readiness failed: %w", err)
+	}
+	if strings.TrimSpace(plan) != "" {
+		return fmt.Errorf("schema readiness failed: ent drift detected:\n%s", strings.TrimSpace(plan))
+	}
+	fmt.Println("schema: ok")
+	fmt.Println("service readiness: ok")
+	sessionSecret := firstEnv("PLYSTRA_SESSION_SECRET", "SESSION_SECRET", "JWT_SECRET", "PLYSTRA_JWT_SECRET")
+	if len(sessionSecret) < 32 || sessionSecret == defaultSessionSecret || sessionSecret == defaultJWTSecret {
+		fmt.Println("warning: PLYSTRA_SESSION_SECRET or JWT_SECRET is unset, default, or shorter than 32 characters")
+	}
+	apiKeySecret := firstEnv("PLYSTRA_API_KEY_SECRET", "API_KEY_SECRET")
+	if len(apiKeySecret) < 32 || apiKeySecret == defaultSessionSecret || apiKeySecret == defaultJWTSecret {
+		fmt.Println("warning: PLYSTRA_API_KEY_SECRET is unset, default, or shorter than 32 characters")
+	} else if apiKeySecret == sessionSecret {
+		fmt.Println("warning: PLYSTRA_API_KEY_SECRET matches the session secret; use a distinct secret in production")
+	}
+	return nil
 }
 
-func newHTTPServer(addr string, handler http.Handler) (*http.Server, error) {
-	readHeaderTimeout, err := durationFromEnv("HTTP_READ_HEADER_TIMEOUT", 5*time.Second)
-	if err != nil {
-		return nil, err
-	}
-	readTimeout, err := durationFromEnv("HTTP_READ_TIMEOUT", 30*time.Second)
-	if err != nil {
-		return nil, err
-	}
-	writeTimeout, err := durationFromEnv("HTTP_WRITE_TIMEOUT", 60*time.Second)
-	if err != nil {
-		return nil, err
-	}
-	idleTimeout, err := durationFromEnv("HTTP_IDLE_TIMEOUT", 120*time.Second)
-	if err != nil {
-		return nil, err
-	}
-	return &http.Server{
-		Addr:              addr,
-		Handler:           handler,
-		ReadHeaderTimeout: readHeaderTimeout,
-		ReadTimeout:       readTimeout,
-		WriteTimeout:      writeTimeout,
-		IdleTimeout:       idleTimeout,
-	}, nil
-}
-
-func durationFromEnv(key string, fallback time.Duration) (time.Duration, error) {
-	value := strings.TrimSpace(os.Getenv(key))
-	if value == "" {
-		return fallback, nil
-	}
-	parsed, err := time.ParseDuration(value)
-	if err != nil {
-		return 0, fmt.Errorf("%s must be a valid Go duration: %w", key, err)
-	}
-	if parsed <= 0 {
-		return 0, fmt.Errorf("%s must be greater than zero", key)
-	}
-	return parsed, nil
-}
-
-func validateProductionConfig() error {
-	env := strings.ToLower(firstEnv("SERVER_MODE", "PLYSTRA_ENV"))
-	if env != "production" {
+func validateDoctorConfig(mode string) error {
+	if mode != "production" {
 		return nil
 	}
-	if os.Getenv("PLYSTRA_DATABASE_URL") == "" && os.Getenv("DATABASE_URL") == "" {
+	if databaseURL() == defaultDatabaseURL && os.Getenv("DATABASE_URL") == "" && os.Getenv("PLYSTRA_DATABASE_URL") == "" {
 		return fmt.Errorf("DATABASE_URL is required in production")
 	}
 	if databaseURL() == defaultDatabaseURL || strings.Contains(databaseURL(), "://plystra:plystra@") {
@@ -210,22 +178,4 @@ func isLocalPublicURL(raw string) bool {
 	}
 	host = strings.ToLower(strings.Trim(host, "[]"))
 	return host == "localhost" || host == "127.0.0.1" || host == "::1"
-}
-
-func databaseURL() string {
-	for _, key := range []string{"DATABASE_URL", "PLYSTRA_DATABASE_URL"} {
-		if value := os.Getenv(key); value != "" {
-			return value
-		}
-	}
-	return defaultDatabaseURL
-}
-
-func firstEnv(keys ...string) string {
-	for _, key := range keys {
-		if value := os.Getenv(key); value != "" {
-			return value
-		}
-	}
-	return ""
 }

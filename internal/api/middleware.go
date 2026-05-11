@@ -18,14 +18,17 @@ import (
 type contextKey string
 
 const (
-	requestIDKey      contextKey = "request_id"
-	adminPrincipalKey contextKey = "admin_principal"
+	requestIDKey       contextKey = "request_id"
+	adminPrincipalKey  contextKey = "admin_principal"
+	maxRequestIDLength            = 128
+	defaultCORSOrigins            = "http://localhost:3000,http://localhost:5173,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:8080"
 )
 
 func (s *Server) requestMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		recorder := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		setSecurityHeaders(w.Header())
 		origin := allowedCORSOrigin(r)
 		if origin != "" {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
@@ -33,7 +36,7 @@ func (s *Server) requestMiddleware(next http.Handler) http.Handler {
 		}
 		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Request-ID, X-Plystra-Metrics-Token, X-Plystra-API-Key")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
-		requestID := r.Header.Get(requestIDHeader())
+		requestID := normalizeRequestID(r.Header.Get(requestIDHeader()))
 		if requestID == "" {
 			requestID = newRequestID()
 		}
@@ -109,7 +112,7 @@ func requestIDHeader() string {
 func allowedCORSOrigin(r *http.Request) string {
 	configured := os.Getenv("CORS_ALLOWED_ORIGINS")
 	if configured == "" {
-		return "*"
+		configured = defaultCORSOrigins
 	}
 	origin := r.Header.Get("Origin")
 	for _, allowed := range strings.Split(configured, ",") {
@@ -122,6 +125,26 @@ func allowedCORSOrigin(r *http.Request) string {
 		}
 	}
 	return ""
+}
+
+func setSecurityHeaders(headers http.Header) {
+	headers.Set("X-Content-Type-Options", "nosniff")
+	headers.Set("X-Frame-Options", "DENY")
+	headers.Set("Referrer-Policy", "no-referrer")
+	headers.Set("Cache-Control", "no-store")
+}
+
+func normalizeRequestID(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" || len(value) > maxRequestIDLength {
+		return ""
+	}
+	for _, char := range value {
+		if char < 33 || char > 126 || char == '"' || char == '\'' || char == '\\' {
+			return ""
+		}
+	}
+	return value
 }
 
 func publicRoute(r *http.Request) bool {

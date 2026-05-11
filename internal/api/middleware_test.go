@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -41,6 +42,47 @@ func TestResponseEnvelopeRequestIDCompatibility(t *testing.T) {
 	}
 	if meta["request_id"] != body["request_id"] {
 		t.Fatalf("meta.request_id = %v, want %v", meta["request_id"], body["request_id"])
+	}
+	if rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatalf("security header X-Content-Type-Options missing")
+	}
+	if rec.Header().Get("X-Frame-Options") != "DENY" {
+		t.Fatalf("security header X-Frame-Options missing")
+	}
+	if rec.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("Cache-Control = %q, want no-store", rec.Header().Get("Cache-Control"))
+	}
+}
+
+func TestRequestIDIsNormalized(t *testing.T) {
+	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
+	handler := server.requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeData(w, r, http.StatusOK, map[string]any{"ok": true})
+	}))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
+	req.Header.Set("X-Request-ID", strings.Repeat("a", maxRequestIDLength+1))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got := rec.Header().Get("X-Request-ID"); got == "" || got == req.Header.Get("X-Request-ID") {
+		t.Fatalf("request id was not regenerated for unsafe input: %q", got)
+	}
+}
+
+func TestDefaultCORSOriginsAreNotWildcard(t *testing.T) {
+	t.Setenv("CORS_ALLOWED_ORIGINS", "")
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
+	req.Header.Set("Origin", "https://example.com")
+	if got := allowedCORSOrigin(req); got != "" {
+		t.Fatalf("unexpected default CORS origin = %q", got)
+	}
+	req.Header.Set("Origin", "http://localhost:3000")
+	if got := allowedCORSOrigin(req); got != "http://localhost:3000" {
+		t.Fatalf("localhost CORS origin = %q", got)
 	}
 }
 

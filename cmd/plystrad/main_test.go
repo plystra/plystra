@@ -1,8 +1,10 @@
 package main
 
 import (
+	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestValidateProductionConfigRejectsWildcardCORS(t *testing.T) {
@@ -61,6 +63,38 @@ func TestValidateProductionConfigRejectsUnsafePreviousAPIKeySecret(t *testing.T)
 	err := validateProductionConfig()
 	if err == nil || !strings.Contains(err.Error(), "PLYSTRA_API_KEY_SECRET_PREVIOUS") {
 		t.Fatalf("validateProductionConfig error = %v, want previous API key secret rejection", err)
+	}
+}
+
+func TestNewHTTPServerUsesProductionTimeouts(t *testing.T) {
+	t.Setenv("HTTP_READ_HEADER_TIMEOUT", "7s")
+	t.Setenv("HTTP_READ_TIMEOUT", "31s")
+	t.Setenv("HTTP_WRITE_TIMEOUT", "61s")
+	t.Setenv("HTTP_IDLE_TIMEOUT", "121s")
+
+	server, err := newHTTPServer(":0", http.NewServeMux())
+	if err != nil {
+		t.Fatalf("newHTTPServer error = %v", err)
+	}
+	if server.ReadHeaderTimeout != 7*time.Second {
+		t.Fatalf("ReadHeaderTimeout = %s", server.ReadHeaderTimeout)
+	}
+	if server.ReadTimeout != 31*time.Second {
+		t.Fatalf("ReadTimeout = %s", server.ReadTimeout)
+	}
+	if server.WriteTimeout != 61*time.Second {
+		t.Fatalf("WriteTimeout = %s", server.WriteTimeout)
+	}
+	if server.IdleTimeout != 121*time.Second {
+		t.Fatalf("IdleTimeout = %s", server.IdleTimeout)
+	}
+}
+
+func TestNewHTTPServerRejectsInvalidTimeout(t *testing.T) {
+	t.Setenv("HTTP_READ_HEADER_TIMEOUT", "not-a-duration")
+
+	if _, err := newHTTPServer(":0", http.NewServeMux()); err == nil {
+		t.Fatalf("newHTTPServer accepted invalid timeout")
 	}
 }
 
