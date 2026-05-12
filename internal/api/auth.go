@@ -1,14 +1,18 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 
 	coreent "github.com/plystra/plystra/ent"
+	entadmingrant "github.com/plystra/plystra/ent/admingrant"
 	entsession "github.com/plystra/plystra/ent/session"
 	entuser "github.com/plystra/plystra/ent/user"
 )
@@ -16,11 +20,24 @@ import (
 const (
 	accessTokenTTL  = 15 * time.Minute
 	refreshTokenTTL = 30 * 24 * time.Hour
+	registerLockKey = int64(750100601006)
 )
 
 type authLoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type authRegisterRequest struct {
+	Email             string         `json:"email"`
+	Password          string         `json:"password"`
+	Username          *string        `json:"username"`
+	Phone             *string        `json:"phone"`
+	SpaceName         string         `json:"space_name"`
+	SpaceSlug         string         `json:"space_slug"`
+	MemberDisplayName string         `json:"member_display_name"`
+	RegistrationToken string         `json:"registration_token"`
+	Metadata          map[string]any `json:"metadata"`
 }
 
 type authRefreshRequest struct {
@@ -39,6 +56,187 @@ type sessionRecord struct {
 	ActiveUserMemberID string
 	ExpiresAt          time.Time
 	RefreshExpiresAt   time.Time
+}
+
+func (s *Server) handleAuthRegister(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeMethodNotAllowed(w, r)
+		return
+	}
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	var req authRegisterRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	req.normalize()
+	if err := validateRegisterRequest(req); err != nil {
+		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", err.Error(), nil)
+		return
+	}
+	releaseLock, err := s.acquireRegistrationLock(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusServiceUnavailable, "REGISTRATION_LOCK_UNAVAILABLE", "Failed to acquire registration lock.", err.Error())
+		return
+	}
+	defer releaseLock()
+	bootstrap, err := s.registrationAllowed(r.Context(), req)
+	if err != nil {
+		writeError(w, r, http.StatusForbidden, "REGISTRATION_DISABLED", err.Error(), nil)
+		return
+	}
+	passwordHash, err := hashPassword(req.Password)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to hash password.", err.Error())
+		return
+	}
+	userID := newEntityID("user")
+	spaceID := newEntityID("space")
+	memberID := newEntityID("member")
+	userMemberID := newEntityID("um")
+	now := time.Now().UTC()
+	tx, err := client.Tx(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to start registration transaction.", err.Error())
+		return
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	u, err := tx.User.Create().
+		SetID(userID).
+		SetEmail(req.Email).
+		SetNillableUsername(optionalString(derefString(req.Username))).
+		SetNillablePhone(optionalString(derefString(req.Phone))).
+		SetPasswordHash(passwordHash).
+		SetPasswordChangedAt(now).
+		SetStatus("active").
+		SetMetadata(nonNilMap(req.Metadata)).
+		Save(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusConflict, "USER_CREATE_FAILED", "Failed to register user.", err.Error())
+		return
+	}
+	spaceName := firstNonEmpty(req.SpaceName, displayNameFromRegistration(req), "Personal Space")
+	spaceCreate := tx.Space.Create().
+		SetID(spaceID).
+		SetName(spaceName).
+		SetType("personal").
+		SetStatus("active").
+		SetMetadata(map[string]any{"source": "auth.register"})
+	if req.SpaceSlug != "" {
+		spaceCreate.SetSlug(req.SpaceSlug)
+	}
+	if _, err := spaceCreate.Save(r.Context()); err != nil {
+		writeError(w, r, http.StatusConflict, "SPACE_CREATE_FAILED", "Failed to create registration space.", err.Error())
+		return
+	}
+	memberDisplayName := firstNonEmpty(req.MemberDisplayName, displayNameFromRegistration(req), req.Email)
+	if _, err := tx.Member.Create().
+		SetID(memberID).
+		SetSpaceID(spaceID).
+		SetDisplayName(memberDisplayName).
+		SetMemberType("human").
+		SetStatus("active").
+		SetMetadata(map[string]any{"source": "auth.register"}).
+		Save(r.Context()); err != nil {
+		writeError(w, r, http.StatusConflict, "MEMBER_CREATE_FAILED", "Failed to create registration member.", err.Error())
+		return
+	}
+	if _, err := tx.UserMember.Create().
+		SetID(userMemberID).
+		SetUserID(userID).
+		SetMemberID(memberID).
+		SetSpaceID(spaceID).
+		SetRelationType("self").
+		SetStatus("active").
+		SetIsPrimary(true).
+		SetLinkedAt(now).
+		SetMetadata(map[string]any{"source": "auth.register"}).
+		Save(r.Context()); err != nil {
+		writeError(w, r, http.StatusConflict, "USER_MEMBER_CREATE_FAILED", "Failed to create registration membership.", err.Error())
+		return
+	}
+	spaceAdminGrantID := newEntityID("ag")
+	if _, err := tx.AdminGrant.Create().
+		SetID(spaceAdminGrantID).
+		SetUserID(userID).
+		SetMemberID(memberID).
+		SetSpaceID(spaceID).
+		SetLevel(adminLevelSpace).
+		SetPermissionKey("*").
+		SetStatus("active").
+		SetGrantedByUserID(userID).
+		SetGrantedByMemberID(memberID).
+		SetMetadata(map[string]any{"source": "auth.register", "scope": "registered_space"}).
+		Save(r.Context()); err != nil {
+		writeError(w, r, http.StatusConflict, "ADMIN_GRANT_CREATE_FAILED", "Failed to create registration space admin grant.", err.Error())
+		return
+	}
+	bootstrapGrantID := ""
+	if bootstrap {
+		bootstrapGrantID = newEntityID("ag")
+		if _, err := tx.AdminGrant.Create().
+			SetID(bootstrapGrantID).
+			SetUserID(userID).
+			SetMemberID(memberID).
+			SetLevel(adminLevelInstanceSuper).
+			SetPermissionKey("*").
+			SetStatus("active").
+			SetGrantedByUserID(userID).
+			SetGrantedByMemberID(memberID).
+			SetMetadata(map[string]any{"source": "auth.register.bootstrap"}).
+			Save(r.Context()); err != nil {
+			writeError(w, r, http.StatusConflict, "ADMIN_GRANT_CREATE_FAILED", "Failed to bootstrap first super admin.", err.Error())
+			return
+		}
+	}
+	accessToken, refreshToken, session, err := createSessionForUser(r.Context(), tx.Client(), r, u.ID, spaceID, memberID, userMemberID)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to create registration session.", err.Error())
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to commit registration.", err.Error())
+		return
+	}
+	committed = true
+
+	writeData(w, r, http.StatusCreated, map[string]any{
+		"access_token":       accessToken,
+		"refresh_token":      refreshToken,
+		"token_type":         "Bearer",
+		"expires_at":         session.ExpiresAt.UTC().Format(time.RFC3339),
+		"refresh_expires_at": session.RefreshExpiresAt.UTC().Format(time.RFC3339),
+		"user":               map[string]any{"id": u.ID, "email": u.Email, "status": u.Status},
+		"actor": map[string]any{
+			"user_id":        userID,
+			"member_id":      memberID,
+			"user_member_id": userMemberID,
+			"space_id":       spaceID,
+		},
+		"available_members": []map[string]any{{
+			"user_member_id":      userMemberID,
+			"user_id":             userID,
+			"user_email":          u.Email,
+			"member_id":           memberID,
+			"member_display_name": memberDisplayName,
+			"space_id":            spaceID,
+			"space_name":          spaceName,
+			"relation_type":       "self",
+			"is_primary":          true,
+		}},
+		"bootstrap_super_admin":          bootstrap,
+		"bootstrap_admin_grant_id":       bootstrapGrantID,
+		"space_admin_grant_id":           spaceAdminGrantID,
+		"registration_requires_approval": false,
+	})
 }
 
 func (s *Server) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
@@ -106,28 +304,139 @@ func (s *Server) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	accessToken, refreshToken, session, err := createSessionForUser(r.Context(), client, r, u.ID, stringMapValue(actor, "space_id"), stringMapValue(actor, "member_id"), stringMapValue(actor, "user_member_id"))
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to create session.", err.Error())
+		return
+	}
+	now := time.Now().UTC()
+	_ = client.User.UpdateOneID(u.ID).SetLastLoginAt(now).Exec(r.Context())
+
+	writeData(w, r, http.StatusOK, map[string]any{
+		"access_token":       accessToken,
+		"refresh_token":      refreshToken,
+		"token_type":         "Bearer",
+		"expires_at":         session.ExpiresAt.UTC().Format(time.RFC3339),
+		"refresh_expires_at": session.RefreshExpiresAt.UTC().Format(time.RFC3339),
+		"user":               map[string]any{"id": u.ID, "email": u.Email, "status": u.Status},
+		"actor":              actor,
+		"available_members":  available,
+	})
+}
+
+func (req *authRegisterRequest) normalize() {
+	req.Email = normalizeEmail(req.Email)
+	req.SpaceName = strings.TrimSpace(req.SpaceName)
+	req.SpaceSlug = safeSlug(req.SpaceSlug)
+	req.MemberDisplayName = strings.TrimSpace(req.MemberDisplayName)
+	req.RegistrationToken = strings.TrimSpace(req.RegistrationToken)
+}
+
+func validateRegisterRequest(req authRegisterRequest) error {
+	if req.Email == "" {
+		return validationError("email is required.")
+	}
+	if !strings.Contains(req.Email, "@") {
+		return validationError("email must be valid.")
+	}
+	if message, ok := validatePlaintextPassword(req.Password); !ok {
+		return validationError(message)
+	}
+	return nil
+}
+
+func (s *Server) registrationAllowed(ctx context.Context, req authRegisterRequest) (bool, error) {
+	bootstrapAvailable, err := s.bootstrapRegistrationAvailable(ctx)
+	if err != nil {
+		return false, err
+	}
+	if bootstrapAvailable && featureEnabled("PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED") {
+		if !registrationTokenMatches(req.RegistrationToken, "PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN") {
+			return false, validationError("bootstrap registration token is required.")
+		}
+		return true, nil
+	}
+	if bootstrapAvailable {
+		return false, validationError("first instance super admin must be bootstrapped before user registration.")
+	}
+	if !featureEnabled("PLYSTRA_AUTH_REGISTRATION_ENABLED") {
+		return false, validationError("registration is disabled.")
+	}
+	if strings.EqualFold(firstEnv("SERVER_MODE", "PLYSTRA_ENV"), "production") && strings.TrimSpace(firstEnv("PLYSTRA_AUTH_REGISTRATION_TOKEN")) == "" {
+		return false, validationError("PLYSTRA_AUTH_REGISTRATION_TOKEN is required when registration is enabled in production.")
+	}
+	if !registrationTokenMatches(req.RegistrationToken, "PLYSTRA_AUTH_REGISTRATION_TOKEN") {
+		return false, validationError("registration token is invalid.")
+	}
+	return false, nil
+}
+
+func (s *Server) bootstrapRegistrationAvailable(ctx context.Context) (bool, error) {
+	if s.ent == nil {
+		return false, errAdminEntNotConfigured
+	}
+	now := time.Now().UTC()
+	count, err := s.ent.AdminGrant.Query().
+		Where(
+			entadmingrant.Level(adminLevelInstanceSuper),
+			entadmingrant.Status("active"),
+			entadmingrant.DeletedAtIsNil(),
+			entadmingrant.RevokedAtIsNil(),
+			entadmingrant.Or(entadmingrant.ExpiresAtIsNil(), entadmingrant.ExpiresAtGT(now)),
+		).
+		Count(ctx)
+	if err != nil {
+		return false, err
+	}
+	return count == 0, nil
+}
+
+func registrationTokenMatches(provided, envKey string) bool {
+	configured := strings.TrimSpace(os.Getenv(envKey))
+	if configured == "" {
+		return false
+	}
+	return constantTimeStringEqual(strings.TrimSpace(provided), configured)
+}
+
+func (s *Server) acquireRegistrationLock(ctx context.Context) (func(), error) {
+	if s.pool == nil {
+		return func() {}, nil
+	}
+	conn, err := s.pool.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := conn.Exec(ctx, "select pg_advisory_lock($1)", registerLockKey); err != nil {
+		conn.Release()
+		return nil, err
+	}
+	return func() {
+		_, _ = conn.Exec(context.Background(), "select pg_advisory_unlock($1)", registerLockKey)
+		conn.Release()
+	}, nil
+}
+
+func createSessionForUser(ctx context.Context, client *coreent.Client, r *http.Request, userID, spaceID, memberID, userMemberID string) (string, string, sessionRecord, error) {
 	accessToken, err := newToken("ply_at")
 	if err != nil {
-		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to generate access token.", err.Error())
-		return
+		return "", "", sessionRecord{}, err
 	}
 	refreshToken, err := newToken("ply_rt")
 	if err != nil {
-		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to generate refresh token.", err.Error())
-		return
+		return "", "", sessionRecord{}, err
 	}
 	sessionIDToken, err := newToken("")
 	if err != nil {
-		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to generate session id.", err.Error())
-		return
+		return "", "", sessionRecord{}, err
 	}
 	now := time.Now().UTC()
 	session := sessionRecord{
 		ID:                 "sess_" + safeIdentifier(sessionIDToken),
-		UserID:             u.ID,
-		ActiveSpaceID:      stringMapValue(actor, "space_id"),
-		ActiveMemberID:     stringMapValue(actor, "member_id"),
-		ActiveUserMemberID: stringMapValue(actor, "user_member_id"),
+		UserID:             userID,
+		ActiveSpaceID:      spaceID,
+		ActiveMemberID:     memberID,
+		ActiveUserMemberID: userMemberID,
 		ExpiresAt:          now.Add(accessTokenTTL),
 		RefreshExpiresAt:   now.Add(refreshTokenTTL),
 	}
@@ -143,23 +452,48 @@ func (s *Server) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 		SetRefreshExpiresAt(session.RefreshExpiresAt).
 		SetNillableIP(optionalString(remoteIPFrom(r))).
 		SetNillableUserAgent(optionalString(r.UserAgent())).
-		Save(r.Context())
+		Save(ctx)
 	if err != nil {
-		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to create session.", err.Error())
-		return
+		return "", "", sessionRecord{}, err
 	}
-	_ = client.User.UpdateOneID(u.ID).SetLastLoginAt(now).Exec(r.Context())
+	return accessToken, refreshToken, session, nil
+}
 
-	writeData(w, r, http.StatusOK, map[string]any{
-		"access_token":       accessToken,
-		"refresh_token":      refreshToken,
-		"token_type":         "Bearer",
-		"expires_at":         session.ExpiresAt.UTC().Format(time.RFC3339),
-		"refresh_expires_at": session.RefreshExpiresAt.UTC().Format(time.RFC3339),
-		"user":               map[string]any{"id": u.ID, "email": u.Email, "status": u.Status},
-		"actor":              actor,
-		"available_members":  available,
-	})
+func displayNameFromRegistration(req authRegisterRequest) string {
+	if req.Username != nil && strings.TrimSpace(*req.Username) != "" {
+		return strings.TrimSpace(*req.Username)
+	}
+	local, _, ok := strings.Cut(req.Email, "@")
+	if ok && strings.TrimSpace(local) != "" {
+		return strings.TrimSpace(local)
+	}
+	return ""
+}
+
+func safeSlug(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	var b strings.Builder
+	lastDash := false
+	for _, r := range value {
+		writeDash := false
+		switch {
+		case r >= 'a' && r <= 'z':
+			b.WriteRune(r)
+			lastDash = false
+		case r >= '0' && r <= '9':
+			b.WriteRune(r)
+			lastDash = false
+		case r == '-' || r == '_' || r == '.' || r == ' ':
+			writeDash = true
+		default:
+			writeDash = true
+		}
+		if writeDash && !lastDash && b.Len() > 0 {
+			b.WriteByte('-')
+			lastDash = true
+		}
+	}
+	return strings.Trim(b.String(), "-")
 }
 
 func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {

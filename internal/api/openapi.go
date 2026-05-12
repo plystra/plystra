@@ -14,7 +14,7 @@ import (
 	"github.com/plystra/plystra/internal/plugins"
 )
 
-const OpenAPIVersion = "1.0.0-rc5"
+const OpenAPIVersion = "1.0.0-rc6"
 
 type openAPIRoute struct {
 	Method      string
@@ -87,7 +87,7 @@ type openAPIReady struct {
 }
 
 type openAPIVersionResponse struct {
-	Version string `json:"version" example:"1.0.0-rc5"`
+	Version string `json:"version" example:"1.0.0-rc6"`
 }
 
 type openAPILoginResponse struct {
@@ -107,6 +107,21 @@ type openAPIRefreshResponse struct {
 	TokenType        string `json:"token_type" example:"Bearer"`
 	ExpiresAt        string `json:"expires_at" format:"date-time"`
 	RefreshExpiresAt string `json:"refresh_expires_at" format:"date-time"`
+}
+
+type openAPIRegisterResponse struct {
+	AccessToken                  string             `json:"access_token"`
+	RefreshToken                 string             `json:"refresh_token"`
+	TokenType                    string             `json:"token_type" example:"Bearer"`
+	ExpiresAt                    string             `json:"expires_at" format:"date-time"`
+	RefreshExpiresAt             string             `json:"refresh_expires_at" format:"date-time"`
+	User                         openAPIUserSession `json:"user"`
+	Actor                        map[string]any     `json:"actor"`
+	AvailableMembers             []map[string]any   `json:"available_members"`
+	BootstrapSuperAdmin          bool               `json:"bootstrap_super_admin"`
+	BootstrapAdminGrantID        string             `json:"bootstrap_admin_grant_id,omitempty"`
+	SpaceAdminGrantID            string             `json:"space_admin_grant_id"`
+	RegistrationRequiresApproval bool               `json:"registration_requires_approval"`
 }
 
 type openAPIUserSession struct {
@@ -684,6 +699,7 @@ func openAPIRoutes() []openAPIRoute {
 		{Method: http.MethodGet, Path: "/metrics", Tag: "System", ID: "getMetrics", Summary: "Get Prometheus metrics", Response: new(string), ContentType: "text/plain", Security: openAPIMetrics},
 		{Method: http.MethodGet, Path: "/api/v1/console/overview", Tag: "Console", ID: "getConsoleOverview", Summary: "Get admin console overview", Response: new(openAPIEnvelope[openAPIOverviewResponse]), Security: openAPIAdmin},
 
+		{Method: http.MethodPost, Path: "/api/v1/auth/register", Tag: "Auth", ID: "register", Summary: "Register a user and create an initial session", Description: "Registration is disabled by default. Production deployments must use explicit registration tokens, and first-super-admin bootstrap requires PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED plus PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN.", Body: new(authRegisterRequest), Response: new(openAPIEnvelope[openAPIRegisterResponse]), Status: http.StatusCreated, Security: openAPIPublic},
 		{Method: http.MethodPost, Path: "/api/v1/auth/login", Tag: "Auth", ID: "login", Summary: "Create a user session", Body: new(authLoginRequest), Response: new(openAPIEnvelope[openAPILoginResponse]), Security: openAPIPublic},
 		{Method: http.MethodPost, Path: "/api/v1/auth/refresh", Tag: "Auth", ID: "refreshSession", Summary: "Rotate access and refresh tokens", Body: new(authRefreshRequest), Response: new(openAPIEnvelope[openAPIRefreshResponse]), Security: openAPIPublic},
 		{Method: http.MethodPost, Path: "/api/v1/auth/logout", Tag: "Auth", ID: "logout", Summary: "Revoke a session token", Body: new(authLogoutRequest), Response: new(openAPIEnvelope[openAPILogoutResponse]), Security: openAPIPublic},

@@ -67,6 +67,8 @@ Non-public routes require either:
 - a Bearer session for a user with an active admin grant, or
 - a scoped API key with matching permission keys.
 
+Registration is disabled by default. For production, keep it closed unless your onboarding flow needs it; if enabled, configure `PLYSTRA_AUTH_REGISTRATION_TOKEN`, and use `PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN` only for controlled first-super-admin bootstrap.
+
 ## Documentation
 
 Full installation, integration, operations, SDK, security, and release documentation lives at [docs.plystra.com](https://docs.plystra.com).

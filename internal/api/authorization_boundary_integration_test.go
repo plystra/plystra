@@ -240,6 +240,25 @@ func TestAdminAuthorizationBoundaryIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("session authz check cannot impersonate another user actor", func(t *testing.T) {
+		rec := boundaryJSONRequest(handler, http.MethodPost, "/api/v1/authz/check", map[string]string{
+			"Authorization": "Bearer " + adminToken,
+		}, map[string]any{
+			"actor": map[string]any{
+				"user_id":        fixture.GroupUserID,
+				"member_id":      fixture.GroupMemberID,
+				"user_member_id": fixture.GroupUserMemberID,
+				"space_id":       fixture.SpaceAID,
+			},
+			"resource_type": "invoice",
+			"resource_id":   fixture.FinanceResourceID,
+			"action":        "read",
+		})
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want 403, body=%s", rec.Code, rec.Body.String())
+		}
+	})
+
 	t.Run("group admin can read descendant resource but not sibling or whole-space resources", func(t *testing.T) {
 		allowed := boundaryJSONRequest(handler, http.MethodGet, "/api/v1/resources/invoice/"+fixture.FinanceResourceID, map[string]string{
 			"Authorization": "Bearer " + groupToken,

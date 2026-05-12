@@ -93,6 +93,7 @@ func (s *Server) recordMutationAudit(ctx context.Context, r *http.Request, actor
 	if spaceID == "" {
 		return
 	}
+	actor = auditActorFromRequest(r, actor, spaceID)
 	trace := map[string]any{
 		"trace_version": traceVersion(),
 		"decision":      authz.DecisionAllow,
@@ -129,6 +130,31 @@ func (s *Server) recordMutationAudit(ctx context.Context, r *http.Request, actor
 		SetNillableIPAddress(optionalString(remoteIPFrom(r))).
 		SetNillableUserAgent(optionalString(r.UserAgent())).
 		Save(ctx)
+}
+
+func auditActorFromRequest(r *http.Request, fallback authz.ActorContext, spaceID string) authz.ActorContext {
+	if principal, ok := adminPrincipalFrom(r); ok {
+		switch principal.CredentialType {
+		case "session":
+			return authz.ActorContext{
+				UserID:       principal.Session.UserID,
+				MemberID:     principal.Session.ActiveMemberID,
+				UserMemberID: principal.Session.ActiveUserMemberID,
+				SpaceID:      firstNonEmpty(principal.Session.ActiveSpaceID, spaceID),
+			}
+		case "api_key":
+			if principal.APIKey != nil {
+				return authz.ActorContext{
+					UserID:  derefString(principal.APIKey.CreatedByUserID),
+					SpaceID: firstNonEmpty(derefString(principal.APIKey.SpaceID), spaceID),
+				}
+			}
+		}
+	}
+	if fallback.SpaceID == "" {
+		fallback.SpaceID = spaceID
+	}
+	return fallback
 }
 
 func stringFromMap(values map[string]any, key string) string {

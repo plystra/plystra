@@ -35,6 +35,7 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 		"/api/v1/health",
 		"/api/v1/ready",
 		"/api/v1/version",
+		"/api/v1/auth/register",
 		"/api/v1/auth/login",
 		"/api/v1/admin/me",
 		"/api/v1/admin/grants",
@@ -98,6 +99,7 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 	}
 
 	requestBodyPaths := map[string]string{
+		"POST /api/v1/auth/register":                            "/api/v1/auth/register",
 		"POST /api/v1/auth/login":                               "/api/v1/auth/login",
 		"POST /api/v1/authz/check":                              "/api/v1/authz/check",
 		"POST /api/v1/users":                                    "/api/v1/users",

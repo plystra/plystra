@@ -42,6 +42,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/v1/version", s.handleVersion)
 	mux.HandleFunc("/metrics", s.handleMetrics)
 	mux.HandleFunc("/api/v1/console/overview", s.handleOverview)
+	mux.HandleFunc("/api/v1/auth/register", s.handleAuthRegister)
 	mux.HandleFunc("/api/v1/auth/login", s.handleAuthLogin)
 	mux.HandleFunc("/api/v1/auth/logout", s.handleAuthLogout)
 	mux.HandleFunc("/api/v1/auth/refresh", s.handleAuthRefresh)

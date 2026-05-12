@@ -66,6 +66,26 @@ func TestValidateProductionConfigRejectsUnsafePreviousAPIKeySecret(t *testing.T)
 	}
 }
 
+func TestValidateProductionConfigRequiresRegistrationTokenWhenEnabled(t *testing.T) {
+	setValidProductionEnv(t)
+	t.Setenv("PLYSTRA_AUTH_REGISTRATION_ENABLED", "true")
+
+	err := validateProductionConfig()
+	if err == nil || !strings.Contains(err.Error(), "PLYSTRA_AUTH_REGISTRATION_TOKEN") {
+		t.Fatalf("validateProductionConfig error = %v, want registration token rejection", err)
+	}
+}
+
+func TestValidateProductionConfigRequiresBootstrapRegistrationTokenWhenEnabled(t *testing.T) {
+	setValidProductionEnv(t)
+	t.Setenv("PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED", "true")
+
+	err := validateProductionConfig()
+	if err == nil || !strings.Contains(err.Error(), "PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN") {
+		t.Fatalf("validateProductionConfig error = %v, want bootstrap registration token rejection", err)
+	}
+}
+
 func TestNewHTTPServerUsesProductionTimeouts(t *testing.T) {
 	t.Setenv("HTTP_READ_HEADER_TIMEOUT", "7s")
 	t.Setenv("HTTP_READ_TIMEOUT", "31s")

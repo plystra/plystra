@@ -3,7 +3,7 @@
   "info": {
     "title": "Plystra Core API",
     "description": "Stable self-hosted Plystra Core API for identity, authorization, resources, audit, API keys, plugins, and templates.",
-    "version": "1.0.0-rc5"
+    "version": "1.0.0-rc6"
   },
   "servers": [
     {
@@ -922,6 +922,48 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRefreshResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Register a user and create an initial session",
+        "description": "Registration is disabled by default. Production deployments must use explicit registration tokens, and first-super-admin bootstrap requires PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED plus PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN.",
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiAuthRegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRegisterResponse"
                 }
               }
             }
@@ -6304,6 +6346,42 @@
           }
         }
       },
+      "ApiAuthRegisterRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "member_display_name": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "password": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "registration_token": {
+            "type": "string"
+          },
+          "space_name": {
+            "type": "string"
+          },
+          "space_slug": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
       "ApiAuthzRequest": {
         "type": "object",
         "properties": {
@@ -7035,6 +7113,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/ApiOpenAPIRefreshResponse"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req_01hzyj6b6q8"
+          }
+        }
+      },
+      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRegisterResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ApiOpenAPIRegisterResponse"
           },
           "request_id": {
             "type": "string",
@@ -8099,6 +8189,57 @@
           }
         }
       },
+      "ApiOpenAPIRegisterResponse": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "available_members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "nullable": true
+          },
+          "bootstrap_admin_grant_id": {
+            "type": "string"
+          },
+          "bootstrap_super_admin": {
+            "type": "boolean"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "refresh_expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "refresh_token": {
+            "type": "string"
+          },
+          "registration_requires_approval": {
+            "type": "boolean"
+          },
+          "space_admin_grant_id": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string",
+            "example": "Bearer"
+          },
+          "user": {
+            "$ref": "#/components/schemas/ApiOpenAPIUserSession"
+          }
+        }
+      },
       "ApiOpenAPIResource": {
         "type": "object",
         "properties": {
@@ -8573,7 +8714,7 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "1.0.0-rc5"
+            "example": "1.0.0-rc6"
           }
         }
       },

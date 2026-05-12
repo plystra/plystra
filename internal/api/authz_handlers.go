@@ -79,6 +79,22 @@ func (s *Server) handleAuthz(w http.ResponseWriter, r *http.Request, explain boo
 				MemberID:     stringMapValue(actor, "member_id"),
 				UserMemberID: stringMapValue(actor, "user_member_id"),
 			}
+		} else if principal.CredentialType == "session" {
+			actor, err := s.actorBindingForUser(r.Context(), principal.Session.UserID, input.Actor.MemberID, input.Actor.UserMemberID)
+			if err != nil {
+				writeError(w, r, http.StatusForbidden, "ACTIVE_MEMBER_REQUIRED", "Requested actor is not active for this User.", nil)
+				return
+			}
+			if input.Actor.SpaceID != "" && input.Actor.SpaceID != stringMapValue(actor, "space_id") {
+				writeError(w, r, http.StatusForbidden, "ACTIVE_MEMBER_REQUIRED", "Requested actor does not belong to that Space.", nil)
+				return
+			}
+			input.Actor = authz.ActorContext{
+				UserID:       stringMapValue(actor, "user_id"),
+				SpaceID:      stringMapValue(actor, "space_id"),
+				MemberID:     stringMapValue(actor, "member_id"),
+				UserMemberID: stringMapValue(actor, "user_member_id"),
+			}
 		}
 		scope := adminRequirement{
 			PermissionKey: "authz:check",

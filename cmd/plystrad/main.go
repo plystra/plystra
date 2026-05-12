@@ -17,7 +17,7 @@ import (
 )
 
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
-const defaultCoreVersion = "1.0.0-rc5"
+const defaultCoreVersion = "1.0.0-rc6"
 
 const (
 	defaultSessionSecret = "change-me-session-secret-at-least-32-characters"
@@ -143,6 +143,9 @@ func validateProductionConfig() error {
 	if apiKeySecret == sessionSecret {
 		return fmt.Errorf("PLYSTRA_API_KEY_SECRET must be distinct from PLYSTRA_SESSION_SECRET in production")
 	}
+	if err := validateRegistrationConfig(); err != nil {
+		return err
+	}
 	if err := validatePreviousSessionSecrets(); err != nil {
 		return err
 	}
@@ -161,6 +164,34 @@ func validateProductionConfig() error {
 		return fmt.Errorf("SERVER_PUBLIC_URL must not point to localhost in production")
 	}
 	return nil
+}
+
+func validateRegistrationConfig() error {
+	if featureEnabled("PLYSTRA_AUTH_REGISTRATION_ENABLED") {
+		if !registrationSecretSafe("PLYSTRA_AUTH_REGISTRATION_TOKEN") {
+			return fmt.Errorf("PLYSTRA_AUTH_REGISTRATION_TOKEN must be set and at least 32 characters when registration is enabled in production")
+		}
+	}
+	if featureEnabled("PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED") {
+		if !registrationSecretSafe("PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN") {
+			return fmt.Errorf("PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN must be set and at least 32 characters when bootstrap registration is enabled in production")
+		}
+	}
+	return nil
+}
+
+func registrationSecretSafe(key string) bool {
+	value := strings.TrimSpace(os.Getenv(key))
+	return len(value) >= 32
+}
+
+func featureEnabled(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
+	case "1", "true", "yes", "on", "enabled":
+		return true
+	default:
+		return false
+	}
 }
 
 func validatePreviousSessionSecrets() error {
