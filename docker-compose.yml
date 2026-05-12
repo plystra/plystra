@@ -15,7 +15,6 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173,http://localhost:8080}
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       PLYSTRA_SESSION_SECRET: ${PLYSTRA_SESSION_SECRET:-change-me-session-secret-at-least-32-characters}
-      JWT_SECRET: ${JWT_SECRET:-change-me-to-at-least-32-characters}
       PLYSTRA_API_KEY_SECRET: ${PLYSTRA_API_KEY_SECRET:-change-me-api-key-secret-at-least-32-characters}
       HTTP_READ_HEADER_TIMEOUT: ${HTTP_READ_HEADER_TIMEOUT:-5s}
       HTTP_READ_TIMEOUT: ${HTTP_READ_TIMEOUT:-30s}

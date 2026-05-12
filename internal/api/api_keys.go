@@ -133,6 +133,13 @@ func (s *Server) createAPIKey(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "The current credential cannot create an API key for this scope.", map[string]any{"permission": "api_keys:create"})
 		return
 	}
+	if allowed, deniedPermission, err := s.principalCanDelegatePermissions(r.Context(), principal, req.PermissionKeys, req.SpaceID, req.GroupID); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate delegated API key permissions.", err.Error())
+		return
+	} else if !allowed {
+		writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "The current credential cannot delegate one or more API key permissions.", map[string]any{"permission": deniedPermission})
+		return
+	}
 	if req.ID == "" {
 		req.ID = newEntityID("ak")
 	}
@@ -241,6 +248,14 @@ func (s *Server) validateAPIKeyRequest(r *http.Request, req *apiKeyMutationReque
 	}
 	if len(req.PermissionKeys) == 0 {
 		return validationError("permission_keys must contain at least one permission key")
+	}
+	for _, key := range req.PermissionKeys {
+		if !validAdminPermissionKey(key) {
+			return validationError("permission_keys entries must be * or domain:action using lowercase letters, digits, hyphen, or underscore")
+		}
+	}
+	if len(apiKeySecrets()) == 0 {
+		return validationError("PLYSTRA_API_KEY_SECRET is required before API keys can be created")
 	}
 	if req.Status != "" && req.Status != "active" && req.Status != "disabled" {
 		return validationError("status must be active or disabled")

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Plystra Core API",
-    "version": "1.0.0-dev10",
+    "version": "1.0.0-dev11",
     "description": "Stable self-hosted Plystra Core API for identity, authorization, resources, and audit."
   },
   "servers": [
@@ -18,14 +18,6 @@
           "data": {},
           "request_id": {
             "type": "string"
-          },
-          "meta": {
-            "type": "object",
-            "properties": {
-              "request_id": {
-                "type": "string"
-              }
-            }
           }
         }
       },
@@ -58,14 +50,6 @@
           },
           "request_id": {
             "type": "string"
-          },
-          "meta": {
-            "type": "object",
-            "properties": {
-              "request_id": {
-                "type": "string"
-              }
-            }
           }
         }
       },
@@ -139,6 +123,66 @@
             "type": "object"
           }
         }
+      },
+      "ActorContext": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "space_id",
+          "member_id",
+          "user_member_id"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "member_id": {
+            "type": "string"
+          },
+          "user_member_id": {
+            "type": "string"
+          }
+        }
+      },
+      "AuthzCheckRequest": {
+        "type": "object",
+        "required": [
+          "resource_type",
+          "resource_id",
+          "action"
+        ],
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorContext",
+            "description": "Required for API key calls. Bearer session calls may omit it and use the session active actor."
+          },
+          "resource_type": {
+            "type": "string"
+          },
+          "resource_id": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              }
+            }
+          },
+          "action": {
+            "type": "string"
+          },
+          "explain": {
+            "type": "boolean"
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -183,36 +227,6 @@
     "/api/v1/version": {
       "get": {
         "summary": "Version metadata",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/system/health": {
-      "get": {
-        "summary": "Backward-compatible health alias",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/system/ready": {
-      "get": {
-        "summary": "Backward-compatible readiness alias",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/v1/system/version": {
-      "get": {
-        "summary": "Backward-compatible version alias",
         "responses": {
           "200": {
             "description": "OK"
@@ -305,6 +319,16 @@
           "200": {
             "description": "OK"
           }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthzCheckRequest"
+              }
+            }
+          }
         }
       }
     },
@@ -314,6 +338,16 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthzCheckRequest"
+              }
+            }
           }
         }
       }
@@ -864,36 +898,6 @@
         }
       }
     },
-    "/system/health": {
-      "get": {
-        "summary": "Legacy health alias",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/system/ready": {
-      "get": {
-        "summary": "Legacy readiness alias",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/system/version": {
-      "get": {
-        "summary": "Legacy version alias",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/api/v1/resources": {
       "get": {
         "summary": "List Resources across Spaces",
@@ -922,110 +926,9 @@
         }
       }
     },
-    "/api/v1/audit-logs": {
-      "get": {
-        "summary": "List AuditLogs across Spaces",
-        "parameters": [
-          {
-            "name": "space_id",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "actor_user_id",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "actor_member_id",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "actor_user_member_id",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "resource_type",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "resource_id",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "decision",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "deny_code",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "request_id",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "created_at_from",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "created_at_to",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "AuditLog list"
-          }
-        }
-      }
-    },
-    "/api/v1/audit-logs/{audit_log_id}": {
-      "get": {
-        "summary": "Get AuditLog",
-        "responses": {
-          "200": {
-            "description": "AuditLog detail"
-          }
-        }
-      }
-    },
     "/api/v1/audit/logs": {
       "get": {
-        "summary": "Backward-compatible AuditLog list alias",
+        "summary": "List AuditLogs across Spaces",
         "responses": {
           "200": {
             "description": "AuditLog list"
@@ -1035,7 +938,7 @@
     },
     "/api/v1/audit/logs/{audit_log_id}": {
       "get": {
-        "summary": "Backward-compatible AuditLog detail alias",
+        "summary": "Get AuditLog",
         "responses": {
           "200": {
             "description": "AuditLog detail"

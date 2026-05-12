@@ -154,10 +154,7 @@ func publicRoute(r *http.Request) bool {
 	path := r.URL.Path
 	if r.Method == http.MethodGet {
 		switch path {
-		case "/api/v1/health", "/api/v1/ready", "/api/v1/version",
-			"/api/v1/system/health", "/api/v1/system/ready", "/api/v1/system/version",
-			"/system/health", "/system/ready", "/system/version",
-			"/metrics":
+		case "/api/v1/health", "/api/v1/ready", "/api/v1/version", "/metrics":
 			return true
 		}
 	}

@@ -84,9 +84,6 @@ func (s *Server) handleAuditLogDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := strings.TrimPrefix(r.URL.Path, "/api/v1/audit/logs/")
-	if id == r.URL.Path {
-		id = strings.TrimPrefix(r.URL.Path, "/api/v1/audit-logs/")
-	}
 	log, err := s.ent.AuditLog.Query().Where(auditlog.ID(id)).Only(r.Context())
 	if coreent.IsNotFound(err) {
 		writeError(w, r, http.StatusNotFound, "AUDIT_LOG_NOT_FOUND", "Resource was not found.", nil)

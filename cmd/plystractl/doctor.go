@@ -48,7 +48,7 @@ func runDoctor(ctx context.Context) error {
 			pending++
 			continue
 		}
-		if record.Checksum != migration.Checksum {
+		if !record.matches(migration) {
 			return fmt.Errorf("migration %s checksum mismatch", migration.Version)
 		}
 	}
@@ -74,12 +74,12 @@ func runDoctor(ctx context.Context) error {
 	}
 	fmt.Println("schema: ok")
 	fmt.Println("service readiness: ok")
-	sessionSecret := firstEnv("PLYSTRA_SESSION_SECRET", "SESSION_SECRET", "JWT_SECRET", "PLYSTRA_JWT_SECRET")
-	if len(sessionSecret) < 32 || sessionSecret == defaultSessionSecret || sessionSecret == defaultJWTSecret {
-		fmt.Println("warning: PLYSTRA_SESSION_SECRET or JWT_SECRET is unset, default, or shorter than 32 characters")
+	sessionSecret := firstEnv("PLYSTRA_SESSION_SECRET")
+	if len(sessionSecret) < 32 || sessionSecret == defaultSessionSecret {
+		fmt.Println("warning: PLYSTRA_SESSION_SECRET is unset, default, or shorter than 32 characters")
 	}
-	apiKeySecret := firstEnv("PLYSTRA_API_KEY_SECRET", "API_KEY_SECRET")
-	if len(apiKeySecret) < 32 || apiKeySecret == defaultSessionSecret || apiKeySecret == defaultJWTSecret {
+	apiKeySecret := firstEnv("PLYSTRA_API_KEY_SECRET")
+	if len(apiKeySecret) < 32 || apiKeySecret == defaultSessionSecret || apiKeySecret == defaultAPIKeySecret {
 		fmt.Println("warning: PLYSTRA_API_KEY_SECRET is unset, default, or shorter than 32 characters")
 	} else if apiKeySecret == sessionSecret {
 		fmt.Println("warning: PLYSTRA_API_KEY_SECRET matches the session secret; use a distinct secret in production")
@@ -97,12 +97,12 @@ func validateDoctorConfig(mode string) error {
 	if databaseURL() == defaultDatabaseURL || strings.Contains(databaseURL(), "://plystra:plystra@") {
 		return fmt.Errorf("DATABASE_URL must not use the default development database credentials in production")
 	}
-	sessionSecret := firstEnv("PLYSTRA_SESSION_SECRET", "SESSION_SECRET", "JWT_SECRET", "PLYSTRA_JWT_SECRET")
-	if len(sessionSecret) < 32 || sessionSecret == defaultSessionSecret || sessionSecret == defaultJWTSecret {
-		return fmt.Errorf("PLYSTRA_SESSION_SECRET or JWT_SECRET must be changed and at least 32 characters in production")
+	sessionSecret := firstEnv("PLYSTRA_SESSION_SECRET")
+	if len(sessionSecret) < 32 || sessionSecret == defaultSessionSecret {
+		return fmt.Errorf("PLYSTRA_SESSION_SECRET must be changed and at least 32 characters in production")
 	}
-	apiKeySecret := firstEnv("PLYSTRA_API_KEY_SECRET", "API_KEY_SECRET")
-	if len(apiKeySecret) < 32 || apiKeySecret == defaultSessionSecret || apiKeySecret == defaultJWTSecret {
+	apiKeySecret := firstEnv("PLYSTRA_API_KEY_SECRET")
+	if len(apiKeySecret) < 32 || apiKeySecret == defaultSessionSecret || apiKeySecret == defaultAPIKeySecret {
 		return fmt.Errorf("PLYSTRA_API_KEY_SECRET must be set and at least 32 characters in production")
 	}
 	if apiKeySecret == sessionSecret {
@@ -129,13 +129,13 @@ func validateDoctorConfig(mode string) error {
 }
 
 func validatePreviousSessionSecrets() error {
-	for _, key := range []string{"PLYSTRA_SESSION_SECRET_PREVIOUS", "SESSION_SECRET_PREVIOUS"} {
+	for _, key := range []string{"PLYSTRA_SESSION_SECRET_PREVIOUS"} {
 		for _, value := range strings.Split(os.Getenv(key), ",") {
 			value = strings.TrimSpace(value)
 			if value == "" {
 				continue
 			}
-			if len(value) < 32 || value == defaultSessionSecret || value == defaultJWTSecret {
+			if len(value) < 32 || value == defaultSessionSecret {
 				return fmt.Errorf("%s contains an unsafe previous session secret", key)
 			}
 		}
@@ -144,13 +144,13 @@ func validatePreviousSessionSecrets() error {
 }
 
 func validatePreviousAPIKeySecrets() error {
-	for _, key := range []string{"PLYSTRA_API_KEY_SECRET_PREVIOUS", "API_KEY_SECRET_PREVIOUS"} {
+	for _, key := range []string{"PLYSTRA_API_KEY_SECRET_PREVIOUS"} {
 		for _, value := range strings.Split(os.Getenv(key), ",") {
 			value = strings.TrimSpace(value)
 			if value == "" {
 				continue
 			}
-			if len(value) < 32 || value == defaultSessionSecret || value == defaultJWTSecret {
+			if len(value) < 32 || value == defaultSessionSecret || value == defaultAPIKeySecret {
 				return fmt.Errorf("%s contains an unsafe previous API key secret", key)
 			}
 		}

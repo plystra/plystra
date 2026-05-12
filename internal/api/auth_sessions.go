@@ -329,7 +329,7 @@ func sha256TokenHash(token string) string {
 }
 
 func sessionTokenSecret() string {
-	return firstEnv("PLYSTRA_SESSION_SECRET", "SESSION_SECRET", "JWT_SECRET", "PLYSTRA_JWT_SECRET")
+	return firstEnv("PLYSTRA_SESSION_SECRET")
 }
 
 func sessionTokenSecrets() []string {
@@ -338,7 +338,7 @@ func sessionTokenSecrets() []string {
 		return nil
 	}
 	secrets := []string{primary}
-	for _, key := range []string{"PLYSTRA_SESSION_SECRET_PREVIOUS", "SESSION_SECRET_PREVIOUS"} {
+	for _, key := range []string{"PLYSTRA_SESSION_SECRET_PREVIOUS"} {
 		for _, value := range strings.Split(osEnv(key), ",") {
 			value = strings.TrimSpace(value)
 			if value != "" {

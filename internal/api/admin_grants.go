@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -17,18 +18,17 @@ import (
 )
 
 type adminGrantMutationRequest struct {
-	ID              string         `json:"id"`
-	UserID          string         `json:"user_id"`
-	MemberID        string         `json:"member_id"`
-	SpaceID         string         `json:"space_id"`
-	GroupID         string         `json:"group_id"`
-	Level           string         `json:"level"`
-	PermissionKey   string         `json:"permission_key"`
-	Status          string         `json:"status"`
-	ExpiresAt       *time.Time     `json:"expires_at"`
-	RevokedReason   string         `json:"revoked_reason"`
-	Metadata        map[string]any `json:"metadata"`
-	GrantedByUserID string         `json:"granted_by_user_id"`
+	ID            string         `json:"id"`
+	UserID        string         `json:"user_id"`
+	MemberID      string         `json:"member_id"`
+	SpaceID       string         `json:"space_id"`
+	GroupID       string         `json:"group_id"`
+	Level         string         `json:"level"`
+	PermissionKey string         `json:"permission_key"`
+	Status        string         `json:"status"`
+	ExpiresAt     *time.Time     `json:"expires_at"`
+	RevokedReason string         `json:"revoked_reason"`
+	Metadata      map[string]any `json:"metadata"`
 }
 
 func (s *Server) handleAdminMe(w http.ResponseWriter, r *http.Request) {
@@ -105,6 +105,16 @@ func (s *Server) handleAdminGrantSubroutes(w http.ResponseWriter, r *http.Reques
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load AdminGrant.", err.Error())
 			return
 		}
+		principal, _ := adminPrincipalFrom(r)
+		allowed, err := s.principalCanUseAdminGrant(r.Context(), principal, grant, "read")
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate AdminGrant visibility.", err.Error())
+			return
+		}
+		if !allowed {
+			writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "The current user cannot access this admin grant.", map[string]any{"permission": "admin_grants:read"})
+			return
+		}
 		writeData(w, r, http.StatusOK, adminGrantMap(grant))
 		return
 	}
@@ -147,8 +157,16 @@ func (s *Server) listAdminGrants(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows := make([]map[string]any, 0, len(grants))
+	principal, _ := adminPrincipalFrom(r)
 	for _, grant := range grants {
-		rows = append(rows, adminGrantMap(grant))
+		allowed, err := s.principalCanUseAdminGrant(r.Context(), principal, grant, "read")
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate AdminGrant visibility.", err.Error())
+			return
+		}
+		if allowed {
+			rows = append(rows, adminGrantMap(grant))
+		}
 	}
 	writeList(w, r, http.StatusOK, rows, limit)
 }
@@ -168,14 +186,31 @@ func (s *Server) createAdminGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	principal, _ := adminPrincipalFrom(r)
+	if principal.CredentialType != "session" {
+		writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "Only an authenticated user session can create admin grants.", nil)
+		return
+	}
 	if !canCreateAdminGrantLevel(principal, req.Level) {
 		writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "Only an instance super admin can create instance-level admin grants.", nil)
+		return
+	}
+	if allowed, err := s.principalCanUseAdminGrantRequest(r.Context(), principal, req, "manage"); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate AdminGrant scope.", err.Error())
+		return
+	} else if !allowed {
+		writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "The current user cannot create admin grants for this scope.", map[string]any{"permission": "admin_grants:manage"})
+		return
+	}
+	if allowed, deniedPermission, err := s.principalCanDelegatePermissions(r.Context(), principal, []string{req.PermissionKey}, req.SpaceID, req.GroupID); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate delegated admin permission.", err.Error())
+		return
+	} else if !allowed {
+		writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "The current user cannot delegate this admin permission.", map[string]any{"permission": deniedPermission})
 		return
 	}
 	if req.ID == "" {
 		req.ID = newEntityID("ag")
 	}
-	grantedByUserID := firstNonEmpty(req.GrantedByUserID, principal.Session.UserID)
 	grant, err := client.AdminGrant.Create().
 		SetID(req.ID).
 		SetUserID(req.UserID).
@@ -185,7 +220,7 @@ func (s *Server) createAdminGrant(w http.ResponseWriter, r *http.Request) {
 		SetLevel(req.Level).
 		SetPermissionKey(req.PermissionKey).
 		SetStatus(firstNonEmpty(req.Status, "active")).
-		SetNillableGrantedByUserID(optionalString(grantedByUserID)).
+		SetNillableGrantedByUserID(optionalString(principal.Session.UserID)).
 		SetNillableGrantedByMemberID(optionalString(principal.Session.ActiveMemberID)).
 		SetNillableExpiresAt(req.ExpiresAt).
 		SetMetadata(nonNilMap(req.Metadata)).
@@ -216,8 +251,26 @@ func (s *Server) revokeAdminGrant(w http.ResponseWriter, r *http.Request, grantI
 		return
 	}
 	principal, _ := adminPrincipalFrom(r)
+	if principal.CredentialType != "session" {
+		writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "Only an authenticated user session can revoke admin grants.", nil)
+		return
+	}
 	if !canCreateAdminGrantLevel(principal, grant.Level) {
 		writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "Only an instance super admin can revoke instance-level admin grants.", nil)
+		return
+	}
+	if allowed, err := s.principalCanUseAdminGrant(r.Context(), principal, grant, "manage"); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate AdminGrant scope.", err.Error())
+		return
+	} else if !allowed {
+		writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "The current user cannot revoke admin grants for this scope.", map[string]any{"permission": "admin_grants:manage"})
+		return
+	}
+	if allowed, deniedPermission, err := s.principalCanDelegatePermissions(r.Context(), principal, []string{grant.PermissionKey}, derefString(grant.SpaceID), derefString(grant.GroupID)); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate delegated admin permission.", err.Error())
+		return
+	} else if !allowed {
+		writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "The current user cannot revoke grants carrying this admin permission.", map[string]any{"permission": deniedPermission})
 		return
 	}
 	if grant.Level == adminLevelInstanceSuper {
@@ -260,9 +313,8 @@ func (req *adminGrantMutationRequest) normalize() {
 	req.SpaceID = strings.TrimSpace(req.SpaceID)
 	req.GroupID = strings.TrimSpace(req.GroupID)
 	req.Level = strings.TrimSpace(req.Level)
-	req.PermissionKey = strings.TrimSpace(req.PermissionKey)
+	req.PermissionKey = strings.ToLower(strings.TrimSpace(req.PermissionKey))
 	req.Status = strings.TrimSpace(req.Status)
-	req.GrantedByUserID = strings.TrimSpace(req.GrantedByUserID)
 }
 
 func (s *Server) validateAdminGrantRequest(r *http.Request, req *adminGrantMutationRequest) error {
@@ -274,6 +326,9 @@ func (s *Server) validateAdminGrantRequest(r *http.Request, req *adminGrantMutat
 	}
 	if req.PermissionKey == "" {
 		return validationError("permission_key is required")
+	}
+	if !validAdminPermissionKey(req.PermissionKey) {
+		return validationError("permission_key must be * or domain:action using lowercase letters, digits, hyphen, or underscore")
 	}
 	client := s.ent
 	if client == nil {
@@ -343,12 +398,26 @@ func canCreateAdminGrantLevel(principal adminPrincipal, level string) bool {
 	if level != adminLevelInstanceSuper && level != adminLevelInstance {
 		return true
 	}
-	for _, grant := range principal.Grants {
-		if grant.Level == adminLevelInstanceSuper {
-			return true
-		}
+	return adminPrincipalIsSuper(principal)
+}
+
+func (s *Server) principalCanUseAdminGrantRequest(ctx context.Context, principal adminPrincipal, req adminGrantMutationRequest, action string) (bool, error) {
+	return s.adminPrincipalAllows(ctx, principal, adminRequirement{
+		PermissionKey: "admin_grants:" + action,
+		SpaceID:       req.SpaceID,
+		GroupID:       req.GroupID,
+	})
+}
+
+func (s *Server) principalCanUseAdminGrant(ctx context.Context, principal adminPrincipal, grant *coreent.AdminGrant, action string) (bool, error) {
+	if grant == nil {
+		return false, nil
 	}
-	return false
+	return s.adminPrincipalAllows(ctx, principal, adminRequirement{
+		PermissionKey: "admin_grants:" + action,
+		SpaceID:       derefString(grant.SpaceID),
+		GroupID:       derefString(grant.GroupID),
+	})
 }
 
 func validationError(message string) error {

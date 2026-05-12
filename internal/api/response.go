@@ -14,7 +14,6 @@ func writeData(w http.ResponseWriter, r *http.Request, status int, data any) {
 	writeJSON(w, status, map[string]any{
 		"data":       data,
 		"request_id": requestID,
-		"meta":       map[string]any{"request_id": requestID},
 	})
 }
 
@@ -28,7 +27,6 @@ func writeList(w http.ResponseWriter, r *http.Request, status int, data any, lim
 			"has_more": false,
 		},
 		"request_id": requestID,
-		"meta":       map[string]any{"request_id": requestID},
 	})
 }
 
@@ -59,7 +57,6 @@ func writeError(w http.ResponseWriter, r *http.Request, status int, code, messag
 	writeJSON(w, status, map[string]any{
 		"error":      errPayload,
 		"request_id": requestID,
-		"meta":       map[string]any{"request_id": requestID},
 	})
 }
 

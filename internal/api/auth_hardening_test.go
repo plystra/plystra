@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func TestHashPasswordUsesArgon2IDAndVerifiesLegacyPBKDF2(t *testing.T) {
+func TestHashPasswordUsesArgon2ID(t *testing.T) {
 	encoded, err := hashPassword("new-user-password")
 	if err != nil {
 		t.Fatalf("hashPassword error: %v", err)
@@ -18,22 +18,11 @@ func TestHashPasswordUsesArgon2IDAndVerifiesLegacyPBKDF2(t *testing.T) {
 	if passwordNeedsRehash(encoded) {
 		t.Fatalf("fresh argon2id password unexpectedly needs rehash")
 	}
-
-	legacy := "pbkdf2_sha256$120000$plystra_alice_salt$1d9f64c0d0dec791cf427c5849331ff669f6cec43e9ef5a90e7795cd76d41c28"
-	if !verifyPassword("plystra-demo", legacy) {
-		t.Fatalf("legacy PBKDF2 demo password did not verify")
-	}
-	if !passwordNeedsRehash(legacy) {
-		t.Fatalf("legacy PBKDF2 hash should be upgraded after login")
-	}
 }
 
-func TestVerifyPasswordRejectsMalformedPBKDF2Hash(t *testing.T) {
-	if verifyPassword("anything", "pbkdf2_sha256$120000$valid_salt$") {
-		t.Fatalf("empty PBKDF2 derived key verified")
-	}
-	if verifyPassword("anything", "pbkdf2_sha256$999999999$valid_salt$00000000000000000000000000000000") {
-		t.Fatalf("excessive PBKDF2 iteration count verified")
+func TestVerifyPasswordRejectsNonArgon2IDHash(t *testing.T) {
+	if verifyPassword("anything", "pbkdf2_sha256$120000$valid_salt$00000000000000000000000000000000") {
+		t.Fatalf("PBKDF2 hash verified")
 	}
 }
 

@@ -15,7 +15,7 @@ import (
 	"github.com/plystra/plystra/internal/authz"
 )
 
-func TestResponseEnvelopeRequestIDCompatibility(t *testing.T) {
+func TestResponseEnvelopeIncludesOnlyTopLevelRequestID(t *testing.T) {
 	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
 	handler := server.requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeData(w, r, http.StatusOK, map[string]any{"ok": true})
@@ -36,12 +36,8 @@ func TestResponseEnvelopeRequestIDCompatibility(t *testing.T) {
 	if body["request_id"] != "req_test_envelope" {
 		t.Fatalf("request_id = %v", body["request_id"])
 	}
-	meta, ok := body["meta"].(map[string]any)
-	if !ok {
-		t.Fatalf("meta missing or wrong type: %T", body["meta"])
-	}
-	if meta["request_id"] != body["request_id"] {
-		t.Fatalf("meta.request_id = %v, want %v", meta["request_id"], body["request_id"])
+	if _, ok := body["meta"]; ok {
+		t.Fatalf("legacy meta envelope must not be returned: %#v", body["meta"])
 	}
 	if rec.Header().Get("X-Content-Type-Options") != "nosniff" {
 		t.Fatalf("security header X-Content-Type-Options missing")
@@ -86,7 +82,7 @@ func TestDefaultCORSOriginsAreNotWildcard(t *testing.T) {
 	}
 }
 
-func TestErrorEnvelopeIncludesMetaRequestID(t *testing.T) {
+func TestErrorEnvelopeIncludesOnlyTopLevelRequestID(t *testing.T) {
 	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
 	handler := server.requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "bad request", nil)
@@ -107,9 +103,8 @@ func TestErrorEnvelopeIncludesMetaRequestID(t *testing.T) {
 	if body["request_id"] != "req_test_error" {
 		t.Fatalf("request_id = %v", body["request_id"])
 	}
-	meta := body["meta"].(map[string]any)
-	if meta["request_id"] != body["request_id"] {
-		t.Fatalf("meta.request_id = %v, want %v", meta["request_id"], body["request_id"])
+	if _, ok := body["meta"]; ok {
+		t.Fatalf("legacy meta envelope must not be returned: %#v", body["meta"])
 	}
 }
 
@@ -183,17 +178,17 @@ func TestBearerSessionProtectsSensitiveRoutes(t *testing.T) {
 	}))
 
 	unauthorized := httptest.NewRecorder()
-	handler.ServeHTTP(unauthorized, httptest.NewRequest(http.MethodGet, "/api/v1/audit-logs", nil))
+	handler.ServeHTTP(unauthorized, httptest.NewRequest(http.MethodGet, "/api/v1/audit/logs", nil))
 	if unauthorized.Code != http.StatusUnauthorized {
 		t.Fatalf("status without bearer session = %d, want %d", unauthorized.Code, http.StatusUnauthorized)
 	}
 
-	tokenReq := httptest.NewRequest(http.MethodGet, "/api/v1/audit-logs", nil)
+	tokenReq := httptest.NewRequest(http.MethodGet, "/api/v1/audit/logs", nil)
 	tokenReq.Header.Set("X-Plystra-Admin-Token", "test-admin-token-at-least-32-characters")
 	tokenRec := httptest.NewRecorder()
 	handler.ServeHTTP(tokenRec, tokenReq)
 	if tokenRec.Code != http.StatusUnauthorized {
-		t.Fatalf("status with legacy admin token header = %d, want %d", tokenRec.Code, http.StatusUnauthorized)
+		t.Fatalf("status with unsupported admin token header = %d, want %d", tokenRec.Code, http.StatusUnauthorized)
 	}
 }
 
@@ -202,7 +197,7 @@ func TestPublicOperationalRoutesDoNotRequireBearerSession(t *testing.T) {
 	handler := server.requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeData(w, r, http.StatusOK, map[string]any{"ok": true})
 	}))
-	for _, path := range []string{"/api/v1/health", "/api/v1/ready", "/api/v1/version", "/system/health"} {
+	for _, path := range []string{"/api/v1/health", "/api/v1/ready", "/api/v1/version"} {
 		rec := httptest.NewRecorder()
 		handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
 		if rec.Code != http.StatusOK {
@@ -281,6 +276,77 @@ func TestAPIKeyPermissionAndScopeMatching(t *testing.T) {
 	}
 }
 
+func TestAPIKeyCreationCannotDelegateUnheldPermissions(t *testing.T) {
+	spaceID := "space_acme"
+	principal := adminPrincipal{
+		CredentialType: "api_key",
+		APIKey: &coreent.ApiKey{
+			Level:          "space",
+			SpaceID:        &spaceID,
+			Status:         "active",
+			PermissionKeys: []string{"api_keys:create"},
+		},
+	}
+	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
+
+	allowed, denied, err := server.principalCanDelegatePermissions(context.Background(), principal, []string{"resources:manage"}, "space_acme", "")
+	if err != nil {
+		t.Fatalf("principalCanDelegatePermissions error: %v", err)
+	}
+	if allowed || denied != "resources:manage" {
+		t.Fatalf("delegation allowed=%v denied=%q, want denied resources:manage", allowed, denied)
+	}
+
+	allowed, denied, err = server.principalCanDelegatePermissions(context.Background(), principal, []string{"api_keys:create"}, "space_acme", "")
+	if err != nil {
+		t.Fatalf("principalCanDelegatePermissions error: %v", err)
+	}
+	if !allowed || denied != "" {
+		t.Fatalf("same-permission delegation allowed=%v denied=%q, want allowed", allowed, denied)
+	}
+}
+
+func TestAdminGrantCreationCannotDelegateUnheldPermissions(t *testing.T) {
+	spaceID := "space_acme"
+	principal := adminPrincipal{
+		CredentialType: "session",
+		Grants: []*coreent.AdminGrant{
+			{Level: adminLevelSpace, SpaceID: &spaceID, PermissionKey: "admin_grants:manage"},
+		},
+	}
+	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
+
+	allowed, denied, err := server.principalCanDelegatePermissions(context.Background(), principal, []string{"resources:manage"}, "space_acme", "")
+	if err != nil {
+		t.Fatalf("principalCanDelegatePermissions error: %v", err)
+	}
+	if allowed || denied != "resources:manage" {
+		t.Fatalf("delegation allowed=%v denied=%q, want denied resources:manage", allowed, denied)
+	}
+}
+
+func TestScopedAuthzCheckRequiresConcreteScope(t *testing.T) {
+	spaceID := "space_acme"
+	principal := adminPrincipal{
+		CredentialType: "session",
+		Grants: []*coreent.AdminGrant{
+			{Level: adminLevelSpace, SpaceID: &spaceID, PermissionKey: "authz:check"},
+		},
+	}
+	if adminPrincipalHasInstanceReach(principal, "authz:check") {
+		t.Fatalf("space scoped principal unexpectedly has instance reach")
+	}
+	instancePrincipal := adminPrincipal{
+		CredentialType: "session",
+		Grants: []*coreent.AdminGrant{
+			{Level: adminLevelInstance, PermissionKey: "authz:check"},
+		},
+	}
+	if !adminPrincipalHasInstanceReach(instancePrincipal, "authz:check") {
+		t.Fatalf("instance principal should have instance reach")
+	}
+}
+
 func TestAPIKeyTokenFormatAndHashRotation(t *testing.T) {
 	t.Setenv("PLYSTRA_API_KEY_SECRET", "old-api-key-secret-at-least-32-characters")
 	token, err := newAPIKeyPlaintext("ak_test")
@@ -335,8 +401,7 @@ func TestDataConsoleAndMetricsDisabledByDefault(t *testing.T) {
 	}
 }
 
-func TestHTTPAuthzIgnoresClientSuppliedAuditMetadata(t *testing.T) {
-	t.Setenv("AUDIT_WRITE_MODE", "always")
+func TestHTTPAuthzRejectsClientSuppliedAuditMetadata(t *testing.T) {
 	store := &captureAuthzStore{}
 	server := NewServer(nil, store, "1.0.0-test")
 	body := []byte(`{
@@ -349,9 +414,35 @@ func TestHTTPAuthzIgnoresClientSuppliedAuditMetadata(t *testing.T) {
 		"resource_type": "invoice",
 		"resource_id": "invoice_001",
 		"action": "approve",
-		"request_id": "req_body_should_be_ignored",
-		"ip": "198.51.100.200",
-		"user_agent": "spoofed-agent"
+		"request_id": "req_body_should_be_rejected"
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/authz/check", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+
+	server.handleAuthzCheck(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if store.lastDecision.Decision != "" {
+		t.Fatalf("authz store was called for rejected metadata: %#v", store.lastDecision)
+	}
+}
+
+func TestHTTPAuthzUsesServerDerivedAuditMetadata(t *testing.T) {
+	t.Setenv("AUDIT_WRITE_MODE", "always")
+	store := &captureAuthzStore{}
+	server := NewServer(nil, store, "1.0.0-test")
+	body := []byte(`{
+		"actor": {
+			"user_id": "user_alice",
+			"member_id": "member_finance_reviewer",
+			"user_member_id": "um_alice_finance_reviewer",
+			"space_id": "space_acme"
+		},
+		"resource_type": "invoice",
+		"resource_id": "invoice_001",
+		"action": "approve"
 	}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/authz/check", bytes.NewReader(body))
 	req.RemoteAddr = "203.0.113.10:12345"
@@ -372,6 +463,25 @@ func TestHTTPAuthzIgnoresClientSuppliedAuditMetadata(t *testing.T) {
 	}
 	if store.lastDecision.Request.UserAgent != "real-agent" {
 		t.Fatalf("user_agent = %q, want request user agent", store.lastDecision.Request.UserAgent)
+	}
+}
+
+func TestHTTPAuthzRequiresActorForAPIKeyPrincipal(t *testing.T) {
+	store := &captureAuthzStore{}
+	server := NewServer(nil, store, "1.0.0-test")
+	body := []byte(`{"resource_type":"invoice","resource_id":"invoice_001","action":"approve"}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/authz/check", bytes.NewReader(body))
+	req = req.WithContext(context.WithValue(req.Context(), requestIDKey, "req_api_key_no_actor"))
+	req = req.WithContext(context.WithValue(req.Context(), adminPrincipalKey, adminPrincipal{CredentialType: "api_key"}))
+	rec := httptest.NewRecorder()
+
+	server.handleAuthzCheck(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if store.lastDecision.Decision != "" {
+		t.Fatalf("authz store was called for missing actor: %#v", store.lastDecision)
 	}
 }
 
@@ -412,7 +522,6 @@ func TestPasswordHashInputIsIgnoredWithoutPlaintextPassword(t *testing.T) {
 }
 
 func TestTokenHashUsesConfiguredSessionSecret(t *testing.T) {
-	t.Setenv("JWT_SECRET", "legacy-session-secret-at-least-32-characters")
 	t.Setenv("PLYSTRA_SESSION_SECRET", "primary-session-secret-at-least-32-characters")
 
 	primaryHash := tokenHash("ply_at_test_token")

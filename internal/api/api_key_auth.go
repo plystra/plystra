@@ -177,15 +177,12 @@ func apiKeyHashesForLookup(token string) []string {
 }
 
 func apiKeySecrets() []string {
-	primary := strings.TrimSpace(firstEnv("PLYSTRA_API_KEY_SECRET", "API_KEY_SECRET"))
-	if primary == "" {
-		primary = strings.TrimSpace(sessionTokenSecret())
-	}
+	primary := strings.TrimSpace(firstEnv("PLYSTRA_API_KEY_SECRET"))
 	if primary == "" {
 		return nil
 	}
 	secrets := []string{primary}
-	for _, key := range []string{"PLYSTRA_API_KEY_SECRET_PREVIOUS", "API_KEY_SECRET_PREVIOUS"} {
+	for _, key := range []string{"PLYSTRA_API_KEY_SECRET_PREVIOUS"} {
 		for _, value := range strings.Split(osEnv(key), ",") {
 			value = strings.TrimSpace(value)
 			if value != "" {

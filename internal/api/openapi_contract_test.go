@@ -29,7 +29,6 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 		"/api/v1/health",
 		"/api/v1/ready",
 		"/api/v1/version",
-		"/system/health",
 		"/api/v1/auth/login",
 		"/api/v1/admin/me",
 		"/api/v1/admin/grants",
@@ -48,7 +47,7 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 		"/api/v1/resource-types",
 		"/api/v1/resources",
 		"/api/v1/spaces/{space_id}/resources",
-		"/api/v1/audit-logs",
+		"/api/v1/audit/logs",
 		"/api/v1/spaces/{space_id}/audit-logs",
 	}
 	for _, path := range requiredPaths {
@@ -61,15 +60,15 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 	if _, ok := envelope["request_id"]; !ok {
 		t.Fatalf("Envelope.request_id is missing")
 	}
-	if _, ok := envelope["meta"]; !ok {
-		t.Fatalf("Envelope.meta is missing")
+	if _, ok := envelope["meta"]; ok {
+		t.Fatalf("Envelope.meta must not be documented")
 	}
 	errEnvelope := doc.Components.Schemas["ErrorEnvelope"].Properties
 	if _, ok := errEnvelope["request_id"]; !ok {
 		t.Fatalf("ErrorEnvelope.request_id is missing")
 	}
-	if _, ok := errEnvelope["meta"]; !ok {
-		t.Fatalf("ErrorEnvelope.meta is missing")
+	if _, ok := errEnvelope["meta"]; ok {
+		t.Fatalf("ErrorEnvelope.meta must not be documented")
 	}
 	if _, ok := doc.Components.SecuritySchemes["BearerAuth"]; !ok {
 		t.Fatalf("OpenAPI BearerAuth security scheme is missing")

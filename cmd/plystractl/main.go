@@ -7,8 +7,11 @@ import (
 )
 
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
-const defaultSessionSecret = "change-me-session-secret-at-least-32-characters"
-const defaultJWTSecret = "change-me-to-at-least-32-characters"
+
+const (
+	defaultSessionSecret = "change-me-session-secret-at-least-32-characters"
+	defaultAPIKeySecret  = "change-me-api-key-secret-at-least-32-characters"
+)
 
 func main() {
 	if len(os.Args) < 2 {

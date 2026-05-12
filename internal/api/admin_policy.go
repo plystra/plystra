@@ -58,10 +58,19 @@ func adminRequirementFor(method, path, querySpaceID string) adminRequirement {
 		return adminRequirement{PermissionKey: "metrics:read"}
 	}
 	if strings.HasPrefix(path, "/api/v1/admin/grants") {
+		req := adminRequirement{PermissionKey: "admin_grants:manage"}
 		if method == "GET" {
-			return adminRequirement{PermissionKey: "admin_grants:read"}
+			req.PermissionKey = "admin_grants:read"
 		}
-		return adminRequirement{PermissionKey: "admin_grants:manage"}
+		if path != "/api/v1/admin/grants" {
+			grantID := strings.TrimPrefix(path, "/api/v1/admin/grants/")
+			grantID = strings.TrimSuffix(grantID, "/revoke")
+			if grantID != "" {
+				req.EntityKind = "admin_grant"
+				req.EntityID = grantID
+			}
+		}
+		return req
 	}
 	if strings.HasPrefix(path, "/api/v1/api-keys") {
 		switch method {
@@ -79,16 +88,11 @@ func adminRequirementFor(method, path, querySpaceID string) adminRequirement {
 	if path == "/api/v1/admin/me" {
 		return adminRequirement{PermissionKey: "instance:read"}
 	}
-	if path == "/api/v1/audit/logs" || strings.HasPrefix(path, "/api/v1/audit/logs/") ||
-		path == "/api/v1/audit-logs" || strings.HasPrefix(path, "/api/v1/audit-logs/") {
+	if path == "/api/v1/audit/logs" || strings.HasPrefix(path, "/api/v1/audit/logs/") {
 		req := adminRequirement{PermissionKey: "audit:read", SpaceID: querySpaceID}
 		if strings.HasPrefix(path, "/api/v1/audit/logs/") {
 			req.EntityKind = "audit_log"
 			req.EntityID = strings.TrimPrefix(path, "/api/v1/audit/logs/")
-		}
-		if strings.HasPrefix(path, "/api/v1/audit-logs/") {
-			req.EntityKind = "audit_log"
-			req.EntityID = strings.TrimPrefix(path, "/api/v1/audit-logs/")
 		}
 		return req
 	}
@@ -291,8 +295,39 @@ func adminPermissionMatches(grantKey, requiredKey string) bool {
 	return false
 }
 
+func validAdminPermissionKey(key string) bool {
+	key = strings.TrimSpace(key)
+	if key == "*" {
+		return true
+	}
+	domain, action, ok := strings.Cut(key, ":")
+	return ok && domain != "*" && adminPermissionTokenValid(domain) && adminPermissionTokenValid(action)
+}
+
+func adminPermissionTokenValid(value string) bool {
+	if value == "" {
+		return false
+	}
+	if strings.Contains(value, "*") {
+		return value == "*"
+	}
+	for _, r := range value {
+		switch {
+		case r >= 'a' && r <= 'z':
+		case r >= '0' && r <= '9':
+		case r == '_' || r == '-':
+		case r == '*':
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 func adminPermissionMayResolveInHandler(permissionKey string) bool {
-	return strings.HasPrefix(permissionKey, "api_keys:") || permissionKey == "authz:check"
+	return strings.HasPrefix(permissionKey, "api_keys:") ||
+		strings.HasPrefix(permissionKey, "admin_grants:") ||
+		permissionKey == "authz:check"
 }
 
 func (s *Server) resolveAdminRequirementScope(ctx context.Context, req adminRequirement) (adminRequirement, error) {
@@ -356,6 +391,16 @@ func (s *Server) resolveAdminRequirementScope(ctx context.Context, req adminRequ
 			return req, err
 		}
 		req.SpaceID = row.SpaceID
+	case "admin_grant":
+		row, err := s.ent.AdminGrant.Query().Where(entadmingrant.ID(req.EntityID), entadmingrant.DeletedAtIsNil()).Only(ctx)
+		if coreent.IsNotFound(err) {
+			return req, nil
+		}
+		if err != nil {
+			return req, err
+		}
+		req.SpaceID = derefString(row.SpaceID)
+		req.GroupID = derefString(row.GroupID)
 	}
 	return req, nil
 }
@@ -383,4 +428,57 @@ func (s *Server) groupGrantCovers(ctx context.Context, grantGroupID, targetGroup
 	}
 	return grantGroup.SpaceID == targetGroup.SpaceID &&
 		(targetGroup.Path == grantGroup.Path || strings.HasPrefix(targetGroup.Path, grantGroup.Path+".")), nil
+}
+
+func adminPrincipalHasInstanceReach(principal adminPrincipal, permissionKey string) bool {
+	if principal.CredentialType == "api_key" {
+		return principal.APIKey != nil &&
+			principal.APIKey.Level == "instance" &&
+			apiKeyPermissionMatches(principal.APIKey.PermissionKeys, permissionKey)
+	}
+	for _, grant := range principal.Grants {
+		if grant.Level == adminLevelInstanceSuper {
+			return true
+		}
+		if grant.Level == adminLevelInstance && adminPermissionMatches(grant.PermissionKey, permissionKey) {
+			return true
+		}
+	}
+	return false
+}
+
+func adminPrincipalIsSuper(principal adminPrincipal) bool {
+	if principal.CredentialType != "session" {
+		return false
+	}
+	for _, grant := range principal.Grants {
+		if grant.Level == adminLevelInstanceSuper {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Server) principalCanDelegatePermission(ctx context.Context, principal adminPrincipal, permissionKey, spaceID, groupID string) (bool, error) {
+	if adminPrincipalIsSuper(principal) {
+		return true, nil
+	}
+	return s.adminPrincipalAllows(ctx, principal, adminRequirement{
+		PermissionKey: permissionKey,
+		SpaceID:       spaceID,
+		GroupID:       groupID,
+	})
+}
+
+func (s *Server) principalCanDelegatePermissions(ctx context.Context, principal adminPrincipal, permissionKeys []string, spaceID, groupID string) (bool, string, error) {
+	for _, permissionKey := range permissionKeys {
+		allowed, err := s.principalCanDelegatePermission(ctx, principal, permissionKey, spaceID, groupID)
+		if err != nil {
+			return false, permissionKey, err
+		}
+		if !allowed {
+			return false, permissionKey, nil
+		}
+	}
+	return true, "", nil
 }

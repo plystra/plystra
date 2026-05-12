@@ -8,22 +8,15 @@ import (
 )
 
 type authzRequest struct {
-	Actor             authz.ActorContext `json:"actor"`
-	ActorUserID       string             `json:"actor_user_id"`
-	ActorMemberID     string             `json:"actor_member_id"`
-	ActorUserMemberID string             `json:"actor_user_member_id"`
-	SpaceID           string             `json:"space_id"`
-	ResourceType      string             `json:"resource_type"`
-	ResourceID        string             `json:"resource_id"`
-	Resource          struct {
+	Actor        authz.ActorContext `json:"actor"`
+	ResourceType string             `json:"resource_type"`
+	ResourceID   string             `json:"resource_id"`
+	Resource     struct {
 		Type string `json:"type"`
 		ID   string `json:"id"`
 	} `json:"resource"`
-	Action    string `json:"action"`
-	Explain   bool   `json:"explain"`
-	RequestID string `json:"request_id"`
-	IP        string `json:"ip"`
-	UserAgent string `json:"user_agent"`
+	Action  string `json:"action"`
+	Explain bool   `json:"explain"`
 }
 
 func (req authzRequest) CheckInput() authz.CheckInput {
@@ -36,18 +29,11 @@ func (req authzRequest) CheckInput() authz.CheckInput {
 		resourceID = req.Resource.ID
 	}
 	return authz.CheckInput{
-		Actor:             req.Actor,
-		ActorUserID:       req.ActorUserID,
-		ActorMemberID:     req.ActorMemberID,
-		ActorUserMemberID: req.ActorUserMemberID,
-		SpaceID:           req.SpaceID,
-		ResourceType:      resourceType,
-		ResourceID:        resourceID,
-		Action:            req.Action,
-		Explain:           req.Explain,
-		RequestID:         req.RequestID,
-		IP:                req.IP,
-		UserAgent:         req.UserAgent,
+		Actor:        req.Actor,
+		ResourceType: resourceType,
+		ResourceID:   resourceID,
+		Action:       req.Action,
+		Explain:      req.Explain,
 	}
 }
 
@@ -65,7 +51,9 @@ func (s *Server) handleAuthz(w http.ResponseWriter, r *http.Request, explain boo
 		return
 	}
 	var req authzRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is invalid JSON.", err.Error())
 		return
 	}
@@ -75,13 +63,39 @@ func (s *Server) handleAuthz(w http.ResponseWriter, r *http.Request, explain boo
 	input.UserAgent = r.UserAgent()
 	input.Explain = explain || req.Explain
 	if principal, ok := adminPrincipalFrom(r); ok {
+		if actorContextEmpty(input.Actor) {
+			if principal.CredentialType != "session" {
+				writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "actor is required when using an API key.", nil)
+				return
+			}
+			actor, _, err := s.actorForSession(r.Context(), principal.Session)
+			if err != nil {
+				writeError(w, r, http.StatusForbidden, "ACTIVE_MEMBER_REQUIRED", "Session has no active Member binding.", nil)
+				return
+			}
+			input.Actor = authz.ActorContext{
+				UserID:       stringMapValue(actor, "user_id"),
+				SpaceID:      stringMapValue(actor, "space_id"),
+				MemberID:     stringMapValue(actor, "member_id"),
+				UserMemberID: stringMapValue(actor, "user_member_id"),
+			}
+		}
 		scope := adminRequirement{
 			PermissionKey: "authz:check",
 			SpaceID:       firstNonEmpty(input.SpaceID, input.Actor.SpaceID),
 			EntityKind:    "resource",
 			EntityID:      input.ResourceID,
 		}
-		allowed, err := s.adminPrincipalAllows(r.Context(), principal, scope)
+		resolvedScope, err := s.resolveAdminRequirementScope(r.Context(), scope)
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to resolve authz scope.", err.Error())
+			return
+		}
+		if !adminPrincipalHasInstanceReach(principal, "authz:check") && resolvedScope.SpaceID == "" && resolvedScope.GroupID == "" {
+			writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "Scoped credentials must provide or resolve a Space or Group for authz checks.", map[string]any{"permission": "authz:check"})
+			return
+		}
+		allowed, err := s.adminPrincipalAllows(r.Context(), principal, resolvedScope)
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate authz scope.", err.Error())
 			return
@@ -114,4 +128,8 @@ func (s *Server) handleAuthz(w http.ResponseWriter, r *http.Request, explain boo
 		"audit_log_id": decision.Audit.ID,
 		"audit":        decision.Audit,
 	})
+}
+
+func actorContextEmpty(actor authz.ActorContext) bool {
+	return actor.UserID == "" && actor.SpaceID == "" && actor.MemberID == "" && actor.UserMemberID == ""
 }

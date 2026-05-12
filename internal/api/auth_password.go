@@ -1,14 +1,10 @@
 package api
 
 import (
-	"crypto/hmac"
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
-	"hash"
 	"strconv"
 	"strings"
 
@@ -16,8 +12,6 @@ import (
 )
 
 const (
-	legacyPasswordHashIterations = 120000
-
 	argon2Memory      uint32 = 64 * 1024
 	argon2Iterations  uint32 = 3
 	argon2Parallelism uint8  = 2
@@ -44,14 +38,10 @@ func hashPassword(password string) (string, error) {
 }
 
 func verifyPassword(password, encoded string) bool {
-	switch {
-	case strings.HasPrefix(encoded, "argon2id$"):
-		return verifyArgon2IDPassword(password, encoded)
-	case strings.HasPrefix(encoded, "pbkdf2_sha256$"):
-		return verifyPBKDF2Password(password, encoded)
-	default:
+	if !strings.HasPrefix(encoded, "argon2id$") {
 		return false
 	}
+	return verifyArgon2IDPassword(password, encoded)
 }
 
 func passwordNeedsRehash(encoded string) bool {
@@ -106,49 +96,4 @@ func parseArgon2Params(encoded string) (memory uint32, iterations uint32, parall
 		return 0, 0, 0, false
 	}
 	return uint32(parsedMemory), uint32(parsedIterations), uint8(parsedParallelism), true
-}
-
-func verifyPBKDF2Password(password, encoded string) bool {
-	parts := strings.Split(encoded, "$")
-	if len(parts) != 4 || parts[0] != "pbkdf2_sha256" {
-		return false
-	}
-	iterations, err := strconv.Atoi(parts[1])
-	if err != nil || iterations < 10000 || iterations > 2000000 {
-		return false
-	}
-	if len(parts[2]) < 8 || len(parts[2]) > 256 {
-		return false
-	}
-	want, err := hex.DecodeString(parts[3])
-	if err != nil || len(want) < 16 || len(want) > 64 {
-		return false
-	}
-	got := pbkdf2Key([]byte(password), []byte(parts[2]), iterations, len(want), sha256.New)
-	return subtle.ConstantTimeCompare(got, want) == 1
-}
-
-func pbkdf2Key(password, salt []byte, iter, keyLen int, h func() hash.Hash) []byte {
-	prf := hmac.New(h, password)
-	hashLen := prf.Size()
-	numBlocks := (keyLen + hashLen - 1) / hashLen
-	var out []byte
-	for block := 1; block <= numBlocks; block++ {
-		prf.Reset()
-		prf.Write(salt)
-		prf.Write([]byte{byte(block >> 24), byte(block >> 16), byte(block >> 8), byte(block)})
-		u := prf.Sum(nil)
-		t := make([]byte, hashLen)
-		copy(t, u)
-		for i := 1; i < iter; i++ {
-			prf.Reset()
-			prf.Write(u)
-			u = prf.Sum(nil)
-			for x := range t {
-				t[x] ^= u[x]
-			}
-		}
-		out = append(out, t...)
-	}
-	return out[:keyLen]
 }

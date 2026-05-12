@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Plystra Core API
-  version: 1.0.0-dev10
+  version: 1.0.0-dev11
   description: Stable self-hosted Plystra Core API for identity, authorization, resources, and audit.
 servers:
   - url: http://localhost:8080
@@ -24,11 +24,6 @@ components:
         data: {}
         request_id:
           type: string
-        meta:
-          type: object
-          properties:
-            request_id:
-              type: string
     ErrorEnvelope:
       type: object
       properties:
@@ -44,11 +39,6 @@ components:
             audit_log_id: { type: string }
         request_id:
           type: string
-        meta:
-          type: object
-          properties:
-            request_id:
-              type: string
     AuthzCheckResponse:
       type: object
       properties:
@@ -72,6 +62,30 @@ components:
         matched_candidates: { type: array }
         reason: { type: string }
         audit: { type: object }
+    ActorContext:
+      type: object
+      required: [user_id, space_id, member_id, user_member_id]
+      properties:
+        user_id: { type: string }
+        space_id: { type: string }
+        member_id: { type: string }
+        user_member_id: { type: string }
+    AuthzCheckRequest:
+      type: object
+      required: [resource_type, resource_id, action]
+      properties:
+        actor:
+          $ref: "#/components/schemas/ActorContext"
+          description: Required for API key calls. Bearer session calls may omit it and use the session active actor.
+        resource_type: { type: string }
+        resource_id: { type: string }
+        resource:
+          type: object
+          properties:
+            type: { type: string }
+            id: { type: string }
+        action: { type: string }
+        explain: { type: boolean }
 paths:
   /api/v1/health:
     get: { summary: Health check, responses: { "200": { description: Service is alive } } }
@@ -79,18 +93,6 @@ paths:
     get: { summary: Readiness check, responses: { "200": { description: Database and migrations are ready }, "503": { description: Service is not ready } } }
   /api/v1/version:
     get: { summary: Version metadata, responses: { "200": { description: Core, schema, and trace version metadata } } }
-  /api/v1/system/health:
-    get: { summary: Backward-compatible health alias, responses: { "200": { description: Service is alive } } }
-  /api/v1/system/ready:
-    get: { summary: Backward-compatible readiness alias, responses: { "200": { description: Service is ready } } }
-  /api/v1/system/version:
-    get: { summary: Backward-compatible version alias, responses: { "200": { description: Version metadata } } }
-  /system/health:
-    get: { summary: Legacy health alias, responses: { "200": { description: Service is alive } } }
-  /system/ready:
-    get: { summary: Legacy readiness alias, responses: { "200": { description: Service is ready } } }
-  /system/version:
-    get: { summary: Legacy version alias, responses: { "200": { description: Version metadata } } }
   /api/v1/auth/login:
     post: { summary: Create a user session, responses: { "200": { description: Bearer access token and refresh token } } }
   /api/v1/auth/refresh:
@@ -114,9 +116,23 @@ paths:
   /api/v1/api-keys/{api_key_id}/revoke:
     post: { summary: Revoke API key, responses: { "200": { description: Revoked API key } } }
   /api/v1/authz/check:
-    post: { summary: Run compact authorization check, responses: { "200": { description: Authorization decision } } }
+    post:
+      summary: Run compact authorization check
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AuthzCheckRequest" }
+      responses: { "200": { description: Authorization decision } }
   /api/v1/authz/explain:
-    post: { summary: Run authorization check with full trace, responses: { "200": { description: Explainable authorization trace } } }
+    post:
+      summary: Run authorization check with full trace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AuthzCheckRequest" }
+      responses: { "200": { description: Explainable authorization trace } }
   /api/v1/users:
     get: { summary: List Users, responses: { "200": { description: User list } } }
     post: { summary: Create User, responses: { "201": { description: Created User } } }
@@ -214,7 +230,7 @@ paths:
     post: { summary: Register Resource with explicit space_id, responses: { "201": { description: Created Resource } } }
   /api/v1/resources/{resource_type}/{resource_id}:
     get: { summary: Get Resource by type and ID, responses: { "200": { description: Resource detail } } }
-  /api/v1/audit-logs:
+  /api/v1/audit/logs:
     get:
       summary: List AuditLogs across Spaces
       parameters:
@@ -230,12 +246,8 @@ paths:
         - { name: created_at_from, in: query, schema: { type: string, format: date-time } }
         - { name: created_at_to, in: query, schema: { type: string, format: date-time } }
       responses: { "200": { description: AuditLog list } }
-  /api/v1/audit-logs/{audit_log_id}:
-    get: { summary: Get AuditLog, responses: { "200": { description: AuditLog detail } } }
-  /api/v1/audit/logs:
-    get: { summary: Backward-compatible AuditLog list alias, responses: { "200": { description: AuditLog list } } }
   /api/v1/audit/logs/{audit_log_id}:
-    get: { summary: Backward-compatible AuditLog detail alias, responses: { "200": { description: AuditLog detail } } }
+    get: { summary: Get AuditLog, responses: { "200": { description: AuditLog detail } } }
   /api/v1/spaces/{space_id}/audit-logs:
     get: { summary: List AuditLogs, responses: { "200": { description: AuditLog list } } }
   /api/v1/spaces/{space_id}/audit-logs/{audit_log_id}:

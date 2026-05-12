@@ -17,12 +17,12 @@ func TestValidateProductionConfigRejectsWildcardCORS(t *testing.T) {
 	}
 }
 
-func TestValidateProductionConfigAcceptsSessionSecretAlias(t *testing.T) {
+func TestValidateProductionConfigRequiresCanonicalSessionSecret(t *testing.T) {
 	setValidProductionEnv(t)
-	t.Setenv("JWT_SECRET", defaultJWTSecret)
+	t.Setenv("PLYSTRA_SESSION_SECRET", "")
 
-	if err := validateProductionConfig(); err != nil {
-		t.Fatalf("validateProductionConfig rejected PLYSTRA_SESSION_SECRET alias: %v", err)
+	if err := validateProductionConfig(); err == nil || !strings.Contains(err.Error(), "PLYSTRA_SESSION_SECRET") {
+		t.Fatalf("validateProductionConfig error = %v, want PLYSTRA_SESSION_SECRET rejection", err)
 	}
 }
 
@@ -38,7 +38,7 @@ func TestValidateProductionConfigRejectsUnsafePreviousSessionSecret(t *testing.T
 
 func TestValidateProductionConfigRejectsUnsafeAPIKeySecret(t *testing.T) {
 	setValidProductionEnv(t)
-	t.Setenv("PLYSTRA_API_KEY_SECRET", defaultJWTSecret)
+	t.Setenv("PLYSTRA_API_KEY_SECRET", defaultAPIKeySecret)
 
 	err := validateProductionConfig()
 	if err == nil || !strings.Contains(err.Error(), "PLYSTRA_API_KEY_SECRET") {
@@ -58,7 +58,7 @@ func TestValidateProductionConfigRejectsSharedAPIKeySecret(t *testing.T) {
 
 func TestValidateProductionConfigRejectsUnsafePreviousAPIKeySecret(t *testing.T) {
 	setValidProductionEnv(t)
-	t.Setenv("PLYSTRA_API_KEY_SECRET_PREVIOUS", defaultSessionSecret)
+	t.Setenv("PLYSTRA_API_KEY_SECRET_PREVIOUS", defaultAPIKeySecret)
 
 	err := validateProductionConfig()
 	if err == nil || !strings.Contains(err.Error(), "PLYSTRA_API_KEY_SECRET_PREVIOUS") {

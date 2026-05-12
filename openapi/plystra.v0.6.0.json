@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Plystra Core API",
-    "version": "1.0.0-dev10",
+    "version": "1.0.0-dev11",
     "description": "Pre-1.0 Plystra Core API contract for system, authorization, audit, resource registry, and plugin metadata."
   },
   "servers": [
@@ -11,39 +11,6 @@
     }
   ],
   "paths": {
-    "/api/v1/system/health": {
-      "get": {
-        "summary": "Health check",
-        "responses": {
-          "200": {
-            "description": "Service is alive"
-          }
-        }
-      }
-    },
-    "/api/v1/system/ready": {
-      "get": {
-        "summary": "Readiness check",
-        "responses": {
-          "200": {
-            "description": "Service is ready"
-          },
-          "503": {
-            "description": "Service is not ready"
-          }
-        }
-      }
-    },
-    "/api/v1/system/version": {
-      "get": {
-        "summary": "Version metadata",
-        "responses": {
-          "200": {
-            "description": "Core version and compatibility metadata"
-          }
-        }
-      }
-    },
     "/api/v1/console/overview": {
       "get": {
         "summary": "Console overview counts and recent audit logs",
@@ -58,8 +25,12 @@
       "post": {
         "summary": "Create a user session",
         "responses": {
-          "200": {"description": "Access token, refresh token, and actor context"},
-          "401": {"description": "Invalid credentials"}
+          "200": {
+            "description": "Access token, refresh token, and actor context"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
         }
       }
     },
@@ -67,7 +38,9 @@
       "post": {
         "summary": "Revoke the current session",
         "responses": {
-          "200": {"description": "Logout result"}
+          "200": {
+            "description": "Logout result"
+          }
         }
       }
     },
@@ -75,8 +48,12 @@
       "post": {
         "summary": "Rotate an access token from a refresh token",
         "responses": {
-          "200": {"description": "New access token"},
-          "401": {"description": "Refresh token invalid or expired"}
+          "200": {
+            "description": "New access token"
+          },
+          "401": {
+            "description": "Refresh token invalid or expired"
+          }
         }
       }
     },
@@ -84,8 +61,12 @@
       "get": {
         "summary": "Get the active actor context for the session",
         "responses": {
-          "200": {"description": "Actor context and available Member bindings"},
-          "401": {"description": "Authentication required"}
+          "200": {
+            "description": "Actor context and available Member bindings"
+          },
+          "401": {
+            "description": "Authentication required"
+          }
         }
       }
     },
@@ -93,8 +74,12 @@
       "post": {
         "summary": "Switch the active Member for the session",
         "responses": {
-          "200": {"description": "Updated actor context"},
-          "403": {"description": "Requested Member binding is not active"}
+          "200": {
+            "description": "Updated actor context"
+          },
+          "403": {
+            "description": "Requested Member binding is not active"
+          }
         }
       }
     },
@@ -142,10 +127,34 @@
       "get": {
         "summary": "List audit logs",
         "parameters": [
-          {"name": "space_id", "in": "query", "schema": {"type": "string"}},
-          {"name": "decision", "in": "query", "schema": {"type": "string"}},
-          {"name": "deny_code", "in": "query", "schema": {"type": "string"}},
-          {"name": "limit", "in": "query", "schema": {"type": "integer"}}
+          {
+            "name": "space_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decision",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deny_code",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -158,11 +167,22 @@
       "get": {
         "summary": "Get an audit log",
         "parameters": [
-          {"name": "audit_log_id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "audit_log_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Audit log detail"},
-          "404": {"description": "Audit log not found"}
+          "200": {
+            "description": "Audit log detail"
+          },
+          "404": {
+            "description": "Audit log not found"
+          }
         }
       }
     },
@@ -170,7 +190,9 @@
       "get": {
         "summary": "List ResourceTypes",
         "responses": {
-          "200": {"description": "ResourceType list"}
+          "200": {
+            "description": "ResourceType list"
+          }
         }
       }
     },
@@ -178,10 +200,19 @@
       "get": {
         "summary": "Get a ResourceType",
         "parameters": [
-          {"name": "key", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "ResourceType detail"}
+          "200": {
+            "description": "ResourceType detail"
+          }
         }
       }
     },
@@ -189,10 +220,19 @@
       "get": {
         "summary": "List ResourceActions for a ResourceType",
         "parameters": [
-          {"name": "key", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "ResourceAction list"}
+          "200": {
+            "description": "ResourceAction list"
+          }
         }
       }
     },
@@ -200,10 +240,19 @@
       "get": {
         "summary": "Get ResourceMapping for a ResourceType",
         "parameters": [
-          {"name": "key", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "ResourceMapping detail"}
+          "200": {
+            "description": "ResourceMapping detail"
+          }
         }
       }
     },
@@ -211,7 +260,9 @@
       "get": {
         "summary": "List installed plugin metadata",
         "responses": {
-          "200": {"description": "Plugin list"}
+          "200": {
+            "description": "Plugin list"
+          }
         }
       }
     },
@@ -219,10 +270,19 @@
       "get": {
         "summary": "Get plugin metadata",
         "parameters": [
-          {"name": "plugin_id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "plugin_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Plugin detail"}
+          "200": {
+            "description": "Plugin detail"
+          }
         }
       }
     },
@@ -230,7 +290,9 @@
       "post": {
         "summary": "Install or update plugin metadata",
         "responses": {
-          "201": {"description": "Installed plugin metadata"}
+          "201": {
+            "description": "Installed plugin metadata"
+          }
         }
       }
     },
@@ -238,10 +300,19 @@
       "post": {
         "summary": "Enable a plugin",
         "parameters": [
-          {"name": "plugin_id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "plugin_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Updated plugin metadata"}
+          "200": {
+            "description": "Updated plugin metadata"
+          }
         }
       }
     },
@@ -249,10 +320,19 @@
       "post": {
         "summary": "Disable a plugin",
         "parameters": [
-          {"name": "plugin_id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "plugin_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Updated plugin metadata"}
+          "200": {
+            "description": "Updated plugin metadata"
+          }
         }
       }
     },
@@ -260,20 +340,44 @@
       "get": {
         "summary": "List plugin settings",
         "parameters": [
-          {"name": "plugin_id", "in": "path", "required": true, "schema": {"type": "string"}},
-          {"name": "space_id", "in": "query", "schema": {"type": "string"}}
+          {
+            "name": "plugin_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "space_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Plugin setting list"}
+          "200": {
+            "description": "Plugin setting list"
+          }
         }
       },
       "patch": {
         "summary": "Update plugin settings",
         "parameters": [
-          {"name": "plugin_id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "plugin_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Updated plugin setting list"}
+          "200": {
+            "description": "Updated plugin setting list"
+          }
         }
       }
     },
@@ -291,7 +395,9 @@
           }
         },
         "responses": {
-          "200": {"description": "Validation result"}
+          "200": {
+            "description": "Validation result"
+          }
         }
       }
     },
@@ -299,7 +405,9 @@
       "get": {
         "summary": "List templates",
         "responses": {
-          "200": {"description": "Template list"}
+          "200": {
+            "description": "Template list"
+          }
         }
       }
     },
@@ -307,10 +415,19 @@
       "get": {
         "summary": "Get a template",
         "parameters": [
-          {"name": "template_id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Template detail"}
+          "200": {
+            "description": "Template detail"
+          }
         }
       }
     },
@@ -318,10 +435,19 @@
       "post": {
         "summary": "Preview template installation",
         "parameters": [
-          {"name": "template_id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Template installation preview"}
+          "200": {
+            "description": "Template installation preview"
+          }
         }
       }
     },
@@ -329,10 +455,19 @@
       "post": {
         "summary": "Record template installation",
         "parameters": [
-          {"name": "template_id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "201": {"description": "Template installation record"}
+          "201": {
+            "description": "Template installation record"
+          }
         }
       }
     },
@@ -340,7 +475,9 @@
       "get": {
         "summary": "List data table mappings",
         "responses": {
-          "200": {"description": "Data table mapping list"}
+          "200": {
+            "description": "Data table mapping list"
+          }
         }
       }
     },
@@ -348,21 +485,47 @@
       "get": {
         "summary": "List rows for a mapped resource type",
         "parameters": [
-          {"name": "resource_type", "in": "path", "required": true, "schema": {"type": "string"}},
-          {"name": "space_id", "in": "query", "schema": {"type": "string"}}
+          {
+            "name": "resource_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "space_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Data row list"}
+          "200": {
+            "description": "Data row list"
+          }
         }
       },
       "post": {
         "summary": "Create a data row after authorization",
         "parameters": [
-          {"name": "resource_type", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "resource_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "201": {"description": "Created data row and authorization decision"},
-          "403": {"description": "Authorization denied"}
+          "201": {
+            "description": "Created data row and authorization decision"
+          },
+          "403": {
+            "description": "Authorization denied"
+          }
         }
       }
     },
@@ -370,33 +533,118 @@
       "get": {
         "summary": "Get a mapped data row",
         "parameters": [
-          {"name": "resource_type", "in": "path", "required": true, "schema": {"type": "string"}},
-          {"name": "resource_id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "resource_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Data row detail"}
+          "200": {
+            "description": "Data row detail"
+          }
         }
       },
       "patch": {
         "summary": "Update a data row after authorization",
         "parameters": [
-          {"name": "resource_type", "in": "path", "required": true, "schema": {"type": "string"}},
-          {"name": "resource_id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "resource_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Updated data row and authorization decision"},
-          "403": {"description": "Authorization denied"}
+          "200": {
+            "description": "Updated data row and authorization decision"
+          },
+          "403": {
+            "description": "Authorization denied"
+          }
         }
       },
       "delete": {
         "summary": "Soft-delete a data row after authorization",
         "parameters": [
-          {"name": "resource_type", "in": "path", "required": true, "schema": {"type": "string"}},
-          {"name": "resource_id", "in": "path", "required": true, "schema": {"type": "string"}}
+          {
+            "name": "resource_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": {"description": "Soft-deleted data row and authorization decision"},
-          "403": {"description": "Authorization denied"}
+          "200": {
+            "description": "Soft-deleted data row and authorization decision"
+          },
+          "403": {
+            "description": "Authorization denied"
+          }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Service is alive"
+          }
+        }
+      }
+    },
+    "/api/v1/ready": {
+      "get": {
+        "summary": "Readiness check",
+        "responses": {
+          "200": {
+            "description": "Service is ready"
+          },
+          "503": {
+            "description": "Service is not ready"
+          }
+        }
+      }
+    },
+    "/api/v1/version": {
+      "get": {
+        "summary": "Version metadata",
+        "responses": {
+          "200": {
+            "description": "Core version and compatibility metadata"
+          }
         }
       }
     }
@@ -406,13 +654,7 @@
       "Envelope": {
         "type": "object",
         "properties": {
-          "data": {},
-          "meta": {
-            "type": "object",
-            "properties": {
-              "request_id": {"type": "string"}
-            }
-          }
+          "data": {}
         }
       },
       "ErrorEnvelope": {
@@ -421,52 +663,127 @@
           "error": {
             "type": "object",
             "properties": {
-              "code": {"type": "string"},
-              "message": {"type": "string"},
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
               "details": {},
-              "request_id": {"type": "string"}
+              "request_id": {
+                "type": "string"
+              }
             },
-            "required": ["code", "message", "request_id"]
+            "required": [
+              "code",
+              "message",
+              "request_id"
+            ]
           }
         }
       },
       "ActorContext": {
         "type": "object",
         "properties": {
-          "user_id": {"type": "string"},
-          "space_id": {"type": "string"},
-          "member_id": {"type": "string"},
-          "user_member_id": {"type": "string"}
+          "user_id": {
+            "type": "string"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "member_id": {
+            "type": "string"
+          },
+          "user_member_id": {
+            "type": "string"
+          }
         },
-        "required": ["user_id", "space_id", "member_id", "user_member_id"]
+        "required": [
+          "user_id",
+          "space_id",
+          "member_id",
+          "user_member_id"
+        ]
       },
       "AuthzCheckRequest": {
         "type": "object",
         "properties": {
-          "actor": {"$ref": "#/components/schemas/ActorContext"},
-          "resource_type": {"type": "string"},
-          "resource_id": {"type": "string"},
-          "action": {"type": "string"},
-          "explain": {"type": "boolean"}
+          "actor": {
+            "$ref": "#/components/schemas/ActorContext"
+          },
+          "resource_type": {
+            "type": "string"
+          },
+          "resource_id": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "explain": {
+            "type": "boolean"
+          }
         },
-        "required": ["actor", "resource_type", "resource_id", "action"]
+        "required": [
+          "actor",
+          "resource_type",
+          "resource_id",
+          "action"
+        ]
       },
       "PluginManifest": {
         "type": "object",
         "properties": {
-          "id": {"type": "string"},
-          "name": {"type": "string"},
-          "version": {"type": "string"},
-          "manifest_version": {"type": "string", "enum": ["0.1", "1.0"]},
-          "plugin_api_version": {"type": "string", "enum": ["0.1", "1.0"]},
-          "requires_core": {"type": "string"},
-          "resources": {"type": "array"},
-          "permissions": {"type": "array"},
-          "audit_events": {"type": "array"},
-          "admin_menu": {"type": "array"},
-          "settings": {"type": "array"}
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "manifest_version": {
+            "type": "string",
+            "enum": [
+              "0.1",
+              "1.0"
+            ]
+          },
+          "plugin_api_version": {
+            "type": "string",
+            "enum": [
+              "0.1",
+              "1.0"
+            ]
+          },
+          "requires_core": {
+            "type": "string"
+          },
+          "resources": {
+            "type": "array"
+          },
+          "permissions": {
+            "type": "array"
+          },
+          "audit_events": {
+            "type": "array"
+          },
+          "admin_menu": {
+            "type": "array"
+          },
+          "settings": {
+            "type": "array"
+          }
         },
-        "required": ["id", "name", "version", "manifest_version", "plugin_api_version", "requires_core"]
+        "required": [
+          "id",
+          "name",
+          "version",
+          "manifest_version",
+          "plugin_api_version",
+          "requires_core"
+        ]
       }
     }
   }
