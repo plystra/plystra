@@ -111,6 +111,9 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Generate Ent code
+        run: go run entgo.io/ent/cmd/ent generate ./ent/schema
+
       - name: Build release archive
         shell: bash
         run: |
