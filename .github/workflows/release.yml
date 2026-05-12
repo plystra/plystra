@@ -28,11 +28,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-    env:
-      PLYSTRA_DATABASE_URL: postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable
-      PLYSTRA_SESSION_SECRET: ci-session-secret-at-least-32-characters
-      PLYSTRA_API_KEY_SECRET: ci-api-key-secret-at-least-32-characters
-
     steps:
       - uses: actions/checkout@v4
 
@@ -64,18 +59,30 @@ jobs:
         run: go test ./...
 
       - name: Apply migrations
+        env:
+          PLYSTRA_DATABASE_URL: postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable
         run: go run ./cmd/plystractl migrate up
 
       - name: Verify migrations
+        env:
+          PLYSTRA_DATABASE_URL: postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable
         run: go run ./cmd/plystractl migrate verify
 
       - name: Check Ent migration drift
+        env:
+          PLYSTRA_DATABASE_URL: postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable
         run: go run ./cmd/plystractl ent check
 
       - name: Doctor
+        env:
+          PLYSTRA_DATABASE_URL: postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable
+          PLYSTRA_SESSION_SECRET: ci-session-secret-at-least-32-characters
+          PLYSTRA_API_KEY_SECRET: ci-api-key-secret-at-least-32-characters
         run: go run ./cmd/plystractl doctor
 
       - name: Integration tests
+        env:
+          PLYSTRA_DATABASE_URL: postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable
         run: go test ./...
 
   build:
