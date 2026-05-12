@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -22,9 +23,10 @@ import (
 
 func TestAuthRegisterIsDisabledByDefault(t *testing.T) {
 	server, handler := newRegisterTestServer(t)
+	email := uniqueRegisterEmail(t, "disabled")
 
 	rec := registerJSONRequest(handler, map[string]any{
-		"email":               "disabled@register-test.plystra.local",
+		"email":               email,
 		"password":            "long-enough-password",
 		"space_name":          "register-test disabled",
 		"member_display_name": "register-test disabled",
@@ -32,8 +34,8 @@ func TestAuthRegisterIsDisabledByDefault(t *testing.T) {
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("status = %d, want 403, body=%s", rec.Code, rec.Body.String())
 	}
-	if count, err := server.ent.User.Query().Count(context.Background()); err != nil || count != 0 {
-		t.Fatalf("user count = %d, err=%v, want 0", count, err)
+	if count, err := server.ent.User.Query().Where(entuser.Email(email)).Count(context.Background()); err != nil || count != 0 {
+		t.Fatalf("created users for %s = %d, err=%v, want 0", email, count, err)
 	}
 }
 
@@ -41,9 +43,15 @@ func TestAuthRegisterBootstrapsFirstSuperAdminWithToken(t *testing.T) {
 	t.Setenv("PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED", "true")
 	t.Setenv("PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN", "bootstrap-registration-token-at-least-32-characters")
 	server, handler := newRegisterTestServer(t)
+	if available, err := server.bootstrapRegistrationAvailable(context.Background()); err != nil {
+		t.Fatalf("check bootstrap availability: %v", err)
+	} else if !available {
+		t.Skip("shared integration database already has an active instance super admin")
+	}
+	email := uniqueRegisterEmail(t, "founder")
 
 	rec := registerJSONRequest(handler, map[string]any{
-		"email":               "founder@register-test.plystra.local",
+		"email":               email,
 		"password":            "long-enough-password",
 		"username":            "founder",
 		"space_name":          "register-test founder space",
@@ -66,18 +74,29 @@ func TestAuthRegisterBootstrapsFirstSuperAdminWithToken(t *testing.T) {
 	if admin.Code != http.StatusOK {
 		t.Fatalf("admin/me status = %d, body=%s", admin.Code, admin.Body.String())
 	}
-	if count, err := server.ent.AdminGrant.Query().Count(context.Background()); err != nil || count != 2 {
-		t.Fatalf("admin grant count = %d, err=%v, want space admin + bootstrap super", count, err)
+	userData, _ := data["user"].(map[string]any)
+	userID, _ := userData["id"].(string)
+	if userID == "" {
+		t.Fatalf("registered user id is missing: %#v", data["user"])
+	}
+	if count, err := server.ent.AdminGrant.Query().Where(entadmingrant.UserID(userID), entadmingrant.DeletedAtIsNil()).Count(context.Background()); err != nil || count != 2 {
+		t.Fatalf("admin grant count for %s = %d, err=%v, want space admin + bootstrap super", userID, count, err)
 	}
 }
 
 func TestAuthRegisterRequiresBootstrapBeforeOrdinaryRegistration(t *testing.T) {
 	t.Setenv("PLYSTRA_AUTH_REGISTRATION_ENABLED", "true")
 	t.Setenv("PLYSTRA_AUTH_REGISTRATION_TOKEN", "ordinary-registration-token-at-least-32-chars")
-	_, handler := newRegisterTestServer(t)
+	server, handler := newRegisterTestServer(t)
+	if available, err := server.bootstrapRegistrationAvailable(context.Background()); err != nil {
+		t.Fatalf("check bootstrap availability: %v", err)
+	} else if !available {
+		t.Skip("shared integration database already has an active instance super admin")
+	}
+	email := uniqueRegisterEmail(t, "first")
 
 	rec := registerJSONRequest(handler, map[string]any{
-		"email":               "first@register-test.plystra.local",
+		"email":               email,
 		"password":            "long-enough-password",
 		"space_name":          "register-test ordinary",
 		"member_display_name": "register-test ordinary",
@@ -88,6 +107,44 @@ func TestAuthRegisterRequiresBootstrapBeforeOrdinaryRegistration(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "first instance super admin") {
 		t.Fatalf("body did not mention bootstrap requirement: %s", rec.Body.String())
+	}
+	if count, err := server.ent.User.Query().Where(entuser.Email(email)).Count(context.Background()); err != nil || count != 0 {
+		t.Fatalf("created users for %s = %d, err=%v, want 0", email, count, err)
+	}
+}
+
+func TestAuthRegisterAllowsOrdinaryRegistrationAfterBootstrap(t *testing.T) {
+	t.Setenv("PLYSTRA_AUTH_REGISTRATION_ENABLED", "true")
+	t.Setenv("PLYSTRA_AUTH_REGISTRATION_TOKEN", "ordinary-registration-token-at-least-32-chars")
+	server, handler := newRegisterTestServer(t)
+	seedRegisterTestSuperAdmin(t, context.Background(), server)
+	email := uniqueRegisterEmail(t, "ordinary")
+
+	rec := registerJSONRequest(handler, map[string]any{
+		"email":               email,
+		"password":            "long-enough-password",
+		"space_name":          "register-test ordinary space",
+		"member_display_name": "register-test ordinary member",
+		"registration_token":  "ordinary-registration-token-at-least-32-chars",
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201, body=%s", rec.Code, rec.Body.String())
+	}
+	payload := decodeRegisterPayload(t, rec)
+	data := payload["data"].(map[string]any)
+	if data["bootstrap_super_admin"] != false {
+		t.Fatalf("bootstrap_super_admin = %#v, want false", data["bootstrap_super_admin"])
+	}
+	userData, _ := data["user"].(map[string]any)
+	userID, _ := userData["id"].(string)
+	if userID == "" {
+		t.Fatalf("registered user id is missing: %#v", data["user"])
+	}
+	if count, err := server.ent.User.Query().Where(entuser.Email(email), entuser.DeletedAtIsNil()).Count(context.Background()); err != nil || count != 1 {
+		t.Fatalf("active registered users for %s = %d, err=%v, want 1", email, count, err)
+	}
+	if count, err := server.ent.AdminGrant.Query().Where(entadmingrant.UserID(userID), entadmingrant.DeletedAtIsNil()).Count(context.Background()); err != nil || count != 1 {
+		t.Fatalf("admin grant count for %s = %d, err=%v, want space admin grant", userID, count, err)
 	}
 }
 
@@ -129,6 +186,72 @@ func registerTestDatabaseURL() string {
 		}
 	}
 	return ""
+}
+
+func uniqueRegisterEmail(t *testing.T, prefix string) string {
+	t.Helper()
+	name := strings.NewReplacer("/", "-", "_", "-").Replace(strings.ToLower(t.Name()))
+	return fmt.Sprintf("%s.%s.%d@register-test.plystra.local", prefix, name, time.Now().UTC().UnixNano())
+}
+
+func seedRegisterTestSuperAdmin(t *testing.T, ctx context.Context, server *Server) {
+	t.Helper()
+	now := time.Now().UTC()
+	suffix := fmt.Sprintf("%d", now.UnixNano())
+	userID := "user_register_super_" + suffix
+	spaceID := "space_register_super_" + suffix
+	memberID := "member_register_super_" + suffix
+	userMemberID := "um_register_super_" + suffix
+	passwordHash, err := hashPassword("register-test-super-admin-password")
+	if err != nil {
+		t.Fatalf("hash super admin password: %v", err)
+	}
+	if _, err := server.ent.User.Create().
+		SetID(userID).
+		SetEmail(uniqueRegisterEmail(t, "super")).
+		SetPasswordHash(passwordHash).
+		SetStatus("active").
+		Save(ctx); err != nil {
+		t.Fatalf("create super admin user: %v", err)
+	}
+	if _, err := server.ent.Space.Create().
+		SetID(spaceID).
+		SetName("register-test super admin space").
+		SetStatus("active").
+		Save(ctx); err != nil {
+		t.Fatalf("create super admin space: %v", err)
+	}
+	if _, err := server.ent.Member.Create().
+		SetID(memberID).
+		SetSpaceID(spaceID).
+		SetDisplayName("register-test super admin member").
+		SetStatus("active").
+		Save(ctx); err != nil {
+		t.Fatalf("create super admin member: %v", err)
+	}
+	if _, err := server.ent.UserMember.Create().
+		SetID(userMemberID).
+		SetUserID(userID).
+		SetMemberID(memberID).
+		SetSpaceID(spaceID).
+		SetRelationType("self").
+		SetStatus("active").
+		SetIsPrimary(true).
+		Save(ctx); err != nil {
+		t.Fatalf("create super admin user-member binding: %v", err)
+	}
+	if _, err := server.ent.AdminGrant.Create().
+		SetID("ag_register_super_" + suffix).
+		SetUserID(userID).
+		SetMemberID(memberID).
+		SetLevel(adminLevelInstanceSuper).
+		SetPermissionKey("*").
+		SetStatus("active").
+		SetGrantedByUserID(userID).
+		SetGrantedByMemberID(memberID).
+		Save(ctx); err != nil {
+		t.Fatalf("create super admin grant: %v", err)
+	}
 }
 
 func cleanupRegisterTestData(ctx context.Context, store *entstore.Store, t *testing.T) {

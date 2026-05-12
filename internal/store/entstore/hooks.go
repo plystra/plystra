@@ -7,6 +7,7 @@ import (
 
 	entgo "entgo.io/ent"
 
+	coreent "github.com/plystra/plystra/ent"
 	"github.com/plystra/plystra/ent/group"
 	"github.com/plystra/plystra/ent/member"
 	"github.com/plystra/plystra/ent/memberrole"
@@ -66,7 +67,7 @@ func (s *Store) enforceUserMemberSameSpace() entgo.Hook {
 			if err != nil {
 				return nil, err
 			}
-			if err := s.memberBelongsToSpace(ctx, memberID, spaceID); err != nil {
+			if err := memberBelongsToSpace(ctx, mutationClient(m, s.client), memberID, spaceID); err != nil {
 				return nil, fmt.Errorf("validate UserMember same-space invariant: %w", err)
 			}
 			return next.Mutate(ctx, m)
@@ -84,10 +85,11 @@ func (s *Store) enforceMemberRoleSameSpace() entgo.Hook {
 			if err != nil {
 				return nil, err
 			}
-			if err := s.memberBelongsToSpace(ctx, memberID, spaceID); err != nil {
+			client := mutationClient(m, s.client)
+			if err := memberBelongsToSpace(ctx, client, memberID, spaceID); err != nil {
 				return nil, fmt.Errorf("validate MemberRole member same-space invariant: %w", err)
 			}
-			roleRecord, err := s.client.Role.Query().Where(role.ID(roleID), role.DeletedAtIsNil()).Only(ctx)
+			roleRecord, err := client.Role.Query().Where(role.ID(roleID), role.DeletedAtIsNil()).Only(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -99,7 +101,7 @@ func (s *Store) enforceMemberRoleSameSpace() entgo.Hook {
 				return nil, err
 			}
 			if anchorID != nil {
-				if err := s.groupBelongsToSpace(ctx, *anchorID, spaceID); err != nil {
+				if err := groupBelongsToSpace(ctx, client, *anchorID, spaceID); err != nil {
 					return nil, fmt.Errorf("validate MemberRole scope anchor same-space invariant: %w", err)
 				}
 			}
@@ -118,12 +120,13 @@ func (s *Store) enforceResourceSameSpace() entgo.Hook {
 			if err != nil {
 				return nil, err
 			}
+			client := mutationClient(m, s.client)
 			groupID, err := finalNullableString(ctx, m, resource.FieldGroupID)
 			if err != nil {
 				return nil, err
 			}
 			if groupID != nil {
-				if err := s.groupBelongsToSpace(ctx, *groupID, spaceID); err != nil {
+				if err := groupBelongsToSpace(ctx, client, *groupID, spaceID); err != nil {
 					return nil, fmt.Errorf("validate Resource group same-space invariant: %w", err)
 				}
 			}
@@ -132,7 +135,7 @@ func (s *Store) enforceResourceSameSpace() entgo.Hook {
 				return nil, err
 			}
 			if ownerMemberID != nil {
-				if err := s.memberBelongsToSpace(ctx, *ownerMemberID, spaceID); err != nil {
+				if err := memberBelongsToSpace(ctx, client, *ownerMemberID, spaceID); err != nil {
 					return nil, fmt.Errorf("validate Resource owner same-space invariant: %w", err)
 				}
 			}
@@ -141,8 +144,8 @@ func (s *Store) enforceResourceSameSpace() entgo.Hook {
 	}
 }
 
-func (s *Store) memberBelongsToSpace(ctx context.Context, memberID, spaceID string) error {
-	memberRecord, err := s.client.Member.Query().Where(member.ID(memberID), member.DeletedAtIsNil()).Only(ctx)
+func memberBelongsToSpace(ctx context.Context, client *coreent.Client, memberID, spaceID string) error {
+	memberRecord, err := client.Member.Query().Where(member.ID(memberID), member.DeletedAtIsNil()).Only(ctx)
 	if err != nil {
 		return err
 	}
@@ -152,8 +155,8 @@ func (s *Store) memberBelongsToSpace(ctx context.Context, memberID, spaceID stri
 	return nil
 }
 
-func (s *Store) groupBelongsToSpace(ctx context.Context, groupID, spaceID string) error {
-	groupRecord, err := s.client.Group.Query().Where(group.ID(groupID), group.DeletedAtIsNil()).Only(ctx)
+func groupBelongsToSpace(ctx context.Context, client *coreent.Client, groupID, spaceID string) error {
+	groupRecord, err := client.Group.Query().Where(group.ID(groupID), group.DeletedAtIsNil()).Only(ctx)
 	if err != nil {
 		return err
 	}
@@ -161,6 +164,19 @@ func (s *Store) groupBelongsToSpace(ctx context.Context, groupID, spaceID string
 		return fmt.Errorf("group %s belongs to space %s, not %s", groupID, groupRecord.SpaceID, spaceID)
 	}
 	return nil
+}
+
+type mutationClienter interface {
+	Client() *coreent.Client
+}
+
+func mutationClient(m entgo.Mutation, fallback *coreent.Client) *coreent.Client {
+	if withClient, ok := m.(mutationClienter); ok {
+		if client := withClient.Client(); client != nil {
+			return client
+		}
+	}
+	return fallback
 }
 
 func finalStrings(ctx context.Context, m entgo.Mutation, first, second string) (string, string, error) {

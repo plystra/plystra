@@ -149,6 +149,59 @@ func TestEntStoreIntegrationSameSpaceHooks(t *testing.T) {
 	}
 }
 
+func TestEntStoreIntegrationSameSpaceHooksUseTransactionClient(t *testing.T) {
+	databaseURL := os.Getenv("PLYSTRA_INTEGRATION_DATABASE_URL")
+	if databaseURL == "" {
+		databaseURL = os.Getenv("PLYSTRA_DATABASE_URL")
+	}
+	if databaseURL == "" {
+		t.Skip("set PLYSTRA_INTEGRATION_DATABASE_URL or PLYSTRA_DATABASE_URL to run EntStore integration tests")
+	}
+
+	ctx := context.Background()
+	store, err := Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	fixtures := newEntHookFixtureIDs()
+	cleanupEntHookFixtures(t, ctx, store, fixtures)
+	defer func() {
+		cleanupEntHookFixtures(t, ctx, store, fixtures)
+		_ = store.Close()
+	}()
+
+	tx, err := store.client.Tx(ctx)
+	if err != nil {
+		t.Fatalf("start transaction: %v", err)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	if _, err := tx.Space.Create().SetID(fixtures.SpaceID).SetName("Transaction Space").Save(ctx); err != nil {
+		t.Fatalf("create transaction fixture space: %v", err)
+	}
+	if _, err := tx.Member.Create().SetID(fixtures.MemberID).SetSpaceID(fixtures.SpaceID).SetDisplayName("Transaction Member").Save(ctx); err != nil {
+		t.Fatalf("create transaction fixture member: %v", err)
+	}
+	if _, err := tx.UserMember.Create().
+		SetID(fixtures.UserMemberID).
+		SetUserID("user_alice").
+		SetMemberID(fixtures.MemberID).
+		SetSpaceID(fixtures.SpaceID).
+		SetRelationType("delegate").
+		Save(ctx); err != nil {
+		t.Fatalf("same-space UserMember create in transaction failed: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit transaction: %v", err)
+	}
+	committed = true
+}
+
 type entHookFixtureIDs struct {
 	SpaceID      string
 	MemberID     string
