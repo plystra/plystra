@@ -1,0 +1,210 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: plystra
+          POSTGRES_PASSWORD: plystra
+          POSTGRES_DB: plystra
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U plystra -d plystra"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      PLYSTRA_DATABASE_URL: postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable
+      PLYSTRA_SESSION_SECRET: ci-session-secret-at-least-32-characters
+      PLYSTRA_API_KEY_SECRET: ci-api-key-secret-at-least-32-characters
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Verify tag matches source version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          grep -q "const defaultCoreVersion = \"${version}\"" cmd/plystrad/main.go
+          grep -q "const migrateOperatorVersion = \"plystractl/${version}\"" cmd/plystractl/migrate_atlas.go
+          grep -q "version: ${version}" openapi/plystra.v1.0.0.yaml
+          grep -q "\"version\": \"${version}\"" openapi/plystra.v1.0.0.json
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Check Ent generated code
+        run: |
+          go run entgo.io/ent/cmd/ent generate ./ent/schema
+          git diff --exit-code -- ent
+          test -z "$(git status --porcelain ent)"
+
+      - name: Unit tests
+        run: go test ./...
+
+      - name: Apply migrations
+        run: go run ./cmd/plystractl migrate up
+
+      - name: Verify migrations
+        run: go run ./cmd/plystractl migrate verify
+
+      - name: Check Ent migration drift
+        run: go run ./cmd/plystractl ent check
+
+      - name: Doctor
+        run: go run ./cmd/plystractl doctor
+
+      - name: Integration tests
+        run: go test ./...
+
+  build:
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build release archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          platform="${{ matrix.goos }}-${{ matrix.goarch }}"
+          mkdir -p "dist/plystra-core-${version}-${platform}"
+
+          suffix=""
+          if [[ "${{ matrix.goos }}" == "windows" ]]; then
+            suffix=".exe"
+          fi
+
+          CGO_ENABLED=0 GOOS="${{ matrix.goos }}" GOARCH="${{ matrix.goarch }}" \
+            go build -trimpath -ldflags="-s -w" \
+            -o "dist/plystra-core-${version}-${platform}/plystrad${suffix}" ./cmd/plystrad
+
+          CGO_ENABLED=0 GOOS="${{ matrix.goos }}" GOARCH="${{ matrix.goarch }}" \
+            go build -trimpath -ldflags="-s -w" \
+            -o "dist/plystra-core-${version}-${platform}/plystractl${suffix}" ./cmd/plystractl
+
+          cp README.md LICENSE .env.example "dist/plystra-core-${version}-${platform}/"
+          cp -R migrations "dist/plystra-core-${version}-${platform}/migrations"
+
+          tar -C dist -czf "dist/plystra-core-${version}-${platform}.tar.gz" "plystra-core-${version}-${platform}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plystra-core-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  docker:
+    needs: validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build and push Core image
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER}/core"
+
+          docker build -t "${image}:${version}" .
+          docker push "${image}:${version}"
+
+          if [[ "${version}" != *-* ]]; then
+            docker tag "${image}:${version}" "${image}:latest"
+            docker push "${image}:latest"
+          fi
+
+  publish:
+    needs:
+      - build
+      - docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum *.tar.gz > SHA256SUMS.txt
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          notes="$(mktemp)"
+          cat > "$notes" <<EOF
+          Plystra Core ${version}
+
+          Documentation: https://docs.plystra.com
+          Container image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/core:${version}
+
+          This release was produced by the GitHub Actions release workflow after passing the Core validation gate.
+          EOF
+
+          args=(release create "$GITHUB_REF_NAME" dist/* --title "Plystra Core ${version}" --notes-file "$notes")
+          if [[ "$version" == *-* ]]; then
+            args+=(--prerelease)
+          else
+            args+=(--latest)
+          fi
+
+          gh "${args[@]}"

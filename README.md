@@ -1,68 +1,113 @@
 # Plystra Core
 
-Self-hosted identity and authorization core for account-identity separation, scoped permissions, and explainable audit logs.
+[![CI](https://github.com/plystra/plystra/actions/workflows/ci.yml/badge.svg)](https://github.com/plystra/plystra/actions/workflows/ci.yml)
+
+Plystra Core is a self-hosted identity and authorization service for applications that need account-identity separation, scoped permissions, explainable decisions, and append-only audit trails.
 
 ```text
 User -> UserMember -> Member -> Space
 ```
 
-This repository contains only the Core service, Ent schemas, migrations, CLI tools, OpenAPI contract, and tests. Product docs, integration guides, release notes, and operations guides live in the sibling documentation site: `../plystra-docs`.
+Core provides:
+
+- HTTP API for users, spaces, groups, members, roles, permissions, resources, admin grants, API keys, and audit logs.
+- Authorization checks with explainable allow/deny traces.
+- Ent-managed PostgreSQL schema with versioned Atlas migrations.
+- Production guardrails for sessions, API keys, CORS, metrics, data console access, and audit logging.
+- CLI tooling through `plystractl` for migrations, schema drift checks, health checks, and super-admin bootstrap.
 
 ## Quick Start
+
+Requirements:
+
+- Go 1.25+
+- Docker or a local PostgreSQL 16+ instance
+
+Start PostgreSQL and run the local release gate:
 
 ```powershell
 cp .env.example .env
 docker compose up -d postgres
-go run entgo.io/ent/cmd/ent generate .\ent\schema
-go run .\cmd\plystractl migrate up
-go run .\cmd\plystractl migrate verify
-go run .\cmd\plystractl ent check
-go run .\cmd\plystractl doctor
+go run entgo.io/ent/cmd/ent generate ./ent/schema
+go run ./cmd/plystractl migrate up
+go run ./cmd/plystractl migrate verify
+go run ./cmd/plystractl ent check
+go run ./cmd/plystractl doctor
 go test ./...
-go run .\cmd\explain-demo
-go run .\cmd\plystrad
 ```
 
-Default local database URL:
+Run Core:
 
 ```powershell
-$env:PLYSTRA_DATABASE_URL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
+go run ./cmd/plystrad
 ```
 
-Non-public API routes require either a Bearer session for a user with an active admin grant or a scoped API key with matching permission keys. The demo seed makes Alice the local instance super admin:
+The API listens on `http://localhost:8080` by default.
+
+## Minimal API Example
+
+The local demo seed includes Alice as an instance super admin.
 
 ```powershell
-$login = Invoke-RestMethod -Method Post http://localhost:8080/api/v1/auth/login -ContentType "application/json" -Body '{"email":"alice@example.com","password":"plystra-demo"}'
+$login = Invoke-RestMethod `
+  -Method Post `
+  -Uri http://localhost:8080/api/v1/auth/login `
+  -ContentType "application/json" `
+  -Body '{"email":"alice@example.com","password":"plystra-demo"}'
+
 $token = $login.data.access_token
-Invoke-RestMethod -Headers @{ Authorization = "Bearer $token" } http://localhost:8080/api/v1/admin/me
+
+Invoke-RestMethod `
+  -Headers @{ Authorization = "Bearer $token" } `
+  -Uri http://localhost:8080/api/v1/admin/me
 ```
+
+Non-public routes require either:
+
+- a Bearer session for a user with an active admin grant, or
+- a scoped API key with matching permission keys.
+
+## Documentation
+
+Full installation, integration, operations, SDK, security, and release documentation lives at [docs.plystra.com](https://docs.plystra.com).
+
+Use the docs when you need detailed guidance for:
+
+- production configuration
+- creating the first instance super admin
+- integrating `authz.check`
+- creating scoped API keys
+- using the JavaScript, Python, and Go SDKs
+- running migrations and release checks
+- operating Plystra behind a reverse proxy
+
+## Related Repositories
+
+- Documentation: [plystra/plystra-docs](https://github.com/plystra/plystra-docs)
+- Website: [plystra/plystra.com](https://github.com/plystra/plystra.com)
+- Admin Console: [plystra/console](https://github.com/plystra/console)
+- JavaScript SDK: [plystra/js-sdk](https://github.com/plystra/js-sdk)
+- Python SDK: [plystra/python-sdk](https://github.com/plystra/python-sdk)
+- Go SDK: [plystra/go-plystra](https://github.com/plystra/go-plystra)
 
 ## Development
+
+Useful commands:
 
 ```powershell
 go generate ./ent
 go test ./...
-go run .\cmd\plystractl migrate verify
-go run .\cmd\plystractl ent check
-go run .\cmd\plystractl doctor
+go run ./cmd/plystractl migrate verify
+go run ./cmd/plystractl ent check
+go run ./cmd/plystractl doctor
 ```
 
-The Core API runs on `http://localhost:8080` by default. The admin console is in `../console`, and the documentation site is in `../plystra-docs`.
+Before opening a pull request, run the same checks as CI.
 
-## Documentation
+## Security
 
-Run the docs site:
+Please do not report security issues in public GitHub issues. See [SECURITY.md](SECURITY.md) for reporting guidance and production security expectations.
 
-```powershell
-cd ..\plystra-docs
-npm install
-npm run dev
-```
+## License
 
-Run the admin console:
-
-```powershell
-cd ..\console
-npm install
-npm run dev
-```
+Apache-2.0
