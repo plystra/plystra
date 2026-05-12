@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Plystra Core API
-  version: 1.0.0-dev12
+  version: 1.0.0-dev13
   description: Stable self-hosted Plystra Core API for identity, authorization, resources, and audit.
 servers:
   - url: http://localhost:8080

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Plystra Core API
-  version: 1.0.0-dev12
+  version: 1.0.0-dev13
   description: Pre-1.0 Plystra Core API contract for system, authorization, audit, resource registry, and plugin metadata.
 servers:
   - url: http://localhost:8080
