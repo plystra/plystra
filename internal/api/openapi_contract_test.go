@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -20,6 +21,11 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 			} `json:"schemas"`
 			SecuritySchemes map[string]any `json:"securitySchemes"`
 		} `json:"components"`
+		Tags      []map[string]any `json:"tags"`
+		TagGroups []struct {
+			Name string   `json:"name"`
+			Tags []string `json:"tags"`
+		} `json:"x-tagGroups"`
 	}
 	if err := json.Unmarshal(raw, &doc); err != nil {
 		t.Fatalf("decode OpenAPI: %v", err)
@@ -56,14 +62,22 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 		}
 	}
 
-	envelope := doc.Components.Schemas["Envelope"].Properties
-	if _, ok := envelope["request_id"]; !ok {
-		t.Fatalf("Envelope.request_id is missing")
+	envelopeFound := false
+	for name, schema := range doc.Components.Schemas {
+		if _, ok := schema.Properties["data"]; ok {
+			envelopeFound = true
+			if _, ok := schema.Properties["request_id"]; !ok {
+				t.Fatalf("%s.request_id is missing", name)
+			}
+			if _, ok := schema.Properties["meta"]; ok {
+				t.Fatalf("%s.meta must not be documented", name)
+			}
+		}
 	}
-	if _, ok := envelope["meta"]; ok {
-		t.Fatalf("Envelope.meta must not be documented")
+	if !envelopeFound {
+		t.Fatalf("OpenAPI response envelope schemas are missing")
 	}
-	errEnvelope := doc.Components.Schemas["ErrorEnvelope"].Properties
+	errEnvelope := doc.Components.Schemas["ApiOpenAPIErrorEnvelope"].Properties
 	if _, ok := errEnvelope["request_id"]; !ok {
 		t.Fatalf("ErrorEnvelope.request_id is missing")
 	}
@@ -75,5 +89,62 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 	}
 	if _, ok := doc.Components.SecuritySchemes["ApiKeyAuth"]; !ok {
 		t.Fatalf("OpenAPI ApiKeyAuth security scheme is missing")
+	}
+	if len(doc.Tags) == 0 {
+		t.Fatalf("OpenAPI tags are missing")
+	}
+	if len(doc.TagGroups) == 0 {
+		t.Fatalf("OpenAPI x-tagGroups are missing")
+	}
+
+	requestBodyPaths := map[string]string{
+		"POST /api/v1/auth/login":                               "/api/v1/auth/login",
+		"POST /api/v1/authz/check":                              "/api/v1/authz/check",
+		"POST /api/v1/users":                                    "/api/v1/users",
+		"PATCH /api/v1/users/{user_id}":                         "/api/v1/users/{user_id}",
+		"POST /api/v1/api-keys":                                 "/api/v1/api-keys",
+		"POST /api/v1/admin/grants":                             "/api/v1/admin/grants",
+		"POST /api/v1/resource-types":                           "/api/v1/resource-types",
+		"POST /api/v1/plugins/install":                          "/api/v1/plugins/install",
+		"POST /api/v1/templates/{template_id}/install":          "/api/v1/templates/{template_id}/install",
+		"PATCH /api/v1/data/rows/{resource_type}/{resource_id}": "/api/v1/data/rows/{resource_type}/{resource_id}",
+	}
+	for label, path := range requestBodyPaths {
+		method := label[:4]
+		if method == "PATC" {
+			method = "patch"
+		} else {
+			method = "post"
+		}
+		op, ok := doc.Paths[path].(map[string]any)
+		if !ok {
+			t.Fatalf("OpenAPI path %s is not an object", path)
+		}
+		methodDoc, ok := op[method].(map[string]any)
+		if !ok {
+			t.Fatalf("OpenAPI operation %s is missing", label)
+		}
+		if _, ok := methodDoc["requestBody"]; !ok {
+			t.Fatalf("OpenAPI operation %s is missing requestBody", label)
+		}
+	}
+}
+
+func TestOpenAPIArtifactIsGenerated(t *testing.T) {
+	spec, err := GenerateOpenAPI(OpenAPIVersion)
+	if err != nil {
+		t.Fatalf("generate OpenAPI: %v", err)
+	}
+	generated, err := json.MarshalIndent(spec, "", "  ")
+	if err != nil {
+		t.Fatalf("marshal generated OpenAPI: %v", err)
+	}
+	generated = append(generated, '\n')
+	committed, err := os.ReadFile(filepath.Join("..", "..", "openapi", "plystra.v1.0.0.json"))
+	if err != nil {
+		t.Fatalf("read OpenAPI: %v", err)
+	}
+	if !reflect.DeepEqual(generated, committed) {
+		t.Fatalf("OpenAPI JSON is stale; run go run ./cmd/plystra-openapi -out openapi")
 	}
 }

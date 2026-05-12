@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Plystra Core `1.0.0-rc1` is the current release candidate. Security fixes are applied to the active release line.
+Plystra Core `1.0.0-rc2` is the current release candidate. Security fixes are applied to the active release line.
 
 ## Reporting a Vulnerability
 

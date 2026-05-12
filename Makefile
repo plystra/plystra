@@ -1,7 +1,7 @@
 DATABASE_URL ?= postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable
 SERVER_PORT ?= 8080
 
-.PHONY: run migrate seed-demo demo demo-trace demo-reset ent-status ent-plan ent-check ent-apply ent-generate test fmt
+.PHONY: run migrate seed-demo demo demo-trace demo-reset ent-status ent-plan ent-check ent-apply ent-generate openapi test fmt
 
 run:
 	DATABASE_URL="$(DATABASE_URL)" SERVER_PORT="$(SERVER_PORT)" go run ./cmd/plystrad
@@ -33,6 +33,9 @@ ent-apply:
 
 ent-generate:
 	go run entgo.io/ent/cmd/ent generate ./ent/schema
+
+openapi:
+	go run ./cmd/plystra-openapi -out openapi
 
 test:
 	go test ./...
