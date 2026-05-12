@@ -14,7 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 )
 
-const migrateOperatorVersion = "plystractl/1.0.0-rc2"
+const migrateOperatorVersion = "plystractl/1.0.0-rc5"
 
 func atlasMigrationHashes(path string) (map[string]string, error) {
 	dir, err := migrate.NewLocalDir(path)

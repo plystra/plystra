@@ -3,7 +3,7 @@
   "info": {
     "title": "Plystra Core API",
     "description": "Stable self-hosted Plystra Core API for identity, authorization, resources, audit, API keys, plugins, and templates.",
-    "version": "1.0.0-rc2"
+    "version": "1.0.0-rc5"
   },
   "servers": [
     {
@@ -8573,7 +8573,7 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "1.0.0-rc2"
+            "example": "1.0.0-rc5"
           }
         }
       },

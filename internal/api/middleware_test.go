@@ -171,6 +171,31 @@ func TestStructuredLogContainsReleaseFields(t *testing.T) {
 	}
 }
 
+func TestRemoteIPOnlyTrustsForwardedHeadersFromTrustedProxy(t *testing.T) {
+	t.Setenv("TRUSTED_PROXIES", "10.0.0.0/8,192.0.2.10")
+
+	untrusted := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
+	untrusted.RemoteAddr = "198.51.100.25:1234"
+	untrusted.Header.Set("X-Forwarded-For", "203.0.113.7")
+	if got := remoteIPFrom(untrusted); got != "198.51.100.25" {
+		t.Fatalf("untrusted forwarded IP = %q, want direct remote IP", got)
+	}
+
+	trusted := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
+	trusted.RemoteAddr = "10.1.2.3:1234"
+	trusted.Header.Set("X-Forwarded-For", "203.0.113.7, 10.1.2.3")
+	if got := remoteIPFrom(trusted); got != "203.0.113.7" {
+		t.Fatalf("trusted forwarded IP = %q, want first forwarded client IP", got)
+	}
+
+	realIP := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
+	realIP.RemoteAddr = "192.0.2.10:1234"
+	realIP.Header.Set("X-Real-IP", "203.0.113.8")
+	if got := remoteIPFrom(realIP); got != "203.0.113.8" {
+		t.Fatalf("trusted real IP = %q, want X-Real-IP", got)
+	}
+}
+
 func TestBearerSessionProtectsSensitiveRoutes(t *testing.T) {
 	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
 	handler := server.requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

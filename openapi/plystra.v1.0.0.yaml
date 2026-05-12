@@ -1648,7 +1648,7 @@ components:
         ApiOpenAPIVersionResponse:
             properties:
                 version:
-                    example: 1.0.0-rc2
+                    example: 1.0.0-rc5
                     type: string
             type: object
         ApiPermissionMutationRequest:
@@ -2150,7 +2150,7 @@ components:
 info:
     description: Stable self-hosted Plystra Core API for identity, authorization, resources, audit, API keys, plugins, and templates.
     title: Plystra Core API
-    version: 1.0.0-rc2
+    version: 1.0.0-rc5
 openapi: 3.0.3
 paths:
     /api/v1/actor/context:

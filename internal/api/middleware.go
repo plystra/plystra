@@ -236,22 +236,71 @@ func logHTTPRequest(r *http.Request, headers http.Header, status, bytes int, lat
 }
 
 func remoteIPFrom(r *http.Request) string {
-	if configured := os.Getenv("TRUSTED_PROXIES"); strings.TrimSpace(configured) != "" {
-		if forwarded := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); forwarded != "" {
-			parts := strings.Split(forwarded, ",")
-			if len(parts) > 0 {
-				return strings.TrimSpace(parts[0])
-			}
+	remoteIP := directRemoteIP(r.RemoteAddr)
+	if remoteIP == "" {
+		remoteIP = strings.TrimSpace(r.RemoteAddr)
+	}
+	if trustedProxyIP(remoteIP, os.Getenv("TRUSTED_PROXIES")) {
+		if forwarded := forwardedClientIP(r.Header.Get("X-Forwarded-For")); forwarded != "" {
+			return forwarded
 		}
-		if realIP := strings.TrimSpace(r.Header.Get("X-Real-IP")); realIP != "" {
+		if realIP := validHeaderIP(r.Header.Get("X-Real-IP")); realIP != "" {
 			return realIP
 		}
 	}
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err == nil {
-		return host
+	return remoteIP
+}
+
+func directRemoteIP(remoteAddr string) string {
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		host = remoteAddr
 	}
-	return r.RemoteAddr
+	host = strings.TrimSpace(host)
+	if net.ParseIP(host) == nil {
+		return ""
+	}
+	return host
+}
+
+func trustedProxyIP(remoteIP, configured string) bool {
+	ip := net.ParseIP(strings.TrimSpace(remoteIP))
+	if ip == nil || strings.TrimSpace(configured) == "" {
+		return false
+	}
+	for _, entry := range strings.Split(configured, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		if _, network, err := net.ParseCIDR(entry); err == nil {
+			if network.Contains(ip) {
+				return true
+			}
+			continue
+		}
+		if trustedIP := net.ParseIP(entry); trustedIP != nil && trustedIP.Equal(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func forwardedClientIP(value string) string {
+	for _, part := range strings.Split(value, ",") {
+		if ip := validHeaderIP(part); ip != "" {
+			return ip
+		}
+	}
+	return ""
+}
+
+func validHeaderIP(value string) string {
+	value = strings.TrimSpace(value)
+	if net.ParseIP(value) == nil {
+		return ""
+	}
+	return value
 }
 
 func safePanicDetails(recovered any) any {
