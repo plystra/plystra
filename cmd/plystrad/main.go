@@ -17,7 +17,7 @@ import (
 )
 
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
-const defaultCoreVersion = "1.0.0-dev11"
+const defaultCoreVersion = "1.0.0-dev12"
 
 const (
 	defaultSessionSecret = "change-me-session-secret-at-least-32-characters"

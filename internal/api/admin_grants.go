@@ -402,8 +402,12 @@ func canCreateAdminGrantLevel(principal adminPrincipal, level string) bool {
 }
 
 func (s *Server) principalCanUseAdminGrantRequest(ctx context.Context, principal adminPrincipal, req adminGrantMutationRequest, action string) (bool, error) {
+	permissionKey := "admin_grants:" + action
+	if req.Level == adminLevelInstanceSuper || req.Level == adminLevelInstance || (req.SpaceID == "" && req.GroupID == "") {
+		return adminPrincipalHasInstanceReach(principal, permissionKey), nil
+	}
 	return s.adminPrincipalAllows(ctx, principal, adminRequirement{
-		PermissionKey: "admin_grants:" + action,
+		PermissionKey: permissionKey,
 		SpaceID:       req.SpaceID,
 		GroupID:       req.GroupID,
 	})
@@ -413,8 +417,12 @@ func (s *Server) principalCanUseAdminGrant(ctx context.Context, principal adminP
 	if grant == nil {
 		return false, nil
 	}
+	permissionKey := "admin_grants:" + action
+	if grant.Level == adminLevelInstanceSuper || grant.Level == adminLevelInstance || (derefString(grant.SpaceID) == "" && derefString(grant.GroupID) == "") {
+		return adminPrincipalHasInstanceReach(principal, permissionKey), nil
+	}
 	return s.adminPrincipalAllows(ctx, principal, adminRequirement{
-		PermissionKey: "admin_grants:" + action,
+		PermissionKey: permissionKey,
 		SpaceID:       derefString(grant.SpaceID),
 		GroupID:       derefString(grant.GroupID),
 	})

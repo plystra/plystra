@@ -309,16 +309,27 @@ func (s *Server) validateAPIKeyRequest(r *http.Request, req *apiKeyMutationReque
 }
 
 func (s *Server) principalAllowsAPIKeyRequest(r *http.Request, principal adminPrincipal, req apiKeyMutationRequest, action string) (bool, error) {
+	permissionKey := "api_keys:" + action
+	if req.Level == "instance" || (req.SpaceID == "" && req.GroupID == "") {
+		return adminPrincipalHasInstanceReach(principal, permissionKey), nil
+	}
 	return s.adminPrincipalAllows(r.Context(), principal, adminRequirement{
-		PermissionKey: "api_keys:" + action,
+		PermissionKey: permissionKey,
 		SpaceID:       req.SpaceID,
 		GroupID:       req.GroupID,
 	})
 }
 
 func (s *Server) principalCanUseAPIKeyScope(r *http.Request, principal adminPrincipal, key *coreent.ApiKey, action string) (bool, error) {
+	if key == nil {
+		return false, nil
+	}
+	permissionKey := "api_keys:" + action
+	if key.Level == "instance" || (derefString(key.SpaceID) == "" && derefString(key.GroupID) == "") {
+		return adminPrincipalHasInstanceReach(principal, permissionKey), nil
+	}
 	return s.adminPrincipalAllows(r.Context(), principal, adminRequirement{
-		PermissionKey: "api_keys:" + action,
+		PermissionKey: permissionKey,
 		SpaceID:       derefString(key.SpaceID),
 		GroupID:       derefString(key.GroupID),
 	})
