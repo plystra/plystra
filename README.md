@@ -84,7 +84,6 @@ Use the docs when you need detailed guidance for:
 ## Related Repositories
 
 - Documentation: [plystra/plystra-docs](https://github.com/plystra/plystra-docs)
-- Website: [plystra/plystra.com](https://github.com/plystra/plystra.com)
 - Admin Console: [plystra/console](https://github.com/plystra/console)
 - JavaScript SDK: [plystra/js-sdk](https://github.com/plystra/js-sdk)
 - Python SDK: [plystra/python-sdk](https://github.com/plystra/python-sdk)
