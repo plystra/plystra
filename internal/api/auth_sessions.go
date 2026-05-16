@@ -19,8 +19,8 @@ import (
 	entusermember "github.com/plystra/plystra/ent/usermember"
 
 	"github.com/jackc/pgx/v5"
+	contractidentity "github.com/plystra/contracts/identity"
 	entuser "github.com/plystra/plystra/ent/user"
-	systemidentity "github.com/plystra/system-identity"
 )
 
 func (s *Server) sessionFromRequest(ctx context.Context, r *http.Request) (sessionRecord, error) {
@@ -193,16 +193,16 @@ func (s *Server) availableActorBindingsFiltered(ctx context.Context, userID, mem
 		if err != nil {
 			return nil, err
 		}
-		identity := systemidentity.ActingIdentity{
-			User: systemidentity.User{ID: userRecord.ID, Email: userRecord.Email, Status: userRecord.Status},
-			Member: systemidentity.Member{
+		identity := contractidentity.ActingIdentity{
+			User: contractidentity.User{ID: userRecord.ID, Email: userRecord.Email, Status: userRecord.Status},
+			Member: contractidentity.Member{
 				ID:          memberRecord.ID,
 				SpaceID:     memberRecord.SpaceID,
 				DisplayName: memberRecord.DisplayName,
 				MemberType:  memberRecord.MemberType,
 				Status:      memberRecord.Status,
 			},
-			UserMember: systemidentity.UserMember{
+			UserMember: contractidentity.UserMember{
 				ID:           userMember.ID,
 				UserID:       userMember.UserID,
 				MemberID:     userMember.MemberID,
@@ -212,7 +212,7 @@ func (s *Server) availableActorBindingsFiltered(ctx context.Context, userID, mem
 				IsPrimary:    userMember.IsPrimary,
 				ExpiresAt:    userMember.ExpiresAt,
 			},
-			Space: systemidentity.Space{
+			Space: contractidentity.Space{
 				ID:     spaceRecord.ID,
 				Name:   spaceRecord.Name,
 				Slug:   derefString(spaceRecord.Slug),
@@ -220,7 +220,7 @@ func (s *Server) availableActorBindingsFiltered(ctx context.Context, userID, mem
 				Status: spaceRecord.Status,
 			},
 		}
-		if err := systemidentity.ValidateActingIdentity(identity, now); err != nil {
+		if err := contractidentity.ValidateActingIdentity(identity, now); err != nil {
 			continue
 		}
 		bindings = append(bindings, map[string]any{

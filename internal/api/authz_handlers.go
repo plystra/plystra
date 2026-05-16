@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -205,6 +206,9 @@ func (s *Server) handleAuthz(w http.ResponseWriter, r *http.Request, explain boo
 	}
 
 	decision, err := authz.Check(r.Context(), s.authzStore, input)
+	if s.capabilities != nil {
+		decision, err = s.authzViaCapability(r, input)
+	}
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Authorization check failed.", err.Error())
 		return
@@ -226,6 +230,52 @@ func (s *Server) handleAuthz(w http.ResponseWriter, r *http.Request, explain boo
 		"audit_log_id": decision.Audit.ID,
 		"audit":        decision.Audit,
 	})
+}
+
+func (s *Server) authzViaCapability(r *http.Request, input authz.CheckInput) (*authz.Decision, error) {
+	input = input.Normalized()
+	loaded, err := s.preloadAuthorizationContext(r.Context(), input)
+	if err != nil {
+		return nil, err
+	}
+	input.PreloadedContext = &loaded
+	decision, err := s.capabilities.Authorize(r.Context(), input.Explain, input)
+	if err != nil {
+		return nil, err
+	}
+	if s.authzStore != nil {
+		if err := s.authzStore.WriteAuditLog(r.Context(), *decision); err != nil {
+			return nil, err
+		}
+	}
+	return decision, nil
+}
+
+func (s *Server) preloadAuthorizationContext(ctx context.Context, input authz.CheckInput) (authz.AuthorizationContext, error) {
+	if input.InlineContext {
+		return authz.BuildInlineAuthorizationContext(ctx, s.authzStore, input)
+	}
+	if loader, ok := s.authzStore.(authz.AuthorizationContextLoader); ok {
+		return loader.LoadAuthorizationContext(ctx, input)
+	}
+	actorContext := input.NormalizedActor()
+	actor, err := s.authzStore.LoadActor(ctx, actorContext)
+	if err != nil {
+		return authz.AuthorizationContext{}, err
+	}
+	registry, registryErr := s.authzStore.LoadResourceRegistration(ctx, input.ResourceType, input.Action)
+	if registryErr != nil {
+		return authz.AuthorizationContext{Actor: actor, ResourceRegistry: registry, RegistryErr: registryErr, RegistryError: registryErr.Error()}, nil
+	}
+	target, err := s.authzStore.LoadTarget(ctx, input.ResourceType, input.ResourceID)
+	if err != nil {
+		return authz.AuthorizationContext{}, err
+	}
+	candidates, err := s.authzStore.LoadPermissionCandidates(ctx, authz.CandidateQuery{MemberID: actorContext.MemberID, ResourceType: input.ResourceType, Action: input.Action})
+	if err != nil {
+		return authz.AuthorizationContext{}, err
+	}
+	return authz.AuthorizationContext{Actor: actor, ResourceRegistry: registry, Target: target, PermissionGrants: candidates, PermissionFiltered: true}, nil
 }
 
 func actorContextEmpty(actor authz.ActorContext) bool {

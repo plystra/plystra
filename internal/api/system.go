@@ -67,6 +67,12 @@ func (s *Server) handleReady(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Database is not reachable.", err.Error())
 		return
 	}
+	if s.capabilities != nil {
+		if err := s.capabilities.Ready(); err != nil {
+			writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Required system capability is not ready.", err.Error())
+			return
+		}
+	}
 	schemaVersion, expectedSchemaVersion, err := s.readySchemaVersions(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Database migrations are not current or schema_migrations is unavailable.", err.Error())
@@ -77,6 +83,7 @@ func (s *Server) handleReady(w http.ResponseWriter, r *http.Request) {
 		"schema_version":          schemaVersion,
 		"expected_schema_version": expectedSchemaVersion,
 		"trace_version":           traceVersion(),
+		"system_capabilities":     s.capabilityStates(),
 	})
 }
 
@@ -96,7 +103,33 @@ func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
 		"plugin_api_version":        "1.0",
 		"resource_registry_version": "1.0",
 		"build_time":                time.Now().UTC().Format(time.RFC3339),
+		"system_capabilities":       s.capabilityStates(),
 	})
+}
+
+func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeMethodNotAllowed(w, r)
+		return
+	}
+	writeData(w, r, http.StatusOK, map[string]any{
+		"states":   s.capabilityStates(),
+		"services": s.capabilityServices(),
+	})
+}
+
+func (s *Server) capabilityStates() map[string]string {
+	if s.capabilities == nil {
+		return map[string]string{}
+	}
+	return s.capabilities.States()
+}
+
+func (s *Server) capabilityServices() any {
+	if s.capabilities == nil {
+		return []any{}
+	}
+	return s.capabilities.Services()
 }
 
 func (s *Server) latestSchemaVersion(ctx context.Context) (string, error) {

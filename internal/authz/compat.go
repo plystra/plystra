@@ -4,102 +4,102 @@ import (
 	"context"
 	"time"
 
-	systemauthz "github.com/plystra/system-authz"
+	contractauthz "github.com/plystra/contracts/authz"
 )
 
 const (
-	StatusActive = systemauthz.StatusActive
+	StatusActive = contractauthz.StatusActive
 
-	DecisionAllow = systemauthz.DecisionAllow
-	DecisionDeny  = systemauthz.DecisionDeny
+	DecisionAllow = contractauthz.DecisionAllow
+	DecisionDeny  = contractauthz.DecisionDeny
 )
 
-var ErrNotFound = systemauthz.ErrNotFound
-var ErrResourceTypeNotFound = systemauthz.ErrResourceTypeNotFound
-var ErrResourceActionNotFound = systemauthz.ErrResourceActionNotFound
+var ErrNotFound = contractauthz.ErrNotFound
+var ErrResourceTypeNotFound = contractauthz.ErrResourceTypeNotFound
+var ErrResourceActionNotFound = contractauthz.ErrResourceActionNotFound
 
-type Scope = systemauthz.Scope
+type Scope = contractauthz.Scope
 
 const (
-	ScopeSelf      = systemauthz.ScopeSelf
-	ScopeGroup     = systemauthz.ScopeGroup
-	ScopeGroupTree = systemauthz.ScopeGroupTree
-	ScopeSpace     = systemauthz.ScopeSpace
-	ScopeGlobal    = systemauthz.ScopeGlobal
+	ScopeSelf      = contractauthz.ScopeSelf
+	ScopeGroup     = contractauthz.ScopeGroup
+	ScopeGroupTree = contractauthz.ScopeGroupTree
+	ScopeSpace     = contractauthz.ScopeSpace
+	ScopeGlobal    = contractauthz.ScopeGlobal
 )
 
-type DenyCode = systemauthz.DenyCode
+type DenyCode = contractauthz.DenyCode
 
 const (
-	DenyActorUserInactive     = systemauthz.DenyActorUserInactive
-	DenyActorMemberInactive   = systemauthz.DenyActorMemberInactive
-	DenyUserMemberRevoked     = systemauthz.DenyUserMemberRevoked
-	DenyUserMemberExpired     = systemauthz.DenyUserMemberExpired
-	DenySpaceInactive         = systemauthz.DenySpaceInactive
-	DenyCrossSpaceViolation   = systemauthz.DenyCrossSpaceViolation
-	DenyNoMatchingPermission  = systemauthz.DenyNoMatchingPermission
-	DenyScopeAnchorMissing    = systemauthz.DenyScopeAnchorMissing
-	DenyTargetGroupMissing    = systemauthz.DenyTargetGroupMissing
-	DenyScopeOutOfBounds      = systemauthz.DenyScopeOutOfBounds
-	DenyGlobalScopeDisabled   = systemauthz.DenyGlobalScopeDisabled
-	DenyInvalidResourceType   = systemauthz.DenyInvalidResourceType
-	DenyInvalidResourceAction = systemauthz.DenyInvalidResourceAction
+	DenyActorUserInactive     = contractauthz.DenyActorUserInactive
+	DenyActorMemberInactive   = contractauthz.DenyActorMemberInactive
+	DenyUserMemberRevoked     = contractauthz.DenyUserMemberRevoked
+	DenyUserMemberExpired     = contractauthz.DenyUserMemberExpired
+	DenySpaceInactive         = contractauthz.DenySpaceInactive
+	DenyCrossSpaceViolation   = contractauthz.DenyCrossSpaceViolation
+	DenyNoMatchingPermission  = contractauthz.DenyNoMatchingPermission
+	DenyScopeAnchorMissing    = contractauthz.DenyScopeAnchorMissing
+	DenyTargetGroupMissing    = contractauthz.DenyTargetGroupMissing
+	DenyScopeOutOfBounds      = contractauthz.DenyScopeOutOfBounds
+	DenyGlobalScopeDisabled   = contractauthz.DenyGlobalScopeDisabled
+	DenyInvalidResourceType   = contractauthz.DenyInvalidResourceType
+	DenyInvalidResourceAction = contractauthz.DenyInvalidResourceAction
 )
 
 type (
-	CheckInput                 = systemauthz.CheckInput
-	ActorContext               = systemauthz.ActorContext
-	CandidateQuery             = systemauthz.CandidateQuery
-	Store                      = systemauthz.Store
-	AuthorizationContextLoader = systemauthz.AuthorizationContextLoader
-	AuthorizationContext       = systemauthz.AuthorizationContext
-	ActorSnapshot              = systemauthz.ActorSnapshot
-	UserSnapshot               = systemauthz.UserSnapshot
-	MemberSnapshot             = systemauthz.MemberSnapshot
-	UserMemberSnapshot         = systemauthz.UserMemberSnapshot
-	SpaceSnapshot              = systemauthz.SpaceSnapshot
-	TargetSnapshot             = systemauthz.TargetSnapshot
-	ResourceSnapshot           = systemauthz.ResourceSnapshot
-	GroupSnapshot              = systemauthz.GroupSnapshot
-	RoleSnapshot               = systemauthz.RoleSnapshot
-	PermissionSnapshot         = systemauthz.PermissionSnapshot
-	PermissionCandidate        = systemauthz.PermissionCandidate
-	GrantContext               = systemauthz.GrantContext
-	ScopeCheck                 = systemauthz.ScopeCheck
-	AuditContext               = systemauthz.AuditContext
-	ResourceRegistrySnapshot   = systemauthz.ResourceRegistrySnapshot
-	ResourceTypeSnapshot       = systemauthz.ResourceTypeSnapshot
-	ResourceActionSnapshot     = systemauthz.ResourceActionSnapshot
-	ResourceMappingSnapshot    = systemauthz.ResourceMappingSnapshot
-	RequestMetadata            = systemauthz.RequestMetadata
-	Decision                   = systemauthz.Decision
-	Engine                     = systemauthz.Engine
+	CheckInput                 = contractauthz.CheckInput
+	ActorContext               = contractauthz.ActorContext
+	CandidateQuery             = contractauthz.CandidateQuery
+	Store                      = contractauthz.Store
+	AuthorizationContextLoader = contractauthz.AuthorizationContextLoader
+	AuthorizationContext       = contractauthz.AuthorizationContext
+	ActorSnapshot              = contractauthz.ActorSnapshot
+	UserSnapshot               = contractauthz.UserSnapshot
+	MemberSnapshot             = contractauthz.MemberSnapshot
+	UserMemberSnapshot         = contractauthz.UserMemberSnapshot
+	SpaceSnapshot              = contractauthz.SpaceSnapshot
+	TargetSnapshot             = contractauthz.TargetSnapshot
+	ResourceSnapshot           = contractauthz.ResourceSnapshot
+	GroupSnapshot              = contractauthz.GroupSnapshot
+	RoleSnapshot               = contractauthz.RoleSnapshot
+	PermissionSnapshot         = contractauthz.PermissionSnapshot
+	PermissionCandidate        = contractauthz.PermissionCandidate
+	GrantContext               = contractauthz.GrantContext
+	ScopeCheck                 = contractauthz.ScopeCheck
+	AuditContext               = contractauthz.AuditContext
+	ResourceRegistrySnapshot   = contractauthz.ResourceRegistrySnapshot
+	ResourceTypeSnapshot       = contractauthz.ResourceTypeSnapshot
+	ResourceActionSnapshot     = contractauthz.ResourceActionSnapshot
+	ResourceMappingSnapshot    = contractauthz.ResourceMappingSnapshot
+	RequestMetadata            = contractauthz.RequestMetadata
+	Decision                   = contractauthz.Decision
+	Engine                     = engine
 )
 
 func NewEngine(store Store) *Engine {
-	return systemauthz.NewEngine(store)
+	return newEngine(store)
 }
 
 func NewEngineWithClock(store Store, now func() time.Time) *Engine {
-	return systemauthz.NewEngineWithClock(store, now)
+	return newEngineWithClock(store, now)
 }
 
 func Check(ctx context.Context, store Store, input CheckInput) (*Decision, error) {
-	return systemauthz.Check(ctx, store, input)
+	return check(ctx, store, input)
 }
 
 func Explain(ctx context.Context, store Store, input CheckInput) (*Decision, error) {
-	return systemauthz.Explain(ctx, store, input)
+	return explain(ctx, store, input)
 }
 
 func ResolveScope(scope Scope, actor ActorSnapshot, target TargetSnapshot, anchor *GroupSnapshot) ScopeCheck {
-	return systemauthz.ResolveScope(scope, actor, target, anchor)
+	return resolveScope(scope, actor, target, anchor)
 }
 
 func BuildInlineAuthorizationContext(ctx context.Context, store Store, input CheckInput) (AuthorizationContext, error) {
-	return systemauthz.BuildInlineAuthorizationContext(ctx, store, input)
+	return buildInlineAuthorizationContext(ctx, store, input)
 }
 
 func ValidateInlineContextInput(input CheckInput) error {
-	return systemauthz.ValidateInlineContextInput(input)
+	return validateInlineContextInput(input)
 }

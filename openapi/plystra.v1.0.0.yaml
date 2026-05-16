@@ -106,12 +106,12 @@ components:
                 action:
                     type: string
                 actor:
-                    $ref: '#/components/schemas/SystemAuthzActorContext'
+                    $ref: '#/components/schemas/AuthzActorContext'
                 explain:
                     type: boolean
                 grants:
                     items:
-                        $ref: '#/components/schemas/SystemAuthzGrantContext'
+                        $ref: '#/components/schemas/AuthzGrantContext'
                     nullable: true
                     type: array
                 resource:
@@ -151,7 +151,7 @@ components:
         ApiDataRowMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/SystemAuthzActorContext'
+                    $ref: '#/components/schemas/AuthzActorContext'
                 display_name:
                     nullable: true
                     type: string
@@ -179,7 +179,7 @@ components:
         ApiGroupMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/SystemAuthzActorContext'
+                    $ref: '#/components/schemas/AuthzActorContext'
                 display_name:
                     nullable: true
                     type: string
@@ -209,7 +209,7 @@ components:
         ApiMemberMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/SystemAuthzActorContext'
+                    $ref: '#/components/schemas/AuthzActorContext'
                 display_name:
                     type: string
                 id:
@@ -228,7 +228,7 @@ components:
         ApiMemberRoleMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/SystemAuthzActorContext'
+                    $ref: '#/components/schemas/AuthzActorContext'
                 id:
                     type: string
                 member_id:
@@ -1744,7 +1744,7 @@ components:
         ApiOpenAPIVersionResponse:
             properties:
                 version:
-                    example: 1.0.0-rc6
+                    example: 1.0.0-rc104
                     type: string
             type: object
         ApiPermissionMutationRequest:
@@ -1752,7 +1752,7 @@ components:
                 action:
                     type: string
                 actor:
-                    $ref: '#/components/schemas/SystemAuthzActorContext'
+                    $ref: '#/components/schemas/AuthzActorContext'
                 audit_space_id:
                     type: string
                 description:
@@ -1845,7 +1845,7 @@ components:
         ApiResourceMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/SystemAuthzActorContext'
+                    $ref: '#/components/schemas/AuthzActorContext'
                 display_name:
                     nullable: true
                     type: string
@@ -1899,7 +1899,7 @@ components:
         ApiRoleMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/SystemAuthzActorContext'
+                    $ref: '#/components/schemas/AuthzActorContext'
                 description:
                     nullable: true
                     type: string
@@ -1920,7 +1920,7 @@ components:
         ApiRolePermissionMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/SystemAuthzActorContext'
+                    $ref: '#/components/schemas/AuthzActorContext'
                 audit_space_id:
                     type: string
                 id:
@@ -1937,7 +1937,7 @@ components:
         ApiSpaceMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/SystemAuthzActorContext'
+                    $ref: '#/components/schemas/AuthzActorContext'
                 id:
                     type: string
                 metadata:
@@ -2051,7 +2051,7 @@ components:
         ApiUserMemberMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/SystemAuthzActorContext'
+                    $ref: '#/components/schemas/AuthzActorContext'
                 expires_at:
                     format: date-time
                     nullable: true
@@ -2088,7 +2088,7 @@ components:
         ApiUserMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/SystemAuthzActorContext'
+                    $ref: '#/components/schemas/AuthzActorContext'
                 audit_space_id:
                     type: string
                 email:
@@ -2110,6 +2110,56 @@ components:
                     type: string
                 username:
                     nullable: true
+                    type: string
+            type: object
+        AuthzActorContext:
+            properties:
+                binding_id:
+                    type: string
+                binding_status:
+                    type: string
+                member_display_name:
+                    type: string
+                member_id:
+                    type: string
+                member_status:
+                    type: string
+                relation_type:
+                    type: string
+                space_id:
+                    type: string
+                space_name:
+                    type: string
+                space_status:
+                    type: string
+                user_email:
+                    type: string
+                user_id:
+                    type: string
+                user_member_id:
+                    type: string
+                user_status:
+                    type: string
+            type: object
+        AuthzGrantContext:
+            properties:
+                action:
+                    type: string
+                permission_id:
+                    type: string
+                resource:
+                    type: string
+                role_id:
+                    type: string
+                role_key:
+                    type: string
+                scope:
+                    type: string
+                scope_anchor_group_id:
+                    type: string
+                scope_anchor_group_path:
+                    type: string
+                space_id:
                     type: string
             type: object
         PluginsActionDefinition:
@@ -2216,56 +2266,6 @@ components:
                 type:
                     type: string
             type: object
-        SystemAuthzActorContext:
-            properties:
-                binding_id:
-                    type: string
-                binding_status:
-                    type: string
-                member_display_name:
-                    type: string
-                member_id:
-                    type: string
-                member_status:
-                    type: string
-                relation_type:
-                    type: string
-                space_id:
-                    type: string
-                space_name:
-                    type: string
-                space_status:
-                    type: string
-                user_email:
-                    type: string
-                user_id:
-                    type: string
-                user_member_id:
-                    type: string
-                user_status:
-                    type: string
-            type: object
-        SystemAuthzGrantContext:
-            properties:
-                action:
-                    type: string
-                permission_id:
-                    type: string
-                resource:
-                    type: string
-                role_id:
-                    type: string
-                role_key:
-                    type: string
-                scope:
-                    type: string
-                scope_anchor_group_id:
-                    type: string
-                scope_anchor_group_path:
-                    type: string
-                space_id:
-                    type: string
-            type: object
     securitySchemes:
         ApiKeyAuth:
             description: Scoped API key for server-to-server Core calls.
@@ -2285,7 +2285,7 @@ components:
 info:
     description: Self-hosted Plystra Core API. Stable surfaces cover identity, authorization, resource registry, audit, admin control-plane, and scoped API keys; plugin, template, and Data Console routes are preview metadata surfaces.
     title: Plystra Core API
-    version: 1.0.0-rc6
+    version: 1.0.0-rc104
 openapi: 3.0.3
 paths:
     /api/v1/actor/context:

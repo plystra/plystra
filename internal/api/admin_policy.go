@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	contractadmin "github.com/plystra/contracts/admin"
 	coreent "github.com/plystra/plystra/ent"
 	entadmingrant "github.com/plystra/plystra/ent/admingrant"
 	entauditlog "github.com/plystra/plystra/ent/auditlog"
@@ -14,7 +15,6 @@ import (
 	entresource "github.com/plystra/plystra/ent/resource"
 	entrole "github.com/plystra/plystra/ent/role"
 	entusermember "github.com/plystra/plystra/ent/usermember"
-	systemadmin "github.com/plystra/system-admin"
 )
 
 var errAdminEntNotConfigured = errors.New("ent client is not configured")
@@ -50,6 +50,9 @@ func adminRequirementFor(method, path, querySpaceID string) adminRequirement {
 	parts := pathParts(path)
 
 	if path == "/api/v1/console/overview" {
+		return adminRequirement{PermissionKey: "instance:read"}
+	}
+	if path == "/api/v1/capabilities" {
 		return adminRequirement{PermissionKey: "instance:read"}
 	}
 	if path == "/api/v1/authz/check" || path == "/api/v1/authz/explain" {
@@ -275,11 +278,11 @@ func (s *Server) adminGrantAllows(ctx context.Context, grant *coreent.AdminGrant
 }
 
 func adminPermissionMatches(grantKey, requiredKey string) bool {
-	return systemadmin.PermissionMatches(grantKey, requiredKey)
+	return contractadmin.PermissionMatches(grantKey, requiredKey)
 }
 
 func validAdminPermissionKey(key string) bool {
-	return systemadmin.ValidPermissionKey(key)
+	return contractadmin.ValidPermissionKey(key)
 }
 
 func adminPermissionTokenValid(value string) bool {

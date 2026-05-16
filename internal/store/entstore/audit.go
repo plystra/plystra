@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
+	contractaudit "github.com/plystra/contracts/audit"
 	"github.com/plystra/plystra/internal/authz"
-	systemaudit "github.com/plystra/system-audit"
 )
 
 func (s *Store) WriteAuditLog(ctx context.Context, decision authz.Decision) error {
@@ -23,7 +23,7 @@ func (s *Store) WriteAuditLog(ctx context.Context, decision authz.Decision) erro
 	if err := json.Unmarshal(rawTrace, &trace); err != nil {
 		return fmt.Errorf("decode audit trace snapshot: %w", err)
 	}
-	if err := systemaudit.RejectSensitiveFields(trace); err != nil {
+	if err := contractaudit.RejectSensitiveFields(trace); err != nil {
 		return fmt.Errorf("validate audit trace snapshot: %w", err)
 	}
 

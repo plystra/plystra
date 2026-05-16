@@ -7,18 +7,25 @@ import (
 
 	coreent "github.com/plystra/plystra/ent"
 	"github.com/plystra/plystra/internal/authz"
+	"github.com/plystra/plystra/internal/capabilities"
 )
 
 type Server struct {
-	pool        *pgxpool.Pool
-	ent         *coreent.Client
-	authzStore  authz.Store
-	coreVersion string
-	authLimiter *loginAttemptLimiter
+	pool         *pgxpool.Pool
+	ent          *coreent.Client
+	authzStore   authz.Store
+	capabilities *capabilities.Manager
+	coreVersion  string
+	authLimiter  *loginAttemptLimiter
 }
 
 type entClientProvider interface {
 	Client() *coreent.Client
+}
+
+func (s *Server) WithCapabilities(manager *capabilities.Manager) *Server {
+	s.capabilities = manager
+	return s
 }
 
 func NewServer(pool *pgxpool.Pool, authzStore authz.Store, coreVersion string) *Server {
@@ -40,6 +47,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/v1/health", s.handleHealth)
 	mux.HandleFunc("/api/v1/ready", s.handleReady)
 	mux.HandleFunc("/api/v1/version", s.handleVersion)
+	mux.HandleFunc("/api/v1/capabilities", s.handleCapabilities)
 	mux.HandleFunc("/metrics", s.handleMetrics)
 	mux.HandleFunc("/api/v1/console/overview", s.handleOverview)
 	mux.HandleFunc("/api/v1/auth/register", s.handleAuthRegister)
