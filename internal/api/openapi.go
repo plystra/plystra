@@ -14,7 +14,7 @@ import (
 	"github.com/plystra/plystra/internal/plugins"
 )
 
-const OpenAPIVersion = "1.0.0-rc104"
+const OpenAPIVersion = "1.0.0-rc115"
 
 type openAPIRoute struct {
 	Method      string
@@ -87,7 +87,7 @@ type openAPIReady struct {
 }
 
 type openAPIVersionResponse struct {
-	Version string `json:"version" example:"1.0.0-rc104"`
+	Version string `json:"version" example:"1.0.0-rc115"`
 }
 
 type openAPILoginResponse struct {
