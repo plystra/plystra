@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	contractauthz "github.com/plystra/contracts/authz"
+	contractauthz "github.com/plystra/plystra/internal/kernel/contracts/authz"
 )
 
 const (

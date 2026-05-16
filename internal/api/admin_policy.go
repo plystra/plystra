@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	contractadmin "github.com/plystra/contracts/admin"
 	coreent "github.com/plystra/plystra/ent"
 	entadmingrant "github.com/plystra/plystra/ent/admingrant"
 	entauditlog "github.com/plystra/plystra/ent/auditlog"
@@ -15,6 +14,7 @@ import (
 	entresource "github.com/plystra/plystra/ent/resource"
 	entrole "github.com/plystra/plystra/ent/role"
 	entusermember "github.com/plystra/plystra/ent/usermember"
+	contractadmin "github.com/plystra/plystra/internal/kernel/contracts/admin"
 )
 
 var errAdminEntNotConfigured = errors.New("ent client is not configured")

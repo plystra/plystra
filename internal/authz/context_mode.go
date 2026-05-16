@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	contractauthz "github.com/plystra/contracts/authz"
+	contractauthz "github.com/plystra/plystra/internal/kernel/contracts/authz"
 )
 
 func buildInlineAuthorizationContext(ctx context.Context, store contractauthz.Store, input contractauthz.CheckInput) (contractauthz.AuthorizationContext, error) {

@@ -206,8 +206,8 @@ func (s *Server) handleAuthz(w http.ResponseWriter, r *http.Request, explain boo
 	}
 
 	decision, err := authz.Check(r.Context(), s.authzStore, input)
-	if s.capabilities != nil {
-		decision, err = s.authzViaCapability(r, input)
+	if s.kernel != nil {
+		decision, err = s.authzViaKernel(r, input)
 	}
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Authorization check failed.", err.Error())
@@ -232,23 +232,21 @@ func (s *Server) handleAuthz(w http.ResponseWriter, r *http.Request, explain boo
 	})
 }
 
-func (s *Server) authzViaCapability(r *http.Request, input authz.CheckInput) (*authz.Decision, error) {
+func (s *Server) authzViaKernel(r *http.Request, input authz.CheckInput) (*authz.Decision, error) {
 	input = input.Normalized()
 	loaded, err := s.preloadAuthorizationContext(r.Context(), input)
 	if err != nil {
 		return nil, err
 	}
 	input.PreloadedContext = &loaded
-	decision, err := s.capabilities.Authorize(r.Context(), input.Explain, input)
-	if err != nil {
-		return nil, err
+	service, ok := s.kernel.AuthorizationService()
+	if !ok {
+		return nil, authz.ErrNotFound
 	}
-	if s.authzStore != nil {
-		if err := s.authzStore.WriteAuditLog(r.Context(), *decision); err != nil {
-			return nil, err
-		}
+	if input.Explain {
+		return service.Explain(r.Context(), input)
 	}
-	return decision, nil
+	return service.Check(r.Context(), input)
 }
 
 func (s *Server) preloadAuthorizationContext(ctx context.Context, input authz.CheckInput) (authz.AuthorizationContext, error) {

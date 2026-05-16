@@ -1,0 +1,75 @@
+package identity
+
+import (
+	"context"
+
+	"github.com/plystra/plystra/internal/authz"
+	"github.com/plystra/plystra/internal/kernel/contracts"
+	kcap "github.com/plystra/plystra/internal/kernel/contracts/capability"
+)
+
+const ID = kcap.IdentityBusiness
+
+type Capability struct {
+	service *Service
+}
+
+func NewCapability(store authz.Store) *Capability {
+	return &Capability{service: NewService(store)}
+}
+
+func (c *Capability) ID() string { return ID }
+
+func (c *Capability) Manifest() kcap.Manifest {
+	return kcap.Manifest{
+		ID:      ID,
+		Kind:    kcap.KindSystemCapability,
+		Name:    "Business Identity",
+		Version: "1.0.0-rc104",
+		Runtime: kcap.Runtime{Type: kcap.RuntimeBuiltin, Protocol: kcap.ProtocolInProcess, Address: "builtin"},
+		Requires: kcap.Requires{
+			Kernel: ">=0.1.0",
+			Capabilities: []string{
+				kcap.AuditExplainable,
+			},
+		},
+		Provides: kcap.Provides{
+			Services: []kcap.ServiceRef{{Name: kcap.ServiceIdentity}},
+			Routes: []kcap.RouteRef{
+				{Method: "GET", Path: "/api/v1/users", Service: kcap.ServiceIdentity, Operation: "ListUsers"},
+				{Method: "GET", Path: "/api/v1/spaces", Service: kcap.ServiceIdentity, Operation: "ListSpaces"},
+				{Method: "GET", Path: "/api/v1/actor/context", Service: kcap.ServiceIdentity, Operation: "ResolveActor"},
+			},
+			Migrations: kcap.MigrationRef{Namespace: "sys_identity", Path: "internal/system/identity/migrations"},
+			Events:     kcap.EventsRef{Publishes: []string{"identity.actor_resolved"}},
+		},
+		Privileged: true,
+		Required:   true,
+		Stability:  kcap.StabilityExperimental,
+	}
+}
+
+func (c *Capability) Init(context.Context, contracts.KernelContext) error { return nil }
+
+func (c *Capability) Register(_ context.Context, reg contracts.Registry) error {
+	if err := reg.Services().Provide(kcap.ServiceIdentity, c.service); err != nil {
+		return err
+	}
+	if err := RegisterRoutes(reg.Routes()); err != nil {
+		return err
+	}
+	return reg.Migrations().Register(ID, []contracts.Migration{{ID: "root_atlas_identity", Namespace: "sys_identity", Path: "migrations"}})
+}
+
+func (c *Capability) Start(context.Context) error { return nil }
+
+func (c *Capability) Ready(context.Context) error { return c.service.Ready() }
+
+func (c *Capability) Stop(context.Context) error { return nil }
+
+func (c *Capability) Health(ctx context.Context) contracts.HealthStatus {
+	if err := c.Ready(ctx); err != nil {
+		return contracts.HealthStatus{Status: kcap.StateFailed, Message: err.Error()}
+	}
+	return contracts.HealthStatus{Status: kcap.StateReady}
+}

@@ -7,24 +7,24 @@ import (
 
 	coreent "github.com/plystra/plystra/ent"
 	"github.com/plystra/plystra/internal/authz"
-	"github.com/plystra/plystra/internal/capabilities"
+	"github.com/plystra/plystra/internal/kernel"
 )
 
 type Server struct {
-	pool         *pgxpool.Pool
-	ent          *coreent.Client
-	authzStore   authz.Store
-	capabilities *capabilities.Manager
-	coreVersion  string
-	authLimiter  *loginAttemptLimiter
+	pool        *pgxpool.Pool
+	ent         *coreent.Client
+	authzStore  authz.Store
+	kernel      *kernel.App
+	coreVersion string
+	authLimiter *loginAttemptLimiter
 }
 
 type entClientProvider interface {
 	Client() *coreent.Client
 }
 
-func (s *Server) WithCapabilities(manager *capabilities.Manager) *Server {
-	s.capabilities = manager
+func (s *Server) WithKernel(app *kernel.App) *Server {
+	s.kernel = app
 	return s
 }
 

@@ -7,15 +7,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/plystra/plystra/internal/api"
-	"github.com/plystra/plystra/internal/capabilities"
+	"github.com/plystra/plystra/internal/kernel"
 	"github.com/plystra/plystra/internal/store/entstore"
+	"github.com/plystra/plystra/internal/system"
 )
 
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
@@ -53,20 +53,6 @@ func main() {
 		coreVersion = defaultCoreVersion
 	}
 
-	capabilityManager, err := capabilities.Boot(ctx, capabilities.Options{
-		KernelVersion: coreVersion,
-		ConfigPath:    systemCapabilitiesConfigPath(),
-		LockPath:      systemCapabilitiesLockPath(),
-		Pool:          pool,
-	})
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "boot system capabilities: %v\n", err)
-		os.Exit(1)
-	}
-	if capabilityManager != nil {
-		defer func() { _ = capabilityManager.Stop(context.Background()) }()
-	}
-
 	authzStore, err := entstore.Open(ctx, databaseURL())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "connect ent store: %v\n", err)
@@ -74,7 +60,17 @@ func main() {
 	}
 	defer func() { _ = authzStore.Close() }()
 
-	apiServer := api.NewServer(pool, authzStore, coreVersion).WithCapabilities(capabilityManager)
+	kernelApp, err := kernel.Boot(ctx, kernel.Options{
+		KernelVersion: coreVersion,
+		Capabilities:  system.BuiltInCapabilities(authzStore, authzStore),
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "boot kernel: %v\n", err)
+		os.Exit(1)
+	}
+	defer func() { _ = kernelApp.Stop(context.Background()) }()
+
+	apiServer := api.NewServer(pool, authzStore, coreVersion).WithKernel(kernelApp)
 	addr := ":" + port
 	if host != "" {
 		addr = net.JoinHostPort(host, port)
@@ -93,45 +89,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "serve: %v\n", err)
 		os.Exit(1)
 	}
-}
-
-func systemCapabilitiesConfigPath() string {
-	if value := firstEnv("PLYSTRA_SYSTEM_CAPABILITIES_CONFIG", "SYSTEM_CAPABILITIES_CONFIG"); value != "" {
-		return value
-	}
-	defaultPath := filepath.Join("capabilities", "system-capabilities.yaml")
-	if _, err := os.Stat(defaultPath); err == nil && defaultCapabilityBinariesExist() {
-		return defaultPath
-	}
-	return ""
-}
-
-func systemCapabilitiesLockPath() string {
-	if value := firstEnv("PLYSTRA_LOCKFILE", "SYSTEM_CAPABILITIES_LOCKFILE"); value != "" {
-		return value
-	}
-	if systemCapabilitiesConfigPath() == "" {
-		return ""
-	}
-	return filepath.Join("capabilities", "plystra.lock")
-}
-
-func defaultCapabilityBinariesExist() bool {
-	for _, path := range []string{
-		filepath.Join("capabilities", "system-audit", "system-audit"),
-		filepath.Join("capabilities", "system-identity", "system-identity"),
-		filepath.Join("capabilities", "system-resource-registry", "system-resource-registry"),
-		filepath.Join("capabilities", "system-authz", "system-authz"),
-		filepath.Join("capabilities", "system-admin", "system-admin"),
-	} {
-		if _, err := os.Stat(path); err == nil {
-			continue
-		}
-		if _, err := os.Stat(path + ".exe"); err != nil {
-			return false
-		}
-	}
-	return true
 }
 
 func newHTTPServer(addr string, handler http.Handler) (*http.Server, error) {

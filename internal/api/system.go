@@ -67,8 +67,8 @@ func (s *Server) handleReady(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Database is not reachable.", err.Error())
 		return
 	}
-	if s.capabilities != nil {
-		if err := s.capabilities.Ready(); err != nil {
+	if s.kernel != nil {
+		if err := s.kernel.Ready(); err != nil {
 			writeError(w, r, http.StatusServiceUnavailable, "NOT_READY", "Required system capability is not ready.", err.Error())
 			return
 		}
@@ -119,17 +119,17 @@ func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) capabilityStates() map[string]string {
-	if s.capabilities == nil {
+	if s.kernel == nil {
 		return map[string]string{}
 	}
-	return s.capabilities.States()
+	return s.kernel.States()
 }
 
 func (s *Server) capabilityServices() any {
-	if s.capabilities == nil {
+	if s.kernel == nil {
 		return []any{}
 	}
-	return s.capabilities.Services()
+	return s.kernel.Services()
 }
 
 func (s *Server) latestSchemaVersion(ctx context.Context) (string, error) {

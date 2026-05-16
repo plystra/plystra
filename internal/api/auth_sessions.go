@@ -19,8 +19,8 @@ import (
 	entusermember "github.com/plystra/plystra/ent/usermember"
 
 	"github.com/jackc/pgx/v5"
-	contractidentity "github.com/plystra/contracts/identity"
 	entuser "github.com/plystra/plystra/ent/user"
+	contractidentity "github.com/plystra/plystra/internal/kernel/contracts/identity"
 )
 
 func (s *Server) sessionFromRequest(ctx context.Context, r *http.Request) (sessionRecord, error) {
