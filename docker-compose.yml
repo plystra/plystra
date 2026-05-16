@@ -24,6 +24,8 @@ services:
       DATA_CONSOLE_ENABLED: ${DATA_CONSOLE_ENABLED:-false}
       METRICS_ENABLED: ${METRICS_ENABLED:-false}
       METRICS_TOKEN: ${METRICS_TOKEN:-}
+      PLYSTRA_SYSTEM_CAPABILITIES_CONFIG: ${PLYSTRA_SYSTEM_CAPABILITIES_CONFIG:-/app/capabilities/system-capabilities.yaml}
+      PLYSTRA_LOCKFILE: ${PLYSTRA_LOCKFILE:-/app/capabilities/plystra.lock}
     restart: unless-stopped
     ports:
       - "${SERVER_PORT:-8080}:8080"

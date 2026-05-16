@@ -13,6 +13,12 @@ This is intentionally a trusted local runtime module model:
 
 Build the local sidecars with:
 
+```bash
+./scripts/build-capabilities.sh
+```
+
+On Windows PowerShell:
+
 ```powershell
 .\scripts\build-capabilities.ps1
 ```

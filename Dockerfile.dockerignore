@@ -1,4 +1,6 @@
 *
+!contracts/
+!contracts/**
 !kernel/
 !kernel/**
 !plystra/
