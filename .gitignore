@@ -8,9 +8,3 @@ coverage.out
 *.log
 
 .idea/
-
-# ent auto-generated files (keep schema/ and generate.go)
-ent/**
-!ent/generate.go
-!ent/schema/
-!ent/schema/**
