@@ -140,6 +140,116 @@ func TestRecoveryHidesPanicDetailsInProduction(t *testing.T) {
 	}
 }
 
+func TestWriteErrorHidesInternalDetailsInProduction(t *testing.T) {
+	t.Setenv("SERVER_MODE", "production")
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
+	req = req.WithContext(context.WithValue(req.Context(), requestIDKey, "req_internal_error"))
+	rec := httptest.NewRecorder()
+
+	writeError(rec, req, http.StatusInternalServerError, "INTERNAL_ERROR", "failed", "database secret detail")
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
+	}
+	var body struct {
+		Error struct {
+			Details any `json:"details"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Error.Details != nil {
+		t.Fatalf("internal details leaked in production: %v", body.Error.Details)
+	}
+}
+
+func TestAuthorizationDeniedErrorExposesOnlyDecisionReferences(t *testing.T) {
+	denyCode := authz.DenyNoMatchingPermission
+	decision := authz.Decision{
+		TraceID:  "trace_test_denied",
+		Decision: authz.DecisionDeny,
+		DenyCode: &denyCode,
+		Audit:    authz.AuditContext{ID: "audit_test_denied"},
+		Reason:   "no matching permission",
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/data/rows/invoice", nil)
+	req = req.WithContext(context.WithValue(req.Context(), requestIDKey, "req_denied"))
+	rec := httptest.NewRecorder()
+
+	writeError(rec, req, http.StatusForbidden, "AUTHORIZATION_DENIED", "The action is not allowed.", decision)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
+	}
+	if got := rec.Header().Get("X-Plystra-Trace-ID"); got != "trace_test_denied" {
+		t.Fatalf("trace header = %q", got)
+	}
+	if got := rec.Header().Get("X-Plystra-Audit-Log-ID"); got != "audit_test_denied" {
+		t.Fatalf("audit header = %q", got)
+	}
+	var body struct {
+		Error map[string]any `json:"error"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Error["details"] != nil {
+		t.Fatalf("decision details leaked in error response: %#v", body.Error["details"])
+	}
+	if body.Error["deny_code"] != string(denyCode) {
+		t.Fatalf("deny_code = %#v, want %s", body.Error["deny_code"], denyCode)
+	}
+	if body.Error["trace_id"] != "trace_test_denied" {
+		t.Fatalf("trace_id = %#v", body.Error["trace_id"])
+	}
+	if body.Error["audit_log_id"] != "audit_test_denied" {
+		t.Fatalf("audit_log_id = %#v", body.Error["audit_log_id"])
+	}
+}
+
+func TestDecodeJSONRejectsUnknownFieldsAndMultipleObjects(t *testing.T) {
+	type strictRequest struct {
+		Name string `json:"name"`
+	}
+
+	for _, tc := range []struct {
+		name string
+		body string
+	}{
+		{name: "unknown field", body: `{"name":"alice","admin":true}`},
+		{name: "multiple objects", body: `{"name":"alice"}{"name":"bob"}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/test", strings.NewReader(tc.body))
+			rec := httptest.NewRecorder()
+			var out strictRequest
+			if decodeJSON(rec, req, &out) {
+				t.Fatalf("decodeJSON accepted %s", tc.name)
+			}
+			if rec.Code != http.StatusBadRequest {
+				t.Fatalf("status = %d, want %d, body=%s", rec.Code, http.StatusBadRequest, rec.Body.String())
+			}
+		})
+	}
+}
+
+func TestDecodeJSONEnforcesRequestBodyLimit(t *testing.T) {
+	t.Setenv("MAX_REQUEST_BODY_BYTES", "8")
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/test", strings.NewReader(`{"name":"alice"}`))
+	rec := httptest.NewRecorder()
+	var out struct {
+		Name string `json:"name"`
+	}
+
+	if decodeJSON(rec, req, &out) {
+		t.Fatalf("decodeJSON accepted an oversized request body")
+	}
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d, body=%s", rec.Code, http.StatusBadRequest, rec.Body.String())
+	}
+}
+
 func TestStructuredLogContainsReleaseFields(t *testing.T) {
 	t.Setenv("LOG_FORMAT", "json")
 	oldStdout := os.Stdout
@@ -507,6 +617,285 @@ func TestHTTPAuthzRequiresActorForAPIKeyPrincipal(t *testing.T) {
 	}
 	if store.lastDecision.Decision != "" {
 		t.Fatalf("authz store was called for missing actor: %#v", store.lastDecision)
+	}
+}
+
+func TestHTTPAuthzContextModeRequiresAPIKeyPrincipal(t *testing.T) {
+	store := &captureAuthzStore{}
+	server := NewServer(nil, store, "1.0.0-test")
+	body := []byte(`{
+		"actor": {
+			"user_id": "user_external_alice",
+			"member_id": "member_finance_reviewer",
+			"binding_id": "binding_external_alice_finance",
+			"space_id": "space_acme"
+		},
+		"resource_type": "invoice",
+		"resource_id": "invoice_context_001",
+		"resource": {
+			"type": "invoice",
+			"external_id": "invoice_context_001",
+			"space_id": "space_acme",
+			"group_path": "finance.apac"
+		},
+		"grants": [{
+			"role_key": "finance_approver",
+			"resource": "invoice",
+			"action": "approve",
+			"scope": "group_tree",
+			"space_id": "space_acme",
+			"scope_anchor_group_path": "finance"
+		}],
+		"action": "approve"
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/authz/check", bytes.NewReader(body))
+	req = req.WithContext(context.WithValue(req.Context(), requestIDKey, "req_context_mode_session"))
+	req = req.WithContext(context.WithValue(req.Context(), adminPrincipalKey, adminPrincipal{
+		CredentialType: "session",
+		Grants:         []*coreent.AdminGrant{{Level: adminLevelInstance, PermissionKey: "authz:check"}},
+	}))
+	rec := httptest.NewRecorder()
+
+	server.handleAuthzCheck(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "INLINE_CONTEXT_REQUIRES_API_KEY") {
+		t.Fatalf("body missing inline context error: %s", rec.Body.String())
+	}
+	if store.lastDecision.Decision != "" {
+		t.Fatalf("authz store was called for rejected inline context: %#v", store.lastDecision)
+	}
+}
+
+func TestHTTPAuthzContextModeAcceptsAPIKeyInlineContext(t *testing.T) {
+	store := &captureAuthzStore{}
+	server := NewServer(nil, store, "1.0.0-test")
+	spaceID := "space_acme"
+	body := []byte(`{
+		"actor": {
+			"user_id": "user_external_alice",
+			"user_email": "alice@example.com",
+			"member_id": "member_finance_reviewer",
+			"binding_id": "binding_external_alice_finance",
+			"space_id": "space_acme",
+			"member_display_name": "Finance Reviewer"
+		},
+		"resource": {
+			"type": "invoice",
+			"external_id": "invoice_context_001",
+			"space_id": "space_acme",
+			"group_path": "finance.apac",
+			"owner_member_id": "member_invoice_creator",
+			"metadata": {"amount": 1250}
+		},
+		"grants": [{
+			"role_key": "finance_approver",
+			"resource": "invoice",
+			"action": "approve",
+			"scope": "group_tree",
+			"space_id": "space_acme",
+			"scope_anchor_group_path": "finance"
+		}],
+		"action": "approve"
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/authz/check", bytes.NewReader(body))
+	req.RemoteAddr = "203.0.113.20:12345"
+	req = req.WithContext(context.WithValue(req.Context(), requestIDKey, "req_context_mode_api_key"))
+	req = req.WithContext(context.WithValue(req.Context(), adminPrincipalKey, adminPrincipal{
+		CredentialType: "api_key",
+		APIKey: &coreent.ApiKey{
+			Level:          "space",
+			SpaceID:        &spaceID,
+			Status:         "active",
+			PermissionKeys: []string{"authz:check"},
+		},
+	}))
+	rec := httptest.NewRecorder()
+
+	server.handleAuthzCheck(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if store.lastDecision.Decision != authz.DecisionAllow {
+		t.Fatalf("decision = %#v, want allow", store.lastDecision)
+	}
+	if store.lastDecision.Actor.User.ID != "user_external_alice" {
+		t.Fatalf("actor user = %q, want inline actor", store.lastDecision.Actor.User.ID)
+	}
+	if store.lastDecision.Actor.UserMember.ID != "binding_external_alice_finance" {
+		t.Fatalf("user member = %q, want binding id", store.lastDecision.Actor.UserMember.ID)
+	}
+	if store.lastDecision.Target.Resource.ExternalID != "invoice_context_001" {
+		t.Fatalf("external id = %q, want invoice_context_001", store.lastDecision.Target.Resource.ExternalID)
+	}
+	if store.lastDecision.Target.Group == nil || store.lastDecision.Target.Group.Path != "finance.apac" {
+		t.Fatalf("target group = %#v, want finance.apac", store.lastDecision.Target.Group)
+	}
+	if got := len(store.lastDecision.MatchedCandidates); got != 1 {
+		t.Fatalf("matched candidates = %d, want 1", got)
+	}
+	if !store.lastDecision.MatchedCandidates[0].ScopeCheck.Covered {
+		t.Fatalf("scope check not covered: %#v", store.lastDecision.MatchedCandidates[0].ScopeCheck)
+	}
+	if store.lastDecision.Request.RequestID != "req_context_mode_api_key" {
+		t.Fatalf("request id = %q, want middleware request id", store.lastDecision.Request.RequestID)
+	}
+}
+
+func TestHTTPAuthzContextModeScopesAPIKeyToInlineResourceSpace(t *testing.T) {
+	store := &captureAuthzStore{}
+	server := NewServer(nil, store, "1.0.0-test")
+	spaceID := "space_acme"
+	body := []byte(`{
+		"actor": {
+			"user_id": "user_external_alice",
+			"member_id": "member_finance_reviewer",
+			"binding_id": "binding_external_alice_finance",
+			"space_id": "space_other"
+		},
+		"resource": {
+			"type": "invoice",
+			"external_id": "invoice_context_001",
+			"space_id": "space_other",
+			"group_path": "finance.apac"
+		},
+		"grants": [{
+			"role_key": "finance_approver",
+			"resource": "invoice",
+			"action": "approve",
+			"scope": "space",
+			"space_id": "space_other"
+		}],
+		"action": "approve"
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/authz/check", bytes.NewReader(body))
+	req = req.WithContext(context.WithValue(req.Context(), requestIDKey, "req_context_mode_wrong_space"))
+	req = req.WithContext(context.WithValue(req.Context(), adminPrincipalKey, adminPrincipal{
+		CredentialType: "api_key",
+		APIKey: &coreent.ApiKey{
+			Level:          "space",
+			SpaceID:        &spaceID,
+			Status:         "active",
+			PermissionKeys: []string{"authz:check"},
+		},
+	}))
+	rec := httptest.NewRecorder()
+
+	server.handleAuthzCheck(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "ADMIN_PERMISSION_REQUIRED") {
+		t.Fatalf("body missing scope error: %s", rec.Body.String())
+	}
+	if store.lastDecision.Decision != "" {
+		t.Fatalf("authz store was called despite API key scope mismatch: %#v", store.lastDecision)
+	}
+}
+
+func TestHTTPAuthzContextModeRejectsMixedInlineSpacesBeforeEngine(t *testing.T) {
+	store := &captureAuthzStore{}
+	server := NewServer(nil, store, "1.0.0-test")
+	spaceID := "space_acme"
+	body := []byte(`{
+		"actor": {
+			"user_id": "user_external_alice",
+			"member_id": "member_finance_reviewer",
+			"binding_id": "binding_external_alice_finance",
+			"space_id": "space_acme"
+		},
+		"resource": {
+			"type": "invoice",
+			"external_id": "invoice_context_001",
+			"space_id": "space_other",
+			"group_path": "finance.apac"
+		},
+		"grants": [{
+			"role_key": "finance_approver",
+			"resource": "invoice",
+			"action": "approve",
+			"scope": "space",
+			"space_id": "space_other"
+		}],
+		"action": "approve"
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/authz/check", bytes.NewReader(body))
+	req = req.WithContext(context.WithValue(req.Context(), requestIDKey, "req_context_mode_mixed_space"))
+	req = req.WithContext(context.WithValue(req.Context(), adminPrincipalKey, adminPrincipal{
+		CredentialType: "api_key",
+		APIKey: &coreent.ApiKey{
+			Level:          "space",
+			SpaceID:        &spaceID,
+			Status:         "active",
+			PermissionKeys: []string{"authz:check"},
+		},
+	}))
+	rec := httptest.NewRecorder()
+
+	server.handleAuthzCheck(rec, req)
+
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "ADMIN_PERMISSION_REQUIRED") {
+		t.Fatalf("body missing scope error: %s", rec.Body.String())
+	}
+	if store.lastDecision.Decision != "" {
+		t.Fatalf("authz store was called despite mixed inline spaces: %#v", store.lastDecision)
+	}
+}
+
+func TestHTTPAuthzContextModeRejectsMalformedInlineContextAsBadRequest(t *testing.T) {
+	store := &captureAuthzStore{}
+	server := NewServer(nil, store, "1.0.0-test")
+	spaceID := "space_acme"
+	body := []byte(`{
+		"actor": {
+			"user_id": "user_external_alice",
+			"member_id": "member_finance_reviewer",
+			"binding_id": "binding_external_alice_finance",
+			"space_id": "space_acme"
+		},
+		"resource": {
+			"type": "invoice",
+			"external_id": "invoice_context_001",
+			"space_id": "space_acme"
+		},
+		"grants": [{
+			"role_key": "finance_approver",
+			"resource": "invoice",
+			"action": "approve",
+			"space_id": "space_acme"
+		}],
+		"action": "approve"
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/authz/check", bytes.NewReader(body))
+	req = req.WithContext(context.WithValue(req.Context(), requestIDKey, "req_context_mode_malformed"))
+	req = req.WithContext(context.WithValue(req.Context(), adminPrincipalKey, adminPrincipal{
+		CredentialType: "api_key",
+		APIKey: &coreent.ApiKey{
+			Level:          "space",
+			SpaceID:        &spaceID,
+			Status:         "active",
+			PermissionKeys: []string{"authz:check"},
+		},
+	}))
+	rec := httptest.NewRecorder()
+
+	server.handleAuthzCheck(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "VALIDATION_FAILED") {
+		t.Fatalf("body missing validation error: %s", rec.Body.String())
+	}
+	if store.lastDecision.Decision != "" {
+		t.Fatalf("authz store was called despite malformed inline context: %#v", store.lastDecision)
 	}
 }
 

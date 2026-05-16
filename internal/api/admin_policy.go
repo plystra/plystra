@@ -14,6 +14,7 @@ import (
 	entresource "github.com/plystra/plystra/ent/resource"
 	entrole "github.com/plystra/plystra/ent/role"
 	entusermember "github.com/plystra/plystra/ent/usermember"
+	systemadmin "github.com/plystra/system-admin"
 )
 
 var errAdminEntNotConfigured = errors.New("ent client is not configured")
@@ -274,34 +275,11 @@ func (s *Server) adminGrantAllows(ctx context.Context, grant *coreent.AdminGrant
 }
 
 func adminPermissionMatches(grantKey, requiredKey string) bool {
-	grantKey = strings.TrimSpace(grantKey)
-	requiredKey = strings.TrimSpace(requiredKey)
-	if grantKey == "*" || grantKey == requiredKey {
-		return true
-	}
-	requiredDomain, requiredAction, ok := strings.Cut(requiredKey, ":")
-	if !ok {
-		return false
-	}
-	if grantKey == requiredDomain+":*" {
-		return true
-	}
-	if grantKey == requiredDomain+":manage" {
-		return true
-	}
-	if requiredAction == "read" && grantKey == requiredDomain+":manage" {
-		return true
-	}
-	return false
+	return systemadmin.PermissionMatches(grantKey, requiredKey)
 }
 
 func validAdminPermissionKey(key string) bool {
-	key = strings.TrimSpace(key)
-	if key == "*" {
-		return true
-	}
-	domain, action, ok := strings.Cut(key, ":")
-	return ok && domain != "*" && adminPermissionTokenValid(domain) && adminPermissionTokenValid(action)
+	return systemadmin.ValidPermissionKey(key)
 }
 
 func adminPermissionTokenValid(value string) bool {

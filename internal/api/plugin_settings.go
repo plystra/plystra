@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -33,8 +32,7 @@ func (s *Server) handlePluginSettings(w http.ResponseWriter, r *http.Request, pl
 		writeList(w, r, http.StatusOK, settings, limitFrom(r, 50))
 	case http.MethodPatch:
 		var req pluginSettingsUpdateRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is invalid JSON.", err.Error())
+		if !decodeJSON(w, r, &req) {
 			return
 		}
 		if req.Settings == nil {

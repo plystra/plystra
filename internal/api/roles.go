@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -119,7 +118,9 @@ func (s *Server) handleSpaceRoles(w http.ResponseWriter, r *http.Request, spaceI
 			return
 		}
 		var req roleMutationRequest
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		if !decodeOptionalJSON(w, r, &req) {
+			return
+		}
 		row, err := s.updateScopedStatus(r.Context(), "roles", roleID, spaceID, "disabled")
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to disable Role.", err.Error())
@@ -276,7 +277,9 @@ func (s *Server) handleSpaceMemberRoles(w http.ResponseWriter, r *http.Request, 
 			return
 		}
 		var req memberRoleMutationRequest
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		if !decodeOptionalJSON(w, r, &req) {
+			return
+		}
 		row, err := s.updateScopedStatus(r.Context(), "member_roles", memberRoleID, spaceID, "revoked")
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to revoke MemberRole.", err.Error())

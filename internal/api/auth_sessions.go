@@ -20,6 +20,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	entuser "github.com/plystra/plystra/ent/user"
+	systemidentity "github.com/plystra/system-identity"
 )
 
 func (s *Server) sessionFromRequest(ctx context.Context, r *http.Request) (sessionRecord, error) {
@@ -191,6 +192,36 @@ func (s *Server) availableActorBindingsFiltered(ctx context.Context, userID, mem
 		}
 		if err != nil {
 			return nil, err
+		}
+		identity := systemidentity.ActingIdentity{
+			User: systemidentity.User{ID: userRecord.ID, Email: userRecord.Email, Status: userRecord.Status},
+			Member: systemidentity.Member{
+				ID:          memberRecord.ID,
+				SpaceID:     memberRecord.SpaceID,
+				DisplayName: memberRecord.DisplayName,
+				MemberType:  memberRecord.MemberType,
+				Status:      memberRecord.Status,
+			},
+			UserMember: systemidentity.UserMember{
+				ID:           userMember.ID,
+				UserID:       userMember.UserID,
+				MemberID:     userMember.MemberID,
+				SpaceID:      userMember.SpaceID,
+				RelationType: userMember.RelationType,
+				Status:       userMember.Status,
+				IsPrimary:    userMember.IsPrimary,
+				ExpiresAt:    userMember.ExpiresAt,
+			},
+			Space: systemidentity.Space{
+				ID:     spaceRecord.ID,
+				Name:   spaceRecord.Name,
+				Slug:   derefString(spaceRecord.Slug),
+				Type:   spaceRecord.Type,
+				Status: spaceRecord.Status,
+			},
+		}
+		if err := systemidentity.ValidateActingIdentity(identity, now); err != nil {
+			continue
 		}
 		bindings = append(bindings, map[string]any{
 			"user_member_id":      userMember.ID,

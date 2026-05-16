@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -151,7 +150,9 @@ func (s *Server) handleSpaceUserMembers(w http.ResponseWriter, r *http.Request, 
 			return
 		}
 		var req userMemberMutationRequest
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		if !decodeOptionalJSON(w, r, &req) {
+			return
+		}
 		client, ok := s.requireEnt(w, r)
 		if !ok {
 			return

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
@@ -180,8 +179,8 @@ func (s *Server) revokeAPIKey(w http.ResponseWriter, r *http.Request, keyID stri
 		return
 	}
 	var req apiKeyMutationRequest
-	if r.Body != nil {
-		_ = json.NewDecoder(r.Body).Decode(&req)
+	if !decodeOptionalJSON(w, r, &req) {
+		return
 	}
 	principal, _ := adminPrincipalFrom(r)
 	now := time.Now().UTC()

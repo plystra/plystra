@@ -2,6 +2,7 @@ package authz_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/plystra/plystra/internal/authz"
@@ -246,6 +247,155 @@ func TestEngineSameSpaceViolations(t *testing.T) {
 				t.Fatalf("Check() error = %v", err)
 			}
 			assertDecision(t, decision, authz.DecisionDeny, ptrDeny(authz.DenyCrossSpaceViolation))
+		})
+	}
+}
+
+func TestEngineContextModeAllowsInlineGroupTreeGrant(t *testing.T) {
+	store := newMemoryStore()
+	engine := newTestEngine(store)
+
+	decision, err := engine.Check(context.Background(), inlineContextInput(
+		inlineResource("invoice_context_001", "finance.apac", "space_acme"),
+		[]authz.GrantContext{inlineGrant(authz.ScopeGroupTree, "finance", "space_acme")},
+	))
+	if err != nil {
+		t.Fatalf("Check() error = %v", err)
+	}
+	assertDecision(t, decision, authz.DecisionAllow, nil)
+	if decision.Target.Resource.ExternalID != "invoice_context_001" {
+		t.Fatalf("external id = %q, want invoice_context_001", decision.Target.Resource.ExternalID)
+	}
+	if decision.Target.Group == nil || decision.Target.Group.Path != "finance.apac" {
+		t.Fatalf("target group = %#v, want finance.apac", decision.Target.Group)
+	}
+	if got := len(decision.MatchedCandidates); got != 1 {
+		t.Fatalf("matched candidates = %d, want 1", got)
+	}
+	if !decision.MatchedCandidates[0].ScopeCheck.Covered {
+		t.Fatalf("scope check was not covered: %#v", decision.MatchedCandidates[0].ScopeCheck)
+	}
+	if decision.Audit.ResourceID != "invoice_context_001" {
+		t.Fatalf("audit resource id = %q, want inline external id", decision.Audit.ResourceID)
+	}
+}
+
+func TestEngineContextModeDeniesScopeOutOfBounds(t *testing.T) {
+	store := newMemoryStore()
+	engine := newTestEngine(store)
+
+	decision, err := engine.Check(context.Background(), inlineContextInput(
+		inlineResource("invoice_context_002", "legal.emea", "space_acme"),
+		[]authz.GrantContext{inlineGrant(authz.ScopeGroupTree, "finance", "space_acme")},
+	))
+	if err != nil {
+		t.Fatalf("Check() error = %v", err)
+	}
+	assertDecision(t, decision, authz.DecisionDeny, ptrDeny(authz.DenyScopeOutOfBounds))
+	if got := decision.MatchedCandidates[0].ScopeCheck.Reason; !strings.Contains(got, "outside anchor group") {
+		t.Fatalf("scope reason = %q", got)
+	}
+}
+
+func TestEngineContextModeDeniesWithoutInlineGrant(t *testing.T) {
+	store := newMemoryStore()
+	engine := newTestEngine(store)
+
+	decision, err := engine.Check(context.Background(), inlineContextInput(
+		inlineResource("invoice_context_003", "finance.apac", "space_acme"),
+		nil,
+	))
+	if err != nil {
+		t.Fatalf("Check() error = %v", err)
+	}
+	assertDecision(t, decision, authz.DecisionDeny, ptrDeny(authz.DenyNoMatchingPermission))
+	if got := len(decision.MatchedCandidates); got != 0 {
+		t.Fatalf("matched candidates = %d, want 0", got)
+	}
+}
+
+func TestEngineContextModeFiltersUnrelatedInlineGrants(t *testing.T) {
+	store := newMemoryStore()
+	engine := newTestEngine(store)
+	grants := []authz.GrantContext{
+		{RoleKey: "dangerous", Resource: "invoice", Action: "delete", Scope: authz.ScopeSpace, SpaceID: "space_acme"},
+		inlineGrant(authz.ScopeGroupTree, "finance", "space_acme"),
+	}
+
+	decision, err := engine.Check(context.Background(), inlineContextInput(
+		inlineResource("invoice_context_004", "finance.apac", "space_acme"),
+		grants,
+	))
+	if err != nil {
+		t.Fatalf("Check() error = %v", err)
+	}
+	assertDecision(t, decision, authz.DecisionAllow, nil)
+	if got := len(decision.MatchedCandidates); got != 1 {
+		t.Fatalf("matched candidates = %d, want only the matching grant", got)
+	}
+	if decision.MatchedCandidates[0].Permission.Action != "approve" {
+		t.Fatalf("matched action = %q, want approve", decision.MatchedCandidates[0].Permission.Action)
+	}
+}
+
+func TestEngineContextModeDeniesInactiveInlineActor(t *testing.T) {
+	store := newMemoryStore()
+	engine := newTestEngine(store)
+	input := inlineContextInput(
+		inlineResource("invoice_context_005", "finance.apac", "space_acme"),
+		[]authz.GrantContext{inlineGrant(authz.ScopeGroupTree, "finance", "space_acme")},
+	)
+	input.Actor.UserStatus = "disabled"
+
+	decision, err := engine.Check(context.Background(), input)
+	if err != nil {
+		t.Fatalf("Check() error = %v", err)
+	}
+	assertDecision(t, decision, authz.DecisionDeny, ptrDeny(authz.DenyActorUserInactive))
+}
+
+func TestEngineContextModeDeniesCrossSpaceInlineContext(t *testing.T) {
+	store := newMemoryStore()
+	engine := newTestEngine(store)
+
+	decision, err := engine.Check(context.Background(), inlineContextInput(
+		inlineResource("invoice_context_006", "finance.apac", "space_other"),
+		[]authz.GrantContext{inlineGrant(authz.ScopeGroupTree, "finance", "space_acme")},
+	))
+	if err != nil {
+		t.Fatalf("Check() error = %v", err)
+	}
+	assertDecision(t, decision, authz.DecisionDeny, ptrDeny(authz.DenyCrossSpaceViolation))
+}
+
+func TestEngineContextModeDeniesUnknownResourceRegistryEntries(t *testing.T) {
+	tests := []struct {
+		name         string
+		resourceType string
+		action       string
+		wantCode     authz.DenyCode
+	}{
+		{name: "unknown type", resourceType: "contract", action: "approve", wantCode: authz.DenyInvalidResourceType},
+		{name: "unknown action", resourceType: "invoice", action: "void", wantCode: authz.DenyInvalidResourceAction},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := newMemoryStore()
+			engine := newTestEngine(store)
+			input := inlineContextInput(
+				inlineResource("invoice_context_007", "finance.apac", "space_acme"),
+				[]authz.GrantContext{inlineGrant(authz.ScopeGroupTree, "finance", "space_acme")},
+			)
+			input.ResourceType = tt.resourceType
+			input.Action = tt.action
+			input.Target.Resource.Type = tt.resourceType
+
+			decision, err := engine.Check(context.Background(), input)
+			if err != nil {
+				t.Fatalf("Check() error = %v", err)
+			}
+			assertDecision(t, decision, authz.DecisionDeny, ptrDeny(tt.wantCode))
 		})
 	}
 }

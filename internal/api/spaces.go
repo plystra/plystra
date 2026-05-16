@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -73,7 +72,9 @@ func (s *Server) handleSpaceSubroutes(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var req spaceMutationRequest
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		if !decodeOptionalJSON(w, r, &req) {
+			return
+		}
 		status := "disabled"
 		action := "space.disabled"
 		if parts[1] == "restore" {

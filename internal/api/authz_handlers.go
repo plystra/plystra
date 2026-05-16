@@ -1,22 +1,34 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/plystra/plystra/internal/authz"
 )
 
 type authzRequest struct {
-	Actor        authz.ActorContext `json:"actor"`
-	ResourceType string             `json:"resource_type"`
-	ResourceID   string             `json:"resource_id"`
-	Resource     struct {
-		Type string `json:"type"`
-		ID   string `json:"id"`
-	} `json:"resource"`
-	Action  string `json:"action"`
-	Explain bool   `json:"explain"`
+	Actor        authz.ActorContext   `json:"actor"`
+	ResourceType string               `json:"resource_type"`
+	ResourceID   string               `json:"resource_id"`
+	Resource     authzResourceContext `json:"resource"`
+	Grants       []authz.GrantContext `json:"grants"`
+	Action       string               `json:"action"`
+	Explain      bool                 `json:"explain"`
+}
+
+type authzResourceContext struct {
+	Type          string         `json:"type"`
+	ID            string         `json:"id"`
+	ExternalID    string         `json:"external_id"`
+	SpaceID       string         `json:"space_id"`
+	GroupID       string         `json:"group_id"`
+	GroupPath     string         `json:"group_path"`
+	OwnerMemberID string         `json:"owner_member_id"`
+	DisplayName   string         `json:"display_name"`
+	Visibility    string         `json:"visibility"`
+	Status        string         `json:"status"`
+	Metadata      map[string]any `json:"metadata"`
 }
 
 func (req authzRequest) CheckInput() authz.CheckInput {
@@ -26,15 +38,62 @@ func (req authzRequest) CheckInput() authz.CheckInput {
 	}
 	resourceID := req.ResourceID
 	if resourceID == "" {
-		resourceID = req.Resource.ID
+		resourceID = firstNonEmpty(req.Resource.ID, req.Resource.ExternalID)
+	}
+	var target *authz.TargetSnapshot
+	if req.Resource.hasInlineContext() {
+		target = &authz.TargetSnapshot{
+			Resource: authz.ResourceSnapshot{
+				ID:            req.Resource.ID,
+				ExternalID:    req.Resource.ExternalID,
+				Type:          req.Resource.Type,
+				SpaceID:       req.Resource.SpaceID,
+				GroupID:       req.Resource.GroupID,
+				GroupPath:     req.Resource.GroupPath,
+				OwnerMemberID: req.Resource.OwnerMemberID,
+				DisplayName:   req.Resource.DisplayName,
+				Visibility:    req.Resource.Visibility,
+				Status:        req.Resource.Status,
+				Metadata:      req.Resource.Metadata,
+			},
+		}
 	}
 	return authz.CheckInput{
 		Actor:        req.Actor,
 		ResourceType: resourceType,
 		ResourceID:   resourceID,
+		Target:       target,
+		InlineGrants: req.Grants,
 		Action:       req.Action,
 		Explain:      req.Explain,
 	}
+}
+
+func (res authzResourceContext) hasInlineContext() bool {
+	return res.SpaceID != "" ||
+		res.ExternalID != "" ||
+		res.GroupID != "" ||
+		res.GroupPath != "" ||
+		res.OwnerMemberID != "" ||
+		res.DisplayName != "" ||
+		res.Visibility != "" ||
+		res.Status != "" ||
+		len(res.Metadata) > 0
+}
+
+func (req authzRequest) usesInlineContext() bool {
+	return req.Resource.hasInlineContext() || len(req.Grants) > 0 || actorUsesInlineMetadata(req.Actor)
+}
+
+func actorUsesInlineMetadata(actor authz.ActorContext) bool {
+	return actor.UserEmail != "" ||
+		actor.UserStatus != "" ||
+		actor.MemberName != "" ||
+		actor.MemberStatus != "" ||
+		actor.BindingStatus != "" ||
+		actor.RelationType != "" ||
+		actor.SpaceName != "" ||
+		actor.SpaceStatus != ""
 }
 
 func (s *Server) handleAuthzCheck(w http.ResponseWriter, r *http.Request) {
@@ -51,18 +110,23 @@ func (s *Server) handleAuthz(w http.ResponseWriter, r *http.Request, explain boo
 		return
 	}
 	var req authzRequest
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&req); err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is invalid JSON.", err.Error())
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	input := req.CheckInput()
+	input.Actor = input.Actor.Normalized()
 	input.RequestID = requestIDFrom(r)
 	input.IP = remoteIPFrom(r)
 	input.UserAgent = r.UserAgent()
 	input.Explain = explain || req.Explain
 	if principal, ok := adminPrincipalFrom(r); ok {
+		if req.usesInlineContext() {
+			if principal.CredentialType != "api_key" {
+				writeError(w, r, http.StatusForbidden, "INLINE_CONTEXT_REQUIRES_API_KEY", "Inline actor, resource, or grant context requires a server-side API key.", nil)
+				return
+			}
+			input.InlineContext = true
+		}
 		if actorContextEmpty(input.Actor) {
 			if principal.CredentialType != "session" {
 				writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "actor is required when using an API key.", nil)
@@ -96,9 +160,27 @@ func (s *Server) handleAuthz(w http.ResponseWriter, r *http.Request, explain boo
 				UserMemberID: stringMapValue(actor, "user_member_id"),
 			}
 		}
+		input = input.Normalized()
+		if input.InlineContext {
+			if err := authz.ValidateInlineContextInput(input); err != nil {
+				writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Inline authorization context is invalid.", err.Error())
+				return
+			}
+			for _, scope := range inlineContextScopeRequirements(input) {
+				allowed, err := s.adminPrincipalAllows(r.Context(), principal, scope)
+				if err != nil {
+					writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate inline authz scope.", err.Error())
+					return
+				}
+				if !allowed {
+					writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "The current credential cannot run authz checks for this inline context scope.", map[string]any{"permission": "authz:check"})
+					return
+				}
+			}
+		}
 		scope := adminRequirement{
 			PermissionKey: "authz:check",
-			SpaceID:       firstNonEmpty(input.SpaceID, input.Actor.SpaceID),
+			SpaceID:       firstNonEmpty(input.SpaceID, input.Actor.SpaceID, inlineTargetSpaceID(input.Target)),
 			EntityKind:    "resource",
 			EntityID:      input.ResourceID,
 		}
@@ -147,5 +229,46 @@ func (s *Server) handleAuthz(w http.ResponseWriter, r *http.Request, explain boo
 }
 
 func actorContextEmpty(actor authz.ActorContext) bool {
+	actor = actor.Normalized()
 	return actor.UserID == "" && actor.SpaceID == "" && actor.MemberID == "" && actor.UserMemberID == ""
+}
+
+func inlineTargetSpaceID(target *authz.TargetSnapshot) string {
+	if target == nil {
+		return ""
+	}
+	return strings.TrimSpace(target.Resource.SpaceID)
+}
+
+func inlineContextScopeRequirements(input authz.CheckInput) []adminRequirement {
+	input = input.Normalized()
+	requirements := make([]adminRequirement, 0, 2+len(input.InlineGrants))
+	seen := map[string]struct{}{}
+	add := func(spaceID, groupID string) {
+		spaceID = strings.TrimSpace(spaceID)
+		groupID = strings.TrimSpace(groupID)
+		if spaceID == "" && groupID == "" {
+			return
+		}
+		key := spaceID + "\x00" + groupID
+		if _, ok := seen[key]; ok {
+			return
+		}
+		seen[key] = struct{}{}
+		requirements = append(requirements, adminRequirement{
+			PermissionKey: "authz:check",
+			SpaceID:       spaceID,
+			GroupID:       groupID,
+		})
+	}
+
+	add(input.Actor.SpaceID, "")
+	if input.Target != nil {
+		add(input.Target.Resource.SpaceID, input.Target.Resource.GroupID)
+	}
+	for _, grant := range input.InlineGrants {
+		add(firstNonEmpty(grant.SpaceID, input.Actor.SpaceID), grant.ScopeAnchorGroupID)
+	}
+
+	return requirements
 }

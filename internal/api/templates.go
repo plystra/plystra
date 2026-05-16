@@ -132,8 +132,7 @@ func (s *Server) handleTemplateInstall(w http.ResponseWriter, r *http.Request, t
 		return
 	}
 	var req templateInstallRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is invalid JSON.", err.Error())
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	if err := s.validateTemplateCoreVersion(tpl); err != nil {

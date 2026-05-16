@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"sort"
@@ -80,7 +79,9 @@ func (s *Server) handlePermissionDetail(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		var req permissionMutationRequest
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		if !decodeOptionalJSON(w, r, &req) {
+			return
+		}
 		row, err := s.updateStatus(r.Context(), "permissions", id, "disabled")
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to disable Permission.", err.Error())
@@ -339,7 +340,9 @@ func (s *Server) handleRolePermissionSubroutes(w http.ResponseWriter, r *http.Re
 		writeData(w, r, http.StatusOK, row)
 	case http.MethodDelete:
 		var req rolePermissionMutationRequest
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		if !decodeOptionalJSON(w, r, &req) {
+			return
+		}
 		row, err := s.loadRolePermission(r.Context(), id)
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeError(w, r, http.StatusNotFound, "ROLE_PERMISSION_NOT_FOUND", "RolePermission was not found.", nil)

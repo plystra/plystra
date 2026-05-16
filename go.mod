@@ -1,15 +1,33 @@
 module github.com/plystra/plystra
 
-go 1.25.0
+go 1.25.10
 
 require (
 	ariga.io/atlas v0.36.2-0.20250730182955-2c6300d0a3e1
 	entgo.io/ent v0.14.6
 	github.com/jackc/pgx/v5 v5.9.2
+	github.com/plystra/kernel v0.0.0
+	github.com/plystra/system-admin v0.0.0
+	github.com/plystra/system-audit v0.0.0
+	github.com/plystra/system-authz v0.0.0
+	github.com/plystra/system-identity v0.0.0
+	github.com/plystra/system-resource-registry v0.0.0
 	github.com/swaggest/openapi-go v0.2.61
 	golang.org/x/crypto v0.51.0
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+replace github.com/plystra/system-authz => ../system-authz
+
+replace github.com/plystra/kernel => ../kernel
+
+replace github.com/plystra/system-admin => ../system-admin
+
+replace github.com/plystra/system-audit => ../system-audit
+
+replace github.com/plystra/system-identity => ../system-identity
+
+replace github.com/plystra/system-resource-registry => ../system-resource-registry
 
 require (
 	github.com/agext/levenshtein v1.2.3 // indirect

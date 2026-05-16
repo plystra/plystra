@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -93,7 +92,9 @@ func (s *Server) handleSpaceResources(w http.ResponseWriter, r *http.Request, sp
 			return
 		}
 		var req resourceMutationRequest
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		if !decodeOptionalJSON(w, r, &req) {
+			return
+		}
 		row, err := s.updateScopedStatus(r.Context(), "resources", resourceID, spaceID, "archived")
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to archive Resource.", err.Error())

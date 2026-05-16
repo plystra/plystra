@@ -532,7 +532,7 @@ func GenerateOpenAPI(version string) (*openapi3.Spec, error) {
 	spec := reflector.SpecEns()
 	spec.SetTitle("Plystra Core API")
 	spec.SetVersion(version)
-	spec.SetDescription("Stable self-hosted Plystra Core API for identity, authorization, resources, audit, API keys, plugins, and templates.")
+	spec.SetDescription("Self-hosted Plystra Core API. Stable surfaces cover identity, authorization, resource registry, audit, admin control-plane, and scoped API keys; plugin, template, and Data Console routes are preview metadata surfaces.")
 	spec.WithServers(openapi3.Server{URL: "http://localhost:8080"})
 	spec.SetHTTPBearerTokenSecurity("BearerAuth", "opaque Plystra access token", "Use the access_token returned by POST /api/v1/auth/login or POST /api/v1/auth/refresh.")
 	spec.SetAPIKeySecurity("ApiKeyAuth", "X-Plystra-API-Key", oapi.InHeader, "Scoped API key for server-to-server Core calls.")
@@ -679,10 +679,10 @@ func openAPITags() []openapi3.Tag {
 		{"Permissions", "Permission definitions and role-permission bindings."},
 		{"Resource Types", "Resource registry declarations, actions, and mappings."},
 		{"Resources", "Protected resource records."},
-		{"Data Console", "Feature-flagged data preview and mutation API."},
+		{"Data Console", "Feature-flagged preview data API; disabled by default."},
 		{"Audit", "Append-only audit log query endpoints."},
-		{"Plugins", "Plugin manifests, lifecycle, settings, and generated metadata."},
-		{"Templates", "Template catalog, preview, and install endpoints."},
+		{"Plugins", "Preview plugin metadata, lifecycle flags, settings, and generated metadata; not a stable plugin runtime."},
+		{"Templates", "Preview template catalog and install-flow metadata; not a stable template ecosystem."},
 	}
 	out := make([]openapi3.Tag, 0, len(tags))
 	for _, tag := range tags {

@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Plystra Core API",
-    "description": "Stable self-hosted Plystra Core API for identity, authorization, resources, audit, API keys, plugins, and templates.",
+    "description": "Self-hosted Plystra Core API. Stable surfaces cover identity, authorization, resource registry, audit, admin control-plane, and scoped API keys; plugin, template, and Data Console routes are preview metadata surfaces.",
     "version": "1.0.0-rc6"
   },
   "servers": [
@@ -77,7 +77,7 @@
     },
     {
       "name": "Data Console",
-      "description": "Feature-flagged data preview and mutation API."
+      "description": "Feature-flagged preview data API; disabled by default."
     },
     {
       "name": "Audit",
@@ -85,11 +85,11 @@
     },
     {
       "name": "Plugins",
-      "description": "Plugin manifests, lifecycle, settings, and generated metadata."
+      "description": "Preview plugin metadata, lifecycle flags, settings, and generated metadata; not a stable plugin runtime."
     },
     {
       "name": "Templates",
-      "description": "Template catalog, preview, and install endpoints."
+      "description": "Preview template catalog and install-flow metadata; not a stable template ecosystem."
     }
   ],
   "paths": {
@@ -6389,21 +6389,20 @@
             "type": "string"
           },
           "actor": {
-            "$ref": "#/components/schemas/AuthzActorContext"
+            "$ref": "#/components/schemas/SystemAuthzActorContext"
           },
           "explain": {
             "type": "boolean"
           },
+          "grants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SystemAuthzGrantContext"
+            },
+            "nullable": true
+          },
           "resource": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "type": {
-                "type": "string"
-              }
-            }
+            "$ref": "#/components/schemas/ApiAuthzResourceContext"
           },
           "resource_id": {
             "type": "string"
@@ -6413,11 +6412,51 @@
           }
         }
       },
+      "ApiAuthzResourceContext": {
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": "string"
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "group_path": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "owner_member_id": {
+            "type": "string"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string"
+          }
+        }
+      },
       "ApiDataRowMutationRequest": {
         "type": "object",
         "properties": {
           "actor": {
-            "$ref": "#/components/schemas/AuthzActorContext"
+            "$ref": "#/components/schemas/SystemAuthzActorContext"
           },
           "display_name": {
             "type": "string",
@@ -6456,7 +6495,7 @@
         "type": "object",
         "properties": {
           "actor": {
-            "$ref": "#/components/schemas/AuthzActorContext"
+            "$ref": "#/components/schemas/SystemAuthzActorContext"
           },
           "display_name": {
             "type": "string",
@@ -6498,7 +6537,7 @@
         "type": "object",
         "properties": {
           "actor": {
-            "$ref": "#/components/schemas/AuthzActorContext"
+            "$ref": "#/components/schemas/SystemAuthzActorContext"
           },
           "display_name": {
             "type": "string"
@@ -6525,7 +6564,7 @@
         "type": "object",
         "properties": {
           "actor": {
-            "$ref": "#/components/schemas/AuthzActorContext"
+            "$ref": "#/components/schemas/SystemAuthzActorContext"
           },
           "id": {
             "type": "string"
@@ -8725,7 +8764,7 @@
             "type": "string"
           },
           "actor": {
-            "$ref": "#/components/schemas/AuthzActorContext"
+            "$ref": "#/components/schemas/SystemAuthzActorContext"
           },
           "audit_space_id": {
             "type": "string"
@@ -8858,7 +8897,7 @@
         "type": "object",
         "properties": {
           "actor": {
-            "$ref": "#/components/schemas/AuthzActorContext"
+            "$ref": "#/components/schemas/SystemAuthzActorContext"
           },
           "display_name": {
             "type": "string",
@@ -8934,7 +8973,7 @@
         "type": "object",
         "properties": {
           "actor": {
-            "$ref": "#/components/schemas/AuthzActorContext"
+            "$ref": "#/components/schemas/SystemAuthzActorContext"
           },
           "description": {
             "type": "string",
@@ -8964,7 +9003,7 @@
         "type": "object",
         "properties": {
           "actor": {
-            "$ref": "#/components/schemas/AuthzActorContext"
+            "$ref": "#/components/schemas/SystemAuthzActorContext"
           },
           "audit_space_id": {
             "type": "string"
@@ -8989,7 +9028,7 @@
         "type": "object",
         "properties": {
           "actor": {
-            "$ref": "#/components/schemas/AuthzActorContext"
+            "$ref": "#/components/schemas/SystemAuthzActorContext"
           },
           "id": {
             "type": "string"
@@ -9159,7 +9198,7 @@
         "type": "object",
         "properties": {
           "actor": {
-            "$ref": "#/components/schemas/AuthzActorContext"
+            "$ref": "#/components/schemas/SystemAuthzActorContext"
           },
           "expires_at": {
             "type": "string",
@@ -9210,7 +9249,7 @@
         "type": "object",
         "properties": {
           "actor": {
-            "$ref": "#/components/schemas/AuthzActorContext"
+            "$ref": "#/components/schemas/SystemAuthzActorContext"
           },
           "audit_space_id": {
             "type": "string"
@@ -9241,23 +9280,6 @@
           "username": {
             "type": "string",
             "nullable": true
-          }
-        }
-      },
-      "AuthzActorContext": {
-        "type": "object",
-        "properties": {
-          "member_id": {
-            "type": "string"
-          },
-          "space_id": {
-            "type": "string"
-          },
-          "user_id": {
-            "type": "string"
-          },
-          "user_member_id": {
-            "type": "string"
           }
         }
       },
@@ -9413,6 +9435,82 @@
             "type": "string"
           },
           "type": {
+            "type": "string"
+          }
+        }
+      },
+      "SystemAuthzActorContext": {
+        "type": "object",
+        "properties": {
+          "binding_id": {
+            "type": "string"
+          },
+          "binding_status": {
+            "type": "string"
+          },
+          "member_display_name": {
+            "type": "string"
+          },
+          "member_id": {
+            "type": "string"
+          },
+          "member_status": {
+            "type": "string"
+          },
+          "relation_type": {
+            "type": "string"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "space_name": {
+            "type": "string"
+          },
+          "space_status": {
+            "type": "string"
+          },
+          "user_email": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "user_member_id": {
+            "type": "string"
+          },
+          "user_status": {
+            "type": "string"
+          }
+        }
+      },
+      "SystemAuthzGrantContext": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "permission_id": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "string"
+          },
+          "role_id": {
+            "type": "string"
+          },
+          "role_key": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "scope_anchor_group_id": {
+            "type": "string"
+          },
+          "scope_anchor_group_path": {
+            "type": "string"
+          },
+          "space_id": {
             "type": "string"
           }
         }

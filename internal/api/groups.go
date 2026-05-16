@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -119,7 +118,9 @@ func (s *Server) handleSpaceGroups(w http.ResponseWriter, r *http.Request, space
 			return
 		}
 		var req groupMutationRequest
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		if !decodeOptionalJSON(w, r, &req) {
+			return
+		}
 		row, err := s.updateScopedStatus(r.Context(), "groups", groupID, spaceID, "disabled")
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to disable Group.", err.Error())

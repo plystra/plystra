@@ -24,8 +24,7 @@ func (s *Server) handlePluginManifestValidation(w http.ResponseWriter, r *http.R
 		return
 	}
 	var manifest plugins.Manifest
-	if err := json.NewDecoder(r.Body).Decode(&manifest); err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is invalid JSON.", err.Error())
+	if !decodeJSON(w, r, &manifest) {
 		return
 	}
 	errors := plugins.ValidateManifestForCore(manifest, s.coreVersion)
@@ -61,8 +60,7 @@ func (s *Server) handlePluginInstall(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req pluginInstallRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is invalid JSON.", err.Error())
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	validationErrors := plugins.ValidateManifestForCore(req.Manifest, s.coreVersion)

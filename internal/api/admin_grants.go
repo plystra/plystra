@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -238,8 +237,8 @@ func (s *Server) revokeAdminGrant(w http.ResponseWriter, r *http.Request, grantI
 		return
 	}
 	var req adminGrantMutationRequest
-	if r.Body != nil {
-		_ = json.NewDecoder(r.Body).Decode(&req)
+	if !decodeOptionalJSON(w, r, &req) {
+		return
 	}
 	grant, err := client.AdminGrant.Query().Where(entadmingrant.ID(grantID), entadmingrant.DeletedAtIsNil()).Only(r.Context())
 	if coreent.IsNotFound(err) {

@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"os"
@@ -245,8 +244,7 @@ func (s *Server) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req authLoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is invalid JSON.", err.Error())
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	req.Email = normalizeEmail(req.Email)
@@ -502,8 +500,7 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req authRefreshRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is invalid JSON.", err.Error())
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	session, err := s.sessionByRefreshToken(r.Context(), req.RefreshToken)
@@ -556,7 +553,9 @@ func (s *Server) handleAuthLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req authLogoutRequest
-	_ = json.NewDecoder(r.Body).Decode(&req)
+	if !decodeOptionalJSON(w, r, &req) {
+		return
+	}
 	token := bearerToken(r)
 	if token == "" {
 		token = req.RefreshToken
@@ -634,8 +633,7 @@ func (s *Server) handleActorSwitchMember(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	var req switchMemberRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is invalid JSON.", err.Error())
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	actor, err := s.actorBindingForUser(r.Context(), session.UserID, req.MemberID, req.UserMemberID)

@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -206,8 +205,8 @@ func (s *Server) handleUserSubroutes(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var req userMutationRequest
-		if r.Body != nil {
-			_ = json.NewDecoder(r.Body).Decode(&req)
+		if !decodeOptionalJSON(w, r, &req) {
+			return
 		}
 		status := "disabled"
 		action := "user.disabled"

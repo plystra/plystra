@@ -21,6 +21,52 @@ func checkInput(userID, userMemberID, resourceID string) authz.CheckInput {
 	}
 }
 
+func inlineContextInput(target authz.TargetSnapshot, grants []authz.GrantContext) authz.CheckInput {
+	return authz.CheckInput{
+		Actor: authz.ActorContext{
+			UserID:       "user_external_alice",
+			UserEmail:    "alice@example.com",
+			MemberID:     "member_finance_reviewer",
+			BindingID:    "binding_external_alice_finance",
+			SpaceID:      "space_acme",
+			MemberName:   "Finance Reviewer",
+			RelationType: "external_session",
+			SpaceName:    "Acme",
+		},
+		ResourceType:  "invoice",
+		ResourceID:    target.Resource.ExternalID,
+		Target:        &target,
+		InlineGrants:  grants,
+		InlineContext: true,
+		Action:        "approve",
+		RequestID:     "req_context_mode_test",
+	}
+}
+
+func inlineResource(externalID, groupPath, spaceID string) authz.TargetSnapshot {
+	return authz.TargetSnapshot{
+		Resource: authz.ResourceSnapshot{
+			ExternalID:    externalID,
+			Type:          "invoice",
+			SpaceID:       spaceID,
+			GroupPath:     groupPath,
+			OwnerMemberID: "member_invoice_creator",
+			DisplayName:   "Invoice " + externalID,
+		},
+	}
+}
+
+func inlineGrant(scope authz.Scope, anchorPath, spaceID string) authz.GrantContext {
+	return authz.GrantContext{
+		RoleKey:              "finance_approver",
+		Resource:             "invoice",
+		Action:               "approve",
+		Scope:                scope,
+		SpaceID:              spaceID,
+		ScopeAnchorGroupPath: anchorPath,
+	}
+}
+
 func newTestEngine(store authz.Store) *authz.Engine {
 	return authz.NewEngineWithClock(store, func() time.Time {
 		return time.Date(2026, 5, 6, 0, 0, 0, 0, time.UTC)

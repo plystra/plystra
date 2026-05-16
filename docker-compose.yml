@@ -1,7 +1,8 @@
 services:
   plystra-core:
     build:
-      context: .
+      context: ..
+      dockerfile: plystra/Dockerfile
     container_name: plystra-core
     environment:
       SERVER_HOST: ${SERVER_HOST:-0.0.0.0}

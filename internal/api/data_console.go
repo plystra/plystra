@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"sort"
@@ -141,8 +140,7 @@ func (s *Server) handleDataRowCreate(w http.ResponseWriter, r *http.Request, res
 		return
 	}
 	var req dataRowMutationRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is invalid JSON.", err.Error())
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	if req.SpaceID == "" {
@@ -216,8 +214,7 @@ func (s *Server) handleDataRowUpdate(w http.ResponseWriter, r *http.Request, res
 		return
 	}
 	var req dataRowMutationRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is invalid JSON.", err.Error())
+	if !decodeJSON(w, r, &req) {
 		return
 	}
 	current, err := s.loadResourceTarget(r.Context(), resourceType, resourceID)
@@ -310,8 +307,8 @@ func (s *Server) handleDataRowDelete(w http.ResponseWriter, r *http.Request, res
 		return
 	}
 	var req dataRowMutationRequest
-	if r.Body != nil {
-		_ = json.NewDecoder(r.Body).Decode(&req)
+	if !decodeOptionalJSON(w, r, &req) {
+		return
 	}
 	current, err := s.loadResourceTarget(r.Context(), resourceType, resourceID)
 	if errors.Is(err, pgx.ErrNoRows) {

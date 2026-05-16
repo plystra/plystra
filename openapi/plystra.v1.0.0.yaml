@@ -106,25 +106,52 @@ components:
                 action:
                     type: string
                 actor:
-                    $ref: '#/components/schemas/AuthzActorContext'
+                    $ref: '#/components/schemas/SystemAuthzActorContext'
                 explain:
                     type: boolean
+                grants:
+                    items:
+                        $ref: '#/components/schemas/SystemAuthzGrantContext'
+                    nullable: true
+                    type: array
                 resource:
-                    properties:
-                        id:
-                            type: string
-                        type:
-                            type: string
-                    type: object
+                    $ref: '#/components/schemas/ApiAuthzResourceContext'
                 resource_id:
                     type: string
                 resource_type:
                     type: string
             type: object
+        ApiAuthzResourceContext:
+            properties:
+                display_name:
+                    type: string
+                external_id:
+                    type: string
+                group_id:
+                    type: string
+                group_path:
+                    type: string
+                id:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                owner_member_id:
+                    type: string
+                space_id:
+                    type: string
+                status:
+                    type: string
+                type:
+                    type: string
+                visibility:
+                    type: string
+            type: object
         ApiDataRowMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/AuthzActorContext'
+                    $ref: '#/components/schemas/SystemAuthzActorContext'
                 display_name:
                     nullable: true
                     type: string
@@ -152,7 +179,7 @@ components:
         ApiGroupMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/AuthzActorContext'
+                    $ref: '#/components/schemas/SystemAuthzActorContext'
                 display_name:
                     nullable: true
                     type: string
@@ -182,7 +209,7 @@ components:
         ApiMemberMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/AuthzActorContext'
+                    $ref: '#/components/schemas/SystemAuthzActorContext'
                 display_name:
                     type: string
                 id:
@@ -201,7 +228,7 @@ components:
         ApiMemberRoleMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/AuthzActorContext'
+                    $ref: '#/components/schemas/SystemAuthzActorContext'
                 id:
                     type: string
                 member_id:
@@ -1725,7 +1752,7 @@ components:
                 action:
                     type: string
                 actor:
-                    $ref: '#/components/schemas/AuthzActorContext'
+                    $ref: '#/components/schemas/SystemAuthzActorContext'
                 audit_space_id:
                     type: string
                 description:
@@ -1818,7 +1845,7 @@ components:
         ApiResourceMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/AuthzActorContext'
+                    $ref: '#/components/schemas/SystemAuthzActorContext'
                 display_name:
                     nullable: true
                     type: string
@@ -1872,7 +1899,7 @@ components:
         ApiRoleMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/AuthzActorContext'
+                    $ref: '#/components/schemas/SystemAuthzActorContext'
                 description:
                     nullable: true
                     type: string
@@ -1893,7 +1920,7 @@ components:
         ApiRolePermissionMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/AuthzActorContext'
+                    $ref: '#/components/schemas/SystemAuthzActorContext'
                 audit_space_id:
                     type: string
                 id:
@@ -1910,7 +1937,7 @@ components:
         ApiSpaceMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/AuthzActorContext'
+                    $ref: '#/components/schemas/SystemAuthzActorContext'
                 id:
                     type: string
                 metadata:
@@ -2024,7 +2051,7 @@ components:
         ApiUserMemberMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/AuthzActorContext'
+                    $ref: '#/components/schemas/SystemAuthzActorContext'
                 expires_at:
                     format: date-time
                     nullable: true
@@ -2061,7 +2088,7 @@ components:
         ApiUserMutationRequest:
             properties:
                 actor:
-                    $ref: '#/components/schemas/AuthzActorContext'
+                    $ref: '#/components/schemas/SystemAuthzActorContext'
                 audit_space_id:
                     type: string
                 email:
@@ -2083,17 +2110,6 @@ components:
                     type: string
                 username:
                     nullable: true
-                    type: string
-            type: object
-        AuthzActorContext:
-            properties:
-                member_id:
-                    type: string
-                space_id:
-                    type: string
-                user_id:
-                    type: string
-                user_member_id:
                     type: string
             type: object
         PluginsActionDefinition:
@@ -2200,6 +2216,56 @@ components:
                 type:
                     type: string
             type: object
+        SystemAuthzActorContext:
+            properties:
+                binding_id:
+                    type: string
+                binding_status:
+                    type: string
+                member_display_name:
+                    type: string
+                member_id:
+                    type: string
+                member_status:
+                    type: string
+                relation_type:
+                    type: string
+                space_id:
+                    type: string
+                space_name:
+                    type: string
+                space_status:
+                    type: string
+                user_email:
+                    type: string
+                user_id:
+                    type: string
+                user_member_id:
+                    type: string
+                user_status:
+                    type: string
+            type: object
+        SystemAuthzGrantContext:
+            properties:
+                action:
+                    type: string
+                permission_id:
+                    type: string
+                resource:
+                    type: string
+                role_id:
+                    type: string
+                role_key:
+                    type: string
+                scope:
+                    type: string
+                scope_anchor_group_id:
+                    type: string
+                scope_anchor_group_path:
+                    type: string
+                space_id:
+                    type: string
+            type: object
     securitySchemes:
         ApiKeyAuth:
             description: Scoped API key for server-to-server Core calls.
@@ -2217,7 +2283,7 @@ components:
             name: X-Plystra-Metrics-Token
             type: apiKey
 info:
-    description: Stable self-hosted Plystra Core API for identity, authorization, resources, audit, API keys, plugins, and templates.
+    description: Self-hosted Plystra Core API. Stable surfaces cover identity, authorization, resource registry, audit, admin control-plane, and scoped API keys; plugin, template, and Data Console routes are preview metadata surfaces.
     title: Plystra Core API
     version: 1.0.0-rc6
 openapi: 3.0.3
@@ -5821,13 +5887,13 @@ tags:
       name: Resource Types
     - description: Protected resource records.
       name: Resources
-    - description: Feature-flagged data preview and mutation API.
+    - description: Feature-flagged preview data API; disabled by default.
       name: Data Console
     - description: Append-only audit log query endpoints.
       name: Audit
-    - description: Plugin manifests, lifecycle, settings, and generated metadata.
+    - description: Preview plugin metadata, lifecycle flags, settings, and generated metadata; not a stable plugin runtime.
       name: Plugins
-    - description: Template catalog, preview, and install endpoints.
+    - description: Preview template catalog and install-flow metadata; not a stable template ecosystem.
       name: Templates
 x-tagGroups:
     - name: Platform

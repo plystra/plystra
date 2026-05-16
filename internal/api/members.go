@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strings"
@@ -113,7 +112,9 @@ func (s *Server) handleSpaceMembers(w http.ResponseWriter, r *http.Request, spac
 			return
 		}
 		var req memberMutationRequest
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		if !decodeOptionalJSON(w, r, &req) {
+			return
+		}
 		row, err := s.updateScopedStatus(r.Context(), "members", memberID, spaceID, "disabled")
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to disable Member.", err.Error())

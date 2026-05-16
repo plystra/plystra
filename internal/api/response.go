@@ -2,7 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -33,13 +36,14 @@ func writeList(w http.ResponseWriter, r *http.Request, status int, data any, lim
 func writeError(w http.ResponseWriter, r *http.Request, status int, code, message string, details any) {
 	requestID := requestIDFrom(r)
 	w.Header().Set("X-Plystra-Error-Code", code)
+	decision, hasDecision := authzDecisionFromDetails(details)
 	errPayload := map[string]any{
 		"code":       code,
 		"message":    message,
-		"details":    details,
+		"details":    safeErrorDetails(status, details, hasDecision),
 		"request_id": requestID,
 	}
-	if decision, ok := authzDecisionFromDetails(details); ok {
+	if hasDecision {
 		if decision.DenyCode != nil {
 			errPayload["deny_code"] = string(*decision.DenyCode)
 		}
@@ -72,6 +76,23 @@ func authzDecisionFromDetails(details any) (*authz.Decision, bool) {
 	default:
 		return nil, false
 	}
+}
+
+func safeErrorDetails(status int, details any, isDecision bool) any {
+	if details == nil {
+		return nil
+	}
+	if isDecision {
+		return nil
+	}
+	if status >= http.StatusInternalServerError && productionMode() {
+		return nil
+	}
+	return details
+}
+
+func productionMode() bool {
+	return strings.EqualFold(firstEnv("SERVER_MODE", "PLYSTRA_ENV"), "production")
 }
 
 func writeMethodNotAllowed(w http.ResponseWriter, r *http.Request) {
@@ -118,9 +139,50 @@ func nonNilMap(value map[string]any) map[string]any {
 }
 
 func decodeJSON(w http.ResponseWriter, r *http.Request, out any) bool {
-	if err := json.NewDecoder(r.Body).Decode(out); err != nil {
+	return decodeJSONBody(w, r, out, false)
+}
+
+func decodeOptionalJSON(w http.ResponseWriter, r *http.Request, out any) bool {
+	return decodeJSONBody(w, r, out, true)
+}
+
+func decodeJSONBody(w http.ResponseWriter, r *http.Request, out any, allowEmpty bool) bool {
+	if r.Body == nil {
+		if allowEmpty {
+			return true
+		}
+		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is required.", nil)
+		return false
+	}
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxRequestBodyBytes()))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(out); err != nil {
+		if allowEmpty && errors.Is(err, io.EOF) {
+			return true
+		}
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is invalid JSON.", err.Error())
 		return false
 	}
+	var extra struct{}
+	if err := decoder.Decode(&extra); err != io.EOF {
+		if err != nil {
+			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body is invalid JSON.", err.Error())
+			return false
+		}
+		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Request body must contain a single JSON object.", nil)
+		return false
+	}
 	return true
+}
+
+func maxRequestBodyBytes() int64 {
+	value := strings.TrimSpace(os.Getenv("MAX_REQUEST_BODY_BYTES"))
+	if value == "" {
+		return 1 << 20
+	}
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || parsed <= 0 {
+		return 1 << 20
+	}
+	return parsed
 }
