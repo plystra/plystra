@@ -29,11 +29,19 @@ func bootstrapSuperAdmin(ctx context.Context, args []string) error {
 	userID := flags.String("user-id", "", "existing User ID to receive the first instance super admin grant")
 	memberID := flags.String("member-id", "", "optional Member ID to annotate the grant")
 	grantID := flags.String("grant-id", "", "optional AdminGrant ID")
+	ifExists := flags.String("if-exists", "error", "behavior when an active instance super admin grant already exists: error or ok")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if strings.TrimSpace(*userID) == "" {
 		return fmt.Errorf("--user-id is required")
+	}
+	onExists := strings.TrimSpace(*ifExists)
+	if onExists == "" {
+		onExists = "error"
+	}
+	if onExists != "error" && onExists != "ok" {
+		return fmt.Errorf("--if-exists must be error or ok")
 	}
 	client, db, err := openEntClient(ctx)
 	if err != nil {
@@ -56,6 +64,10 @@ func bootstrapSuperAdmin(ctx context.Context, args []string) error {
 		return err
 	}
 	if count > 0 {
+		if onExists == "ok" {
+			fmt.Println("active instance_super_admin grant already exists")
+			return nil
+		}
 		return fmt.Errorf("active instance_super_admin grant already exists; use the AdminGrant API as an existing super admin")
 	}
 	if _, err := client.User.Query().Where(entuser.ID(strings.TrimSpace(*userID)), entuser.DeletedAtIsNil()).Only(ctx); err != nil {

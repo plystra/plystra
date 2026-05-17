@@ -148,6 +148,86 @@ func TestAuthRegisterAllowsOrdinaryRegistrationAfterBootstrap(t *testing.T) {
 	}
 }
 
+func TestAuthRegisterPublicUserOnlyDoesNotCreateActorOrAdminState(t *testing.T) {
+	t.Setenv(publicUserRegistrationEnv, "true")
+	server, handler := newRegisterTestServer(t)
+	seedRegisterTestSuperAdmin(t, context.Background(), server)
+	email := uniqueRegisterEmail(t, "public")
+
+	rec := registerJSONRequest(handler, map[string]any{
+		"email":    email,
+		"password": "long-enough-password",
+		"username": "public-user",
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201, body=%s", rec.Code, rec.Body.String())
+	}
+	payload := decodeRegisterPayload(t, rec)
+	data := payload["data"].(map[string]any)
+	if data["user_only"] != true {
+		t.Fatalf("user_only = %#v, want true", data["user_only"])
+	}
+	if data["registration_mode"] != string(registrationModePublicUserOnly) {
+		t.Fatalf("registration_mode = %#v, want %q", data["registration_mode"], registrationModePublicUserOnly)
+	}
+	if token, _ := data["access_token"].(string); token != "" {
+		t.Fatalf("access_token = %q, want empty for user-only registration", token)
+	}
+	if members, ok := data["available_members"].([]any); !ok || len(members) != 0 {
+		t.Fatalf("available_members = %#v, want empty list", data["available_members"])
+	}
+	userData, _ := data["user"].(map[string]any)
+	userID, _ := userData["id"].(string)
+	if userID == "" {
+		t.Fatalf("registered user id is missing: %#v", data["user"])
+	}
+	ctx := context.Background()
+	if count, err := server.ent.User.Query().Where(entuser.ID(userID), entuser.Email(email), entuser.DeletedAtIsNil()).Count(ctx); err != nil || count != 1 {
+		t.Fatalf("active registered users for %s = %d, err=%v, want 1", email, count, err)
+	}
+	if count, err := server.ent.UserMember.Query().Where(entusermember.UserID(userID), entusermember.DeletedAtIsNil()).Count(ctx); err != nil || count != 0 {
+		t.Fatalf("user_member count for %s = %d, err=%v, want 0", userID, count, err)
+	}
+	if count, err := server.ent.AdminGrant.Query().Where(entadmingrant.UserID(userID), entadmingrant.DeletedAtIsNil()).Count(ctx); err != nil || count != 0 {
+		t.Fatalf("admin grant count for %s = %d, err=%v, want 0", userID, count, err)
+	}
+}
+
+func TestAuthRegisterPublicUserOnlyCanCreateUserBeforeBootstrap(t *testing.T) {
+	t.Setenv(publicUserRegistrationEnv, "true")
+	server, handler := newRegisterTestServer(t)
+	if available, err := server.bootstrapRegistrationAvailable(context.Background()); err != nil {
+		t.Fatalf("check bootstrap availability: %v", err)
+	} else if !available {
+		t.Skip("shared integration database already has an active instance super admin")
+	}
+	email := uniqueRegisterEmail(t, "public-first")
+
+	rec := registerJSONRequest(handler, map[string]any{
+		"email":    email,
+		"password": "long-enough-password",
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201, body=%s", rec.Code, rec.Body.String())
+	}
+	payload := decodeRegisterPayload(t, rec)
+	data := payload["data"].(map[string]any)
+	if data["registration_mode"] != string(registrationModePublicUserOnly) {
+		t.Fatalf("registration_mode = %#v, want %q", data["registration_mode"], registrationModePublicUserOnly)
+	}
+	if data["bootstrap_super_admin"] != false {
+		t.Fatalf("bootstrap_super_admin = %#v, want false", data["bootstrap_super_admin"])
+	}
+	userData, _ := data["user"].(map[string]any)
+	userID, _ := userData["id"].(string)
+	if userID == "" {
+		t.Fatalf("registered user id is missing: %#v", data["user"])
+	}
+	if count, err := server.ent.AdminGrant.Query().Where(entadmingrant.UserID(userID), entadmingrant.DeletedAtIsNil()).Count(context.Background()); err != nil || count != 0 {
+		t.Fatalf("admin grant count for %s = %d, err=%v, want 0", userID, count, err)
+	}
+}
+
 func TestAuthRegisterRequestValidation(t *testing.T) {
 	if err := validateRegisterRequest(authRegisterRequest{Email: "", Password: "long-enough-password"}); err == nil || !strings.Contains(err.Error(), "email") {
 		t.Fatalf("missing email validation error = %v", err)

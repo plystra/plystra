@@ -47,7 +47,7 @@ The API listens on `http://localhost:8080` by default.
 
 ## Minimal API Example
 
-The local demo seed includes Alice as an instance super admin.
+Production migrations never create an instance super admin automatically. For the local demo flow, run `make seed-demo` before logging in as Alice.
 
 ```powershell
 $login = Invoke-RestMethod `
@@ -100,7 +100,7 @@ For first integrations, call `/api/v1/authz/check` from your backend with truste
 
 Inline actor, resource, and grant context is API-key-only. Never accept those fields directly from a browser request body; derive them from trusted server-side session and database state.
 
-Registration is disabled by default. For production, keep it closed unless your onboarding flow needs it; if enabled, configure `PLYSTRA_AUTH_REGISTRATION_TOKEN`, and use `PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN` only for controlled first-super-admin bootstrap.
+Registration is disabled by default. For production, keep it closed unless your onboarding flow needs it. Token-protected ordinary registration requires `PLYSTRA_AUTH_REGISTRATION_TOKEN` and creates a User plus personal Space/Member/UserMember and a Space admin grant. Public user-only registration can be enabled with `PLYSTRA_AUTH_PUBLIC_USER_REGISTRATION_ENABLED=true`; it creates only a User and does not create a personal Space, Member, UserMember, Space admin grant, or session. Use `PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN` only for controlled first-super-admin bootstrap.
 
 ## Documentation
 

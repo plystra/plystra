@@ -10,6 +10,7 @@ migrate:
 	DATABASE_URL="$(DATABASE_URL)" go run ./cmd/plystractl migrate up
 
 seed-demo: migrate
+	DATABASE_URL="$(DATABASE_URL)" go run ./cmd/plystractl admin bootstrap-super-admin --user-id user_alice --member-id member_finance_reviewer --grant-id ag_alice_local_demo_instance_super_admin --if-exists ok
 
 demo: seed-demo
 	DATABASE_URL="$(DATABASE_URL)" go run ./cmd/explain-demo

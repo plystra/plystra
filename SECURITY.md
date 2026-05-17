@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Plystra Core `1.0.0-rc115` is the current release candidate. Security fixes are applied to the active release line.
+Plystra Core `1.0.0-rc121` is the current release candidate. Security fixes are applied to the active release line.
 
 ## Reporting a Vulnerability
 
@@ -30,4 +30,4 @@ Production deployments should:
 - keep `METRICS_ENABLED=false` unless the endpoint is protected
 - run versioned migrations before serving traffic
 - store API keys and session tokens only in trusted secret storage
-- keep user registration disabled unless explicitly needed; when enabled, require registration tokens and use a separate bootstrap token for the first instance super admin
+- keep user registration disabled unless explicitly needed; when enabled, prefer registration tokens and use a separate bootstrap token for the first instance super admin. If public user-only registration is enabled, treat it as account creation only: it must not create personal Spaces, Members, UserMember bindings, Space admin grants, or sessions.

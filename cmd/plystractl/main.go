@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+
+	_ "github.com/plystra/plystra/ent/runtime"
 )
 
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
@@ -62,6 +64,6 @@ func main() {
 func usage() {
 	fmt.Fprintln(os.Stderr, "usage: plystractl migrate <status|plan|up|verify>")
 	fmt.Fprintln(os.Stderr, "       plystractl ent <status|plan|check|apply>")
-	fmt.Fprintln(os.Stderr, "       plystractl admin bootstrap-super-admin --user-id <user_id> [--member-id <member_id>] [--grant-id <admin_grant_id>]")
+	fmt.Fprintln(os.Stderr, "       plystractl admin bootstrap-super-admin --user-id <user_id> [--member-id <member_id>] [--grant-id <admin_grant_id>] [--if-exists <error|ok>]")
 	fmt.Fprintln(os.Stderr, "       plystractl doctor")
 }

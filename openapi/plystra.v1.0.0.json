@@ -3,7 +3,7 @@
   "info": {
     "title": "Plystra Core API",
     "description": "Self-hosted Plystra Core API. Stable surfaces cover identity, authorization, resource registry, audit, admin control-plane, and scoped API keys; plugin, template, and Data Console routes are preview metadata surfaces.",
-    "version": "1.0.0-rc115"
+    "version": "1.0.0-rc121"
   },
   "servers": [
     {
@@ -934,8 +934,8 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Register a user and create an initial session",
-        "description": "Registration is disabled by default. Production deployments must use explicit registration tokens, and first-super-admin bootstrap requires PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED plus PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN.",
+        "summary": "Register a user",
+        "description": "Registration is disabled by default. Token-protected ordinary registration creates a user, personal Space, Member, UserMember, Space admin grant, and session. First-super-admin bootstrap requires PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED plus PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN. Public user-only registration with PLYSTRA_AUTH_PUBLIC_USER_REGISTRATION_ENABLED creates only a User and does not create a personal Space, Member, UserMember, Space admin grant, or session.",
         "operationId": "register",
         "requestBody": {
           "content": {
@@ -8264,6 +8264,10 @@
           "refresh_token": {
             "type": "string"
           },
+          "registration_mode": {
+            "type": "string",
+            "example": "ordinary"
+          },
           "registration_requires_approval": {
             "type": "boolean"
           },
@@ -8276,6 +8280,9 @@
           },
           "user": {
             "$ref": "#/components/schemas/ApiOpenAPIUserSession"
+          },
+          "user_only": {
+            "type": "boolean"
           }
         }
       },
@@ -8753,7 +8760,7 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "1.0.0-rc115"
+            "example": "1.0.0-rc121"
           }
         }
       },

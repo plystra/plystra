@@ -5,17 +5,19 @@ import (
 	"testing"
 
 	"ariga.io/atlas/sql/migrate"
+	"github.com/plystra/plystra/ent/admingrant"
 )
 
 func TestMigrationRecordMatchesLegacyAndAtlasChecksums(t *testing.T) {
-	file := migrationFile{Checksum: "legacy-sha256", AtlasHash: "atlas-hash"}
+	file := migrationFile{Checksum: "current-sha256", AtlasHash: "atlas-hash", LegacyChecksums: []string{"legacy-sha256"}}
 
 	tests := []struct {
 		name   string
 		record migrationRecord
 		want   bool
 	}{
-		{name: "legacy checksum", record: migrationRecord{Checksum: "legacy-sha256"}, want: true},
+		{name: "current checksum", record: migrationRecord{Checksum: "current-sha256"}, want: true},
+		{name: "accepted legacy checksum", record: migrationRecord{Checksum: "legacy-sha256"}, want: true},
 		{name: "atlas checksum", record: migrationRecord{Checksum: "atlas-hash"}, want: true},
 		{name: "atlas checksum with h1 prefix", record: migrationRecord{Checksum: "h1:atlas-hash"}, want: true},
 		{name: "mismatch", record: migrationRecord{Checksum: "different"}, want: false},
@@ -46,5 +48,11 @@ func TestAtlasMigrationDirectoryIsValid(t *testing.T) {
 		if _, err := file.Stmts(); err != nil {
 			t.Fatalf("%s Stmts() error = %v", file.Name(), err)
 		}
+	}
+}
+
+func TestEntRuntimeIsInitializedForCLI(t *testing.T) {
+	if admingrant.DefaultCreatedAt == nil || admingrant.DefaultUpdatedAt == nil {
+		t.Fatal("ent runtime defaults were not initialized")
 	}
 }

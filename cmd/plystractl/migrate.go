@@ -14,11 +14,32 @@ import (
 )
 
 type migrationFile struct {
-	Version   string
-	Name      string
-	Filename  string
-	Checksum  string
-	AtlasHash string
+	Version         string
+	Name            string
+	Filename        string
+	Checksum        string
+	AtlasHash       string
+	LegacyChecksums []string
+}
+
+var acceptedLegacyMigrationChecksums = map[string][]string{
+	"013_user_admin_grants.sql": {
+		"d2ef3dc130b43122c208c96c4596ab1136fee922c6dd49f5a9f56030541368b4",
+		"M3SdktRDBk9mWt+EJBiCQOSUYUIF4iR4om6pjjDDFPE=",
+		"h1:M3SdktRDBk9mWt+EJBiCQOSUYUIF4iR4om6pjjDDFPE=",
+	},
+	"014_authn_hardening.sql": {
+		"Zc2QHpKiir8vRyyYAK6IvrRc+fuROO8j9ldoXmBh12U=",
+		"h1:Zc2QHpKiir8vRyyYAK6IvrRc+fuROO8j9ldoXmBh12U=",
+	},
+	"015_api_keys.sql": {
+		"RnLln++6SQ3SnC9S6vOBTWmk6KvMyPFSHneYczxtUbY=",
+		"h1:RnLln++6SQ3SnC9S6vOBTWmk6KvMyPFSHneYczxtUbY=",
+	},
+	"016_demo_passwords_argon2id.sql": {
+		"mBFsQTiT/q+79lzC4o8gMglUioV9S4LfvyQDHfOrFfk=",
+		"h1:mBFsQTiT/q+79lzC4o8gMglUioV9S4LfvyQDHfOrFfk=",
+	},
 }
 
 func runMigrate(ctx context.Context, command string) error {
@@ -115,6 +136,7 @@ func (m migrationFile) expectedChecksumList() []string {
 	if m.AtlasHash != "" {
 		checksums = append(checksums, m.AtlasHash, "h1:"+m.AtlasHash)
 	}
+	checksums = append(checksums, m.LegacyChecksums...)
 	return checksums
 }
 
@@ -185,11 +207,12 @@ func loadMigrations(dir string) ([]migrationFile, error) {
 		version, name := parseMigrationName(entry.Name())
 		sum := sha256.Sum256(raw)
 		migrations = append(migrations, migrationFile{
-			Version:   version,
-			Name:      name,
-			Filename:  entry.Name(),
-			Checksum:  hex.EncodeToString(sum[:]),
-			AtlasHash: atlasHashes[entry.Name()],
+			Version:         version,
+			Name:            name,
+			Filename:        entry.Name(),
+			Checksum:        hex.EncodeToString(sum[:]),
+			AtlasHash:       atlasHashes[entry.Name()],
+			LegacyChecksums: acceptedLegacyMigrationChecksums[entry.Name()],
 		})
 	}
 	sort.Slice(migrations, func(i, j int) bool {

@@ -1401,6 +1401,9 @@ components:
                     type: string
                 refresh_token:
                     type: string
+                registration_mode:
+                    example: ordinary
+                    type: string
                 registration_requires_approval:
                     type: boolean
                 space_admin_grant_id:
@@ -1410,6 +1413,8 @@ components:
                     type: string
                 user:
                     $ref: '#/components/schemas/ApiOpenAPIUserSession'
+                user_only:
+                    type: boolean
             type: object
         ApiOpenAPIResource:
             properties:
@@ -1744,7 +1749,7 @@ components:
         ApiOpenAPIVersionResponse:
             properties:
                 version:
-                    example: 1.0.0-rc115
+                    example: 1.0.0-rc121
                     type: string
             type: object
         ApiPermissionMutationRequest:
@@ -2285,7 +2290,7 @@ components:
 info:
     description: Self-hosted Plystra Core API. Stable surfaces cover identity, authorization, resource registry, audit, admin control-plane, and scoped API keys; plugin, template, and Data Console routes are preview metadata surfaces.
     title: Plystra Core API
-    version: 1.0.0-rc115
+    version: 1.0.0-rc121
 openapi: 3.0.3
 paths:
     /api/v1/actor/context:
@@ -2778,7 +2783,7 @@ paths:
                 - Auth
     /api/v1/auth/register:
         post:
-            description: Registration is disabled by default. Production deployments must use explicit registration tokens, and first-super-admin bootstrap requires PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED plus PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN.
+            description: Registration is disabled by default. Token-protected ordinary registration creates a user, personal Space, Member, UserMember, Space admin grant, and session. First-super-admin bootstrap requires PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED plus PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN. Public user-only registration with PLYSTRA_AUTH_PUBLIC_USER_REGISTRATION_ENABLED creates only a User and does not create a personal Space, Member, UserMember, Space admin grant, or session.
             operationId: register
             requestBody:
                 content:
@@ -2799,7 +2804,7 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
                     description: Error response.
-            summary: Register a user and create an initial session
+            summary: Register a user
             tags:
                 - Auth
     /api/v1/authz/check:

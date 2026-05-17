@@ -19,7 +19,7 @@ import (
 )
 
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"
-const defaultCoreVersion = "1.0.0-rc115"
+const defaultCoreVersion = "1.0.0-rc121"
 
 const (
 	defaultSessionSecret = "change-me-session-secret-at-least-32-characters"
@@ -179,7 +179,7 @@ func validateProductionConfig() error {
 }
 
 func validateRegistrationConfig() error {
-	if featureEnabled("PLYSTRA_AUTH_REGISTRATION_ENABLED") {
+	if featureEnabled("PLYSTRA_AUTH_REGISTRATION_ENABLED") && !featureEnabled("PLYSTRA_AUTH_PUBLIC_USER_REGISTRATION_ENABLED") {
 		if !registrationSecretSafe("PLYSTRA_AUTH_REGISTRATION_TOKEN") {
 			return fmt.Errorf("PLYSTRA_AUTH_REGISTRATION_TOKEN must be set and at least 32 characters when registration is enabled in production")
 		}

@@ -76,6 +76,17 @@ func TestValidateProductionConfigRequiresRegistrationTokenWhenEnabled(t *testing
 	}
 }
 
+func TestValidateProductionConfigAllowsPublicUserOnlyRegistrationWithoutToken(t *testing.T) {
+	setValidProductionEnv(t)
+	t.Setenv("PLYSTRA_AUTH_REGISTRATION_ENABLED", "true")
+	t.Setenv("PLYSTRA_AUTH_REGISTRATION_TOKEN", "")
+	t.Setenv("PLYSTRA_AUTH_PUBLIC_USER_REGISTRATION_ENABLED", "true")
+
+	if err := validateProductionConfig(); err != nil {
+		t.Fatalf("validateProductionConfig error = %v, want public user-only registration without token to pass", err)
+	}
+}
+
 func TestValidateProductionConfigRequiresBootstrapRegistrationTokenWhenEnabled(t *testing.T) {
 	setValidProductionEnv(t)
 	t.Setenv("PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED", "true")

@@ -22,6 +22,16 @@ const (
 	registerLockKey = int64(750100601006)
 )
 
+const publicUserRegistrationEnv = "PLYSTRA_AUTH_PUBLIC_USER_REGISTRATION_ENABLED"
+
+type registrationMode string
+
+const (
+	registrationModeOrdinary       registrationMode = "ordinary"
+	registrationModeBootstrap      registrationMode = "bootstrap"
+	registrationModePublicUserOnly registrationMode = "public_user_only"
+)
+
 type authLoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -81,9 +91,13 @@ func (s *Server) handleAuthRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer releaseLock()
-	bootstrap, err := s.registrationAllowed(r.Context(), req)
+	mode, err := s.registrationAllowed(r.Context(), req)
 	if err != nil {
 		writeError(w, r, http.StatusForbidden, "REGISTRATION_DISABLED", err.Error(), nil)
+		return
+	}
+	if mode == registrationModePublicUserOnly {
+		s.handlePublicUserOnlyRegister(w, r, client, req)
 		return
 	}
 	passwordHash, err := hashPassword(req.Password)
@@ -179,7 +193,7 @@ func (s *Server) handleAuthRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	bootstrapGrantID := ""
-	if bootstrap {
+	if mode == registrationModeBootstrap {
 		bootstrapGrantID = newEntityID("ag")
 		if _, err := tx.AdminGrant.Create().
 			SetID(bootstrapGrantID).
@@ -231,9 +245,46 @@ func (s *Server) handleAuthRegister(w http.ResponseWriter, r *http.Request) {
 			"relation_type":       "self",
 			"is_primary":          true,
 		}},
-		"bootstrap_super_admin":          bootstrap,
+		"bootstrap_super_admin":          mode == registrationModeBootstrap,
 		"bootstrap_admin_grant_id":       bootstrapGrantID,
 		"space_admin_grant_id":           spaceAdminGrantID,
+		"registration_mode":              string(mode),
+		"user_only":                      false,
+		"registration_requires_approval": false,
+	})
+}
+
+func (s *Server) handlePublicUserOnlyRegister(w http.ResponseWriter, r *http.Request, client *coreent.Client, req authRegisterRequest) {
+	passwordHash, err := hashPassword(req.Password)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to hash password.", err.Error())
+		return
+	}
+	userID := newEntityID("user")
+	now := time.Now().UTC()
+	u, err := client.User.Create().
+		SetID(userID).
+		SetEmail(req.Email).
+		SetNillableUsername(optionalString(derefString(req.Username))).
+		SetNillablePhone(optionalString(derefString(req.Phone))).
+		SetPasswordHash(passwordHash).
+		SetPasswordChangedAt(now).
+		SetStatus("active").
+		SetMetadata(nonNilMap(req.Metadata)).
+		Save(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusConflict, "USER_CREATE_FAILED", "Failed to register user.", err.Error())
+		return
+	}
+	writeData(w, r, http.StatusCreated, map[string]any{
+		"user":                           map[string]any{"id": u.ID, "email": u.Email, "status": u.Status},
+		"actor":                          nil,
+		"available_members":              []map[string]any{},
+		"bootstrap_super_admin":          false,
+		"bootstrap_admin_grant_id":       "",
+		"space_admin_grant_id":           "",
+		"registration_mode":              string(registrationModePublicUserOnly),
+		"user_only":                      true,
 		"registration_requires_approval": false,
 	})
 }
@@ -343,30 +394,38 @@ func validateRegisterRequest(req authRegisterRequest) error {
 	return nil
 }
 
-func (s *Server) registrationAllowed(ctx context.Context, req authRegisterRequest) (bool, error) {
+func (s *Server) registrationAllowed(ctx context.Context, req authRegisterRequest) (registrationMode, error) {
 	bootstrapAvailable, err := s.bootstrapRegistrationAvailable(ctx)
 	if err != nil {
-		return false, err
+		return "", err
 	}
 	if bootstrapAvailable && featureEnabled("PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED") {
-		if !registrationTokenMatches(req.RegistrationToken, "PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN") {
-			return false, validationError("bootstrap registration token is required.")
+		if strings.TrimSpace(req.RegistrationToken) != "" {
+			if !registrationTokenMatches(req.RegistrationToken, "PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN") {
+				return "", validationError("bootstrap registration token is required.")
+			}
+			return registrationModeBootstrap, nil
 		}
-		return true, nil
+	}
+	if featureEnabled(publicUserRegistrationEnv) {
+		return registrationModePublicUserOnly, nil
 	}
 	if bootstrapAvailable {
-		return false, validationError("first instance super admin must be bootstrapped before user registration.")
+		return "", validationError("first instance super admin must be bootstrapped before user registration.")
+	}
+	if featureEnabled("PLYSTRA_AUTH_REGISTRATION_ENABLED") && strings.TrimSpace(req.RegistrationToken) != "" {
+		if registrationTokenMatches(req.RegistrationToken, "PLYSTRA_AUTH_REGISTRATION_TOKEN") {
+			return registrationModeOrdinary, nil
+		}
+		return "", validationError("registration token is invalid.")
 	}
 	if !featureEnabled("PLYSTRA_AUTH_REGISTRATION_ENABLED") {
-		return false, validationError("registration is disabled.")
+		return "", validationError("registration is disabled.")
 	}
 	if strings.EqualFold(firstEnv("SERVER_MODE", "PLYSTRA_ENV"), "production") && strings.TrimSpace(firstEnv("PLYSTRA_AUTH_REGISTRATION_TOKEN")) == "" {
-		return false, validationError("PLYSTRA_AUTH_REGISTRATION_TOKEN is required when registration is enabled in production.")
+		return "", validationError("PLYSTRA_AUTH_REGISTRATION_TOKEN is required when registration is enabled in production.")
 	}
-	if !registrationTokenMatches(req.RegistrationToken, "PLYSTRA_AUTH_REGISTRATION_TOKEN") {
-		return false, validationError("registration token is invalid.")
-	}
-	return false, nil
+	return "", validationError("registration token is invalid.")
 }
 
 func (s *Server) bootstrapRegistrationAvailable(ctx context.Context) (bool, error) {

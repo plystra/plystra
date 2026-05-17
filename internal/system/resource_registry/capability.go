@@ -26,7 +26,7 @@ func (c *Capability) Manifest() kcap.Manifest {
 		ID:      ID,
 		Kind:    kcap.KindSystemCapability,
 		Name:    "Resource Registry",
-		Version: "1.0.0-rc115",
+		Version: "1.0.0-rc121",
 		Runtime: kcap.Runtime{Type: kcap.RuntimeBuiltin, Protocol: kcap.ProtocolInProcess, Address: "builtin"},
 		Requires: kcap.Requires{
 			Kernel:       ">=0.1.0",
