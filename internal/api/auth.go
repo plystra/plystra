@@ -13,6 +13,7 @@ import (
 	coreent "github.com/plystra/plystra/ent"
 	entadmingrant "github.com/plystra/plystra/ent/admingrant"
 	entsession "github.com/plystra/plystra/ent/session"
+	entspace "github.com/plystra/plystra/ent/space"
 	entuser "github.com/plystra/plystra/ent/user"
 )
 
@@ -20,6 +21,7 @@ const (
 	accessTokenTTL  = 15 * time.Minute
 	refreshTokenTTL = 30 * 24 * time.Hour
 	registerLockKey = int64(750100601006)
+	defaultSpaceID  = "space_default"
 )
 
 const publicUserRegistrationEnv = "PLYSTRA_AUTH_PUBLIC_USER_REGISTRATION_ENABLED"
@@ -106,7 +108,7 @@ func (s *Server) handleAuthRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID := newEntityID("user")
-	spaceID := newEntityID("space")
+	spaceID := defaultSpaceID
 	memberID := newEntityID("member")
 	userMemberID := newEntityID("um")
 	now := time.Now().UTC()
@@ -136,17 +138,8 @@ func (s *Server) handleAuthRegister(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusConflict, "USER_CREATE_FAILED", "Failed to register user.", err.Error())
 		return
 	}
-	spaceName := firstNonEmpty(req.SpaceName, displayNameFromRegistration(req), "Personal Space")
-	spaceCreate := tx.Space.Create().
-		SetID(spaceID).
-		SetName(spaceName).
-		SetType("personal").
-		SetStatus("active").
-		SetMetadata(map[string]any{"source": "auth.register"})
-	if req.SpaceSlug != "" {
-		spaceCreate.SetSlug(req.SpaceSlug)
-	}
-	if _, err := spaceCreate.Save(r.Context()); err != nil {
+	spaceName := firstNonEmpty(req.SpaceName, "Default Space")
+	if _, err := ensureDefaultRegistrationSpace(r.Context(), tx.Client(), spaceID, spaceName, req.SpaceSlug); err != nil {
 		writeError(w, r, http.StatusConflict, "SPACE_CREATE_FAILED", "Failed to create registration space.", err.Error())
 		return
 	}
@@ -252,6 +245,39 @@ func (s *Server) handleAuthRegister(w http.ResponseWriter, r *http.Request) {
 		"user_only":                      false,
 		"registration_requires_approval": false,
 	})
+}
+
+func ensureDefaultRegistrationSpace(ctx context.Context, client *coreent.Client, spaceID, name, slug string) (*coreent.Space, error) {
+	space, err := client.Space.Query().
+		Where(entspace.ID(spaceID), entspace.DeletedAtIsNil()).
+		Only(ctx)
+	if coreent.IsNotFound(err) {
+		create := client.Space.Create().
+			SetID(spaceID).
+			SetName(firstNonEmpty(name, "Default Space")).
+			SetType("default").
+			SetStatus("active").
+			SetMetadata(map[string]any{"source": "auth.register", "mode": "simple"})
+		if slug != "" {
+			create.SetSlug(slug)
+		}
+		return create.Save(ctx)
+	}
+	if err != nil {
+		return nil, err
+	}
+	update := client.Space.UpdateOneID(space.ID).
+		SetStatus("active")
+	if strings.TrimSpace(space.Name) == "" && strings.TrimSpace(name) != "" {
+		update.SetName(strings.TrimSpace(name))
+	}
+	if strings.TrimSpace(space.Type) == "" {
+		update.SetType("default")
+	}
+	if err := update.Exec(ctx); err != nil {
+		return nil, err
+	}
+	return client.Space.Query().Where(entspace.ID(spaceID)).Only(ctx)
 }
 
 func (s *Server) handlePublicUserOnlyRegister(w http.ResponseWriter, r *http.Request, client *coreent.Client, req authRegisterRequest) {

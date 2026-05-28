@@ -2849,7 +2849,7 @@ paths:
                 - Auth
     /api/v1/auth/register:
         post:
-            description: Registration is disabled by default. Token-protected ordinary registration creates a user, personal Space, Member, UserMember, Space admin grant, and session. First-super-admin bootstrap requires PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED plus PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN. Public user-only registration with PLYSTRA_AUTH_PUBLIC_USER_REGISTRATION_ENABLED creates only a User and does not create a personal Space, Member, UserMember, Space admin grant, or session.
+            description: Registration is disabled by default. Token-protected ordinary registration creates a user, default Member, UserMember binding, Space admin grant, and session inside the deployment-level Simple Mode default Space. First-super-admin bootstrap requires PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED plus PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN. Public user-only registration with PLYSTRA_AUTH_PUBLIC_USER_REGISTRATION_ENABLED creates only a User and does not create a Member, UserMember binding, admin grant, or session.
             operationId: register
             requestBody:
                 content:

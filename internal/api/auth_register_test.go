@@ -148,6 +148,38 @@ func TestAuthRegisterAllowsOrdinaryRegistrationAfterBootstrap(t *testing.T) {
 	}
 }
 
+func TestAuthRegisterUsesOneDefaultSpaceForSimpleMode(t *testing.T) {
+	t.Setenv("PLYSTRA_AUTH_REGISTRATION_ENABLED", "true")
+	t.Setenv("PLYSTRA_AUTH_REGISTRATION_TOKEN", "ordinary-registration-token-at-least-32-chars")
+	server, handler := newRegisterTestServer(t)
+	seedRegisterTestSuperAdmin(t, context.Background(), server)
+
+	var spaceIDs []string
+	for i := 0; i < 2; i++ {
+		email := uniqueRegisterEmail(t, fmt.Sprintf("simple-%d", i))
+		rec := registerJSONRequest(handler, map[string]any{
+			"email":               email,
+			"password":            "long-enough-password",
+			"member_display_name": fmt.Sprintf("register-test simple member %d", i),
+			"registration_token":  "ordinary-registration-token-at-least-32-chars",
+		})
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("register %d status = %d, want 201, body=%s", i, rec.Code, rec.Body.String())
+		}
+		payload := decodeRegisterPayload(t, rec)
+		data := payload["data"].(map[string]any)
+		actor := data["actor"].(map[string]any)
+		spaceID, _ := actor["space_id"].(string)
+		spaceIDs = append(spaceIDs, spaceID)
+	}
+	if spaceIDs[0] != defaultSpaceID || spaceIDs[1] != defaultSpaceID {
+		t.Fatalf("registered users used spaces %#v, want %q", spaceIDs, defaultSpaceID)
+	}
+	if count, err := server.ent.Space.Query().Where(entspace.ID(defaultSpaceID), entspace.DeletedAtIsNil()).Count(context.Background()); err != nil || count != 1 {
+		t.Fatalf("default space count = %d, err=%v, want 1", count, err)
+	}
+}
+
 func TestAuthRegisterPublicUserOnlyDoesNotCreateActorOrAdminState(t *testing.T) {
 	t.Setenv(publicUserRegistrationEnv, "true")
 	server, handler := newRegisterTestServer(t)
