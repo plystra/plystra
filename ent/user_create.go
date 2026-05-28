@@ -96,20 +96,6 @@ func (_c *UserCreate) SetNillablePasswordChangedAt(v *time.Time) *UserCreate {
 	return _c
 }
 
-// SetEmailVerifiedAt sets the "email_verified_at" field.
-func (_c *UserCreate) SetEmailVerifiedAt(v time.Time) *UserCreate {
-	_c.mutation.SetEmailVerifiedAt(v)
-	return _c
-}
-
-// SetNillableEmailVerifiedAt sets the "email_verified_at" field if the given value is not nil.
-func (_c *UserCreate) SetNillableEmailVerifiedAt(v *time.Time) *UserCreate {
-	if v != nil {
-		_c.SetEmailVerifiedAt(*v)
-	}
-	return _c
-}
-
 // SetLastLoginAt sets the "last_login_at" field.
 func (_c *UserCreate) SetLastLoginAt(v time.Time) *UserCreate {
 	_c.mutation.SetLastLoginAt(v)
@@ -300,10 +286,6 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.PasswordChangedAt(); ok {
 		_spec.SetField(user.FieldPasswordChangedAt, field.TypeTime, value)
 		_node.PasswordChangedAt = &value
-	}
-	if value, ok := _c.mutation.EmailVerifiedAt(); ok {
-		_spec.SetField(user.FieldEmailVerifiedAt, field.TypeTime, value)
-		_node.EmailVerifiedAt = &value
 	}
 	if value, ok := _c.mutation.LastLoginAt(); ok {
 		_spec.SetField(user.FieldLastLoginAt, field.TypeTime, value)

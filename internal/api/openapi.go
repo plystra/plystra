@@ -132,22 +132,6 @@ type openAPIUserSession struct {
 	Status string `json:"status" example:"active"`
 }
 
-type openAPIAuthChallengeAcceptedResponse struct {
-	Accepted          bool   `json:"accepted" example:"true"`
-	ExpiresAt         string `json:"expires_at" format:"date-time"`
-	DeliveryMethod    string `json:"delivery_method" example:"email_code"`
-	ChallengeID       string `json:"challenge_id,omitempty" description:"Only returned outside production mode."`
-	EmailProviderID   string `json:"email_provider_message_id,omitempty"`
-	EmailDeliveryMode string `json:"email_delivery_mode" example:"capability"`
-}
-
-type openAPIEmailCodeVerifyResponse struct {
-	Verified    bool   `json:"verified" example:"true"`
-	Email       string `json:"email" example:"alice@example.com"`
-	UserID      string `json:"user_id,omitempty" example:"user_alice"`
-	ChallengeID string `json:"challenge_id,omitempty"`
-}
-
 type openAPILogoutResponse struct {
 	LoggedOut bool `json:"logged_out" example:"true"`
 }
@@ -230,7 +214,6 @@ type openAPIUser struct {
 	Status            string         `json:"status"`
 	Metadata          map[string]any `json:"metadata"`
 	PasswordChangedAt *time.Time     `json:"password_changed_at,omitempty"`
-	EmailVerifiedAt   *time.Time     `json:"email_verified_at,omitempty"`
 	LastLoginAt       *time.Time     `json:"last_login_at,omitempty"`
 	CreatedAt         string         `json:"created_at" format:"date-time"`
 	UpdatedAt         string         `json:"updated_at" format:"date-time"`
@@ -720,10 +703,6 @@ func openAPIRoutes() []openAPIRoute {
 
 		{Method: http.MethodPost, Path: "/api/v1/auth/register", Tag: "Auth", ID: "register", Summary: "Register a user", Description: "Registration is disabled by default. Token-protected ordinary registration creates a user, personal Space, Member, UserMember, Space admin grant, and session. First-super-admin bootstrap requires PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED plus PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN. Public user-only registration with PLYSTRA_AUTH_PUBLIC_USER_REGISTRATION_ENABLED creates only a User and does not create a personal Space, Member, UserMember, Space admin grant, or session.", Body: new(authRegisterRequest), Response: new(openAPIEnvelope[openAPIRegisterResponse]), Status: http.StatusCreated, Security: openAPIPublic},
 		{Method: http.MethodPost, Path: "/api/v1/auth/login", Tag: "Auth", ID: "login", Summary: "Create a user session", Body: new(authLoginRequest), Response: new(openAPIEnvelope[openAPILoginResponse]), Security: openAPIPublic},
-		{Method: http.MethodPost, Path: "/api/v1/auth/email-code", Tag: "Auth", ID: "requestEmailVerificationCode", Summary: "Send an email verification code", Description: "Creates a short-lived single-use email verification challenge and sends it through the configured external email capability.", Body: new(authEmailCodeRequest), Response: new(openAPIEnvelope[openAPIAuthChallengeAcceptedResponse]), Status: http.StatusAccepted, Security: openAPIPublic},
-		{Method: http.MethodPost, Path: "/api/v1/auth/email-code/verify", Tag: "Auth", ID: "verifyEmailCode", Summary: "Verify an email code", Body: new(authVerifyEmailCodeRequest), Response: new(openAPIEnvelope[openAPIEmailCodeVerifyResponse]), Security: openAPIPublic},
-		{Method: http.MethodPost, Path: "/api/v1/auth/magic-link", Tag: "Auth", ID: "requestMagicLink", Summary: "Send a magic sign-in link", Description: "Creates a short-lived single-use magic-link challenge and sends it through the configured external email capability.", Body: new(authMagicLinkRequest), Response: new(openAPIEnvelope[openAPIAuthChallengeAcceptedResponse]), Status: http.StatusAccepted, Security: openAPIPublic},
-		{Method: http.MethodPost, Path: "/api/v1/auth/magic-link/consume", Tag: "Auth", ID: "consumeMagicLink", Summary: "Consume a magic sign-in link", Body: new(authConsumeMagicLinkRequest), Response: new(openAPIEnvelope[openAPILoginResponse]), Security: openAPIPublic},
 		{Method: http.MethodPost, Path: "/api/v1/auth/refresh", Tag: "Auth", ID: "refreshSession", Summary: "Rotate access and refresh tokens", Body: new(authRefreshRequest), Response: new(openAPIEnvelope[openAPIRefreshResponse]), Security: openAPIPublic},
 		{Method: http.MethodPost, Path: "/api/v1/auth/logout", Tag: "Auth", ID: "logout", Summary: "Revoke a session token", Body: new(authLogoutRequest), Response: new(openAPIEnvelope[openAPILogoutResponse]), Security: openAPIPublic},
 		{Method: http.MethodGet, Path: "/api/v1/actor/context", Tag: "Actor", ID: "getActorContext", Summary: "Get current actor context", Response: new(openAPIEnvelope[openAPIActorContextResponse]), Security: openAPISession},

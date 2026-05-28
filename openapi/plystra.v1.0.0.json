@@ -806,89 +806,6 @@
         ]
       }
     },
-    "/api/v1/auth/email-code": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "Send an email verification code",
-        "description": "Creates a short-lived single-use email verification challenge and sends it through the configured external email capability.",
-        "operationId": "requestEmailVerificationCode",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApiAuthEmailCodeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "default": {
-            "description": "Error response.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
-                }
-              }
-            }
-          },
-          "202": {
-            "description": "Accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthChallengeAcceptedResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/email-code/verify": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "Verify an email code",
-        "operationId": "verifyEmailCode",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApiAuthVerifyEmailCodeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "default": {
-            "description": "Error response.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIEmailCodeVerifyResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/auth/login": {
       "post": {
         "tags": [
@@ -964,89 +881,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPILogoutResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/magic-link": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "Send a magic sign-in link",
-        "description": "Creates a short-lived single-use magic-link challenge and sends it through the configured external email capability.",
-        "operationId": "requestMagicLink",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApiAuthMagicLinkRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "default": {
-            "description": "Error response.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
-                }
-              }
-            }
-          },
-          "202": {
-            "description": "Accepted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthChallengeAcceptedResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/magic-link/consume": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "Consume a magic sign-in link",
-        "operationId": "consumeMagicLink",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApiAuthConsumeMagicLinkRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "default": {
-            "description": "Error response.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPILoginResponse"
                 }
               }
             }
@@ -6485,30 +6319,6 @@
           }
         }
       },
-      "ApiAuthConsumeMagicLinkRequest": {
-        "type": "object",
-        "properties": {
-          "token": {
-            "type": "string"
-          }
-        }
-      },
-      "ApiAuthEmailCodeRequest": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": {},
-            "nullable": true
-          },
-          "redirect_url": {
-            "type": "string"
-          }
-        }
-      },
       "ApiAuthLoginRequest": {
         "type": "object",
         "properties": {
@@ -6524,22 +6334,6 @@
         "type": "object",
         "properties": {
           "refresh_token": {
-            "type": "string"
-          }
-        }
-      },
-      "ApiAuthMagicLinkRequest": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "metadata": {
-            "type": "object",
-            "additionalProperties": {},
-            "nullable": true
-          },
-          "redirect_url": {
             "type": "string"
           }
         }
@@ -6585,17 +6379,6 @@
           "username": {
             "type": "string",
             "nullable": true
-          }
-        }
-      },
-      "ApiAuthVerifyEmailCodeRequest": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
           }
         }
       },
@@ -7107,34 +6890,6 @@
           }
         }
       },
-      "ApiOpenAPIAuthChallengeAcceptedResponse": {
-        "type": "object",
-        "properties": {
-          "accepted": {
-            "type": "boolean",
-            "example": true
-          },
-          "challenge_id": {
-            "type": "string",
-            "description": "Only returned outside production mode."
-          },
-          "delivery_method": {
-            "type": "string",
-            "example": "email_code"
-          },
-          "email_delivery_mode": {
-            "type": "string",
-            "example": "capability"
-          },
-          "email_provider_message_id": {
-            "type": "string"
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
       "ApiOpenAPIAuthzCheckResponse": {
         "type": "object",
         "properties": {
@@ -7173,26 +6928,6 @@
           },
           "row": {
             "$ref": "#/components/schemas/ApiOpenAPIResource"
-          }
-        }
-      },
-      "ApiOpenAPIEmailCodeVerifyResponse": {
-        "type": "object",
-        "properties": {
-          "challenge_id": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string",
-            "example": "alice@example.com"
-          },
-          "user_id": {
-            "type": "string",
-            "example": "user_alice"
-          },
-          "verified": {
-            "type": "boolean",
-            "example": true
           }
         }
       },
@@ -7256,18 +6991,6 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthChallengeAcceptedResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/ApiOpenAPIAuthChallengeAcceptedResponse"
-          },
-          "request_id": {
-            "type": "string",
-            "example": "req_01hzyj6b6q8"
-          }
-        }
-      },
       "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthzCheckResponse": {
         "type": "object",
         "properties": {
@@ -7285,18 +7008,6 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/ApiOpenAPIDataRowMutationResponse"
-          },
-          "request_id": {
-            "type": "string",
-            "example": "req_01hzyj6b6q8"
-          }
-        }
-      },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIEmailCodeVerifyResponse": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/ApiOpenAPIEmailCodeVerifyResponse"
           },
           "request_id": {
             "type": "string",
@@ -8922,11 +8633,6 @@
           },
           "email": {
             "type": "string"
-          },
-          "email_verified_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
           },
           "id": {
             "type": "string"

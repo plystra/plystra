@@ -16,7 +16,6 @@ import (
 	"github.com/plystra/plystra/ent/apikey"
 	"github.com/plystra/plystra/ent/auditeventtype"
 	"github.com/plystra/plystra/ent/auditlog"
-	"github.com/plystra/plystra/ent/authchallenge"
 	"github.com/plystra/plystra/ent/backgroundjob"
 	"github.com/plystra/plystra/ent/group"
 	"github.com/plystra/plystra/ent/member"
@@ -101,7 +100,6 @@ func checkColumn(t, c string) error {
 			apikey.Table:                   apikey.ValidColumn,
 			auditeventtype.Table:           auditeventtype.ValidColumn,
 			auditlog.Table:                 auditlog.ValidColumn,
-			authchallenge.Table:            authchallenge.ValidColumn,
 			backgroundjob.Table:            backgroundjob.ValidColumn,
 			group.Table:                    group.ValidColumn,
 			member.Table:                   member.ValidColumn,

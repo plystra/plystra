@@ -97,36 +97,6 @@ func TestValidateProductionConfigRequiresBootstrapRegistrationTokenWhenEnabled(t
 	}
 }
 
-func TestValidateProductionConfigRequiresEmailCapability(t *testing.T) {
-	setValidProductionEnv(t)
-	t.Setenv("PLYSTRA_EMAIL_CAPABILITY_URL", "")
-
-	err := validateProductionConfig()
-	if err == nil || !strings.Contains(err.Error(), "PLYSTRA_EMAIL_CAPABILITY_URL") {
-		t.Fatalf("validateProductionConfig error = %v, want email capability URL rejection", err)
-	}
-}
-
-func TestValidateProductionConfigRejectsEmailLogMode(t *testing.T) {
-	setValidProductionEnv(t)
-	t.Setenv("PLYSTRA_EMAIL_DELIVERY_MODE", "log")
-
-	err := validateProductionConfig()
-	if err == nil || !strings.Contains(err.Error(), "PLYSTRA_EMAIL_DELIVERY_MODE") {
-		t.Fatalf("validateProductionConfig error = %v, want email log mode rejection", err)
-	}
-}
-
-func TestValidateProductionConfigRejectsUnsafeRedirectOrigin(t *testing.T) {
-	setValidProductionEnv(t)
-	t.Setenv("PLYSTRA_AUTH_ALLOWED_REDIRECT_ORIGINS", "http://console.example.com")
-
-	err := validateProductionConfig()
-	if err == nil || !strings.Contains(err.Error(), "PLYSTRA_AUTH_ALLOWED_REDIRECT_ORIGINS") {
-		t.Fatalf("validateProductionConfig error = %v, want redirect origin rejection", err)
-	}
-}
-
 func TestNewHTTPServerUsesProductionTimeouts(t *testing.T) {
 	t.Setenv("HTTP_READ_HEADER_TIMEOUT", "7s")
 	t.Setenv("HTTP_READ_TIMEOUT", "31s")
@@ -167,7 +137,4 @@ func setValidProductionEnv(t *testing.T) {
 	t.Setenv("PLYSTRA_API_KEY_SECRET", "production-api-key-secret-at-least-32-characters")
 	t.Setenv("CORS_ALLOWED_ORIGINS", "https://console.example.com")
 	t.Setenv("SERVER_PUBLIC_URL", "https://plystra.example.com")
-	t.Setenv("PLYSTRA_EMAIL_CAPABILITY_URL", "https://email-capability.example.com/contract/v1/email/send")
-	t.Setenv("PLYSTRA_EMAIL_CAPABILITY_TOKEN", "production-email-capability-token-at-least-32-characters")
-	t.Setenv("PLYSTRA_AUTH_EMAIL_FROM", "no-reply@example.com")
 }

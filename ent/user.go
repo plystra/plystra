@@ -30,8 +30,6 @@ type User struct {
 	PasswordHash *string `json:"-"`
 	// PasswordChangedAt holds the value of the "password_changed_at" field.
 	PasswordChangedAt *time.Time `json:"password_changed_at,omitempty"`
-	// EmailVerifiedAt holds the value of the "email_verified_at" field.
-	EmailVerifiedAt *time.Time `json:"email_verified_at,omitempty"`
 	// LastLoginAt holds the value of the "last_login_at" field.
 	LastLoginAt *time.Time `json:"last_login_at,omitempty"`
 	// Metadata holds the value of the "metadata" field.
@@ -54,7 +52,7 @@ func (*User) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case user.FieldID, user.FieldEmail, user.FieldUsername, user.FieldPhone, user.FieldStatus, user.FieldPasswordHash:
 			values[i] = new(sql.NullString)
-		case user.FieldPasswordChangedAt, user.FieldEmailVerifiedAt, user.FieldLastLoginAt, user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldDeletedAt:
+		case user.FieldPasswordChangedAt, user.FieldLastLoginAt, user.FieldCreatedAt, user.FieldUpdatedAt, user.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -116,13 +114,6 @@ func (_m *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.PasswordChangedAt = new(time.Time)
 				*_m.PasswordChangedAt = value.Time
-			}
-		case user.FieldEmailVerifiedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field email_verified_at", values[i])
-			} else if value.Valid {
-				_m.EmailVerifiedAt = new(time.Time)
-				*_m.EmailVerifiedAt = value.Time
 			}
 		case user.FieldLastLoginAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -214,11 +205,6 @@ func (_m *User) String() string {
 	builder.WriteString(", ")
 	if v := _m.PasswordChangedAt; v != nil {
 		builder.WriteString("password_changed_at=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
-	if v := _m.EmailVerifiedAt; v != nil {
-		builder.WriteString("email_verified_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")

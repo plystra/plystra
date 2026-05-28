@@ -57,18 +57,6 @@ func (f AuditLogFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, er
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AuditLogMutation", m)
 }
 
-// The AuthChallengeFunc type is an adapter to allow the use of ordinary
-// function as AuthChallenge mutator.
-type AuthChallengeFunc func(context.Context, *ent.AuthChallengeMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f AuthChallengeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.AuthChallengeMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AuthChallengeMutation", m)
-}
-
 // The BackgroundJobFunc type is an adapter to allow the use of ordinary
 // function as BackgroundJob mutator.
 type BackgroundJobFunc func(context.Context, *ent.BackgroundJobMutation) (ent.Value, error)

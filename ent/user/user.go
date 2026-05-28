@@ -25,8 +25,6 @@ const (
 	FieldPasswordHash = "password_hash"
 	// FieldPasswordChangedAt holds the string denoting the password_changed_at field in the database.
 	FieldPasswordChangedAt = "password_changed_at"
-	// FieldEmailVerifiedAt holds the string denoting the email_verified_at field in the database.
-	FieldEmailVerifiedAt = "email_verified_at"
 	// FieldLastLoginAt holds the string denoting the last_login_at field in the database.
 	FieldLastLoginAt = "last_login_at"
 	// FieldMetadata holds the string denoting the metadata field in the database.
@@ -50,7 +48,6 @@ var Columns = []string{
 	FieldStatus,
 	FieldPasswordHash,
 	FieldPasswordChangedAt,
-	FieldEmailVerifiedAt,
 	FieldLastLoginAt,
 	FieldMetadata,
 	FieldCreatedAt,
@@ -119,11 +116,6 @@ func ByPasswordHash(opts ...sql.OrderTermOption) OrderOption {
 // ByPasswordChangedAt orders the results by the password_changed_at field.
 func ByPasswordChangedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPasswordChangedAt, opts...).ToFunc()
-}
-
-// ByEmailVerifiedAt orders the results by the email_verified_at field.
-func ByEmailVerifiedAt(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldEmailVerifiedAt, opts...).ToFunc()
 }
 
 // ByLastLoginAt orders the results by the last_login_at field.

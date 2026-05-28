@@ -341,9 +341,9 @@ func TestPublicOperationalRoutesDoNotRequireBearerSession(t *testing.T) {
 	}
 }
 
-func TestPublicAuthEmailRoutesDoNotRequireBearerSession(t *testing.T) {
+func TestPublicMinimalAuthRoutesDoNotRequireBearerSession(t *testing.T) {
 	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
-	for _, path := range []string{"/api/v1/auth/email-code", "/api/v1/auth/email-code/verify", "/api/v1/auth/magic-link", "/api/v1/auth/magic-link/consume"} {
+	for _, path := range []string{"/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout"} {
 		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{}`))
 		req.Header.Set("Content-Type", "application/json")
 		rec := httptest.NewRecorder()

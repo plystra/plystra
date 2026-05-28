@@ -19,7 +19,6 @@ func (User) Fields() []ent.Field {
 		statusField("active"),
 		field.String("password_hash").Optional().Nillable().Sensitive(),
 		field.Time("password_changed_at").Optional().Nillable(),
-		field.Time("email_verified_at").Optional().Nillable(),
 		field.Time("last_login_at").Optional().Nillable(),
 		metadataField(),
 		createdAt(),

@@ -1,4 +1,4 @@
-h1:eHlfn3FtgWvUIXJm8PfWyslyjhTnkV7e2qGMtL8s59E=
+h1:ruzPNxdbqcxVH7CWQgT13s/AGG54AMigAPcetXke1AE=
 001_finance_demo.sql h1:6yv3CJVVhS9V3T9oB0dXmay0Y9tLgD46s7WQEn4dgz4=
 002_resource_registry.sql h1:SIovsOobXzfbuq0nUqzNgqt51zHRkhSDu3g247VkQa4=
 003_plugin_api_preview.sql h1:hz7SfVSTZ6EbNoyKV0F+C6vAYvsmpTBdfQe0PgntORk=
@@ -16,4 +16,3 @@ h1:eHlfn3FtgWvUIXJm8PfWyslyjhTnkV7e2qGMtL8s59E=
 015_api_keys.sql h1:LxVdL+A3B19bGL2wR7cl07uvZvnG7yo03XVPC81Swk8=
 016_demo_passwords_argon2id.sql h1:2wdHxmHoATMDoXZRVse7n93shsdc829XRzIh9LsHzMI=
 017_remove_demo_super_admin_grant.sql h1:hxxlbqaFGWspKs+8K3vyNS5Ao0Lu834CnsJTyEQ0WGA=
-018_auth_email_challenges.sql h1:W2HkTleQqYVEzBTY6w/Hi8MGzAklvJiareQGO9fGtyU=

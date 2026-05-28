@@ -26,7 +26,6 @@ func userMap(row *coreent.User) map[string]any {
 		"status":              row.Status,
 		"metadata":            nonNilMap(row.Metadata),
 		"password_changed_at": optionalTime(row.PasswordChangedAt),
-		"email_verified_at":   optionalTime(row.EmailVerifiedAt),
 		"last_login_at":       optionalTime(row.LastLoginAt),
 		"created_at":          formatTime(row.CreatedAt),
 		"updated_at":          formatTime(row.UpdatedAt),

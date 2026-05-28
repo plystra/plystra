@@ -18,7 +18,6 @@ import (
 	"github.com/plystra/plystra/ent/apikey"
 	"github.com/plystra/plystra/ent/auditeventtype"
 	"github.com/plystra/plystra/ent/auditlog"
-	"github.com/plystra/plystra/ent/authchallenge"
 	"github.com/plystra/plystra/ent/backgroundjob"
 	"github.com/plystra/plystra/ent/group"
 	"github.com/plystra/plystra/ent/member"
@@ -54,8 +53,6 @@ type Client struct {
 	AuditEventType *AuditEventTypeClient
 	// AuditLog is the client for interacting with the AuditLog builders.
 	AuditLog *AuditLogClient
-	// AuthChallenge is the client for interacting with the AuthChallenge builders.
-	AuthChallenge *AuthChallengeClient
 	// BackgroundJob is the client for interacting with the BackgroundJob builders.
 	BackgroundJob *BackgroundJobClient
 	// Group is the client for interacting with the Group builders.
@@ -111,7 +108,6 @@ func (c *Client) init() {
 	c.ApiKey = NewApiKeyClient(c.config)
 	c.AuditEventType = NewAuditEventTypeClient(c.config)
 	c.AuditLog = NewAuditLogClient(c.config)
-	c.AuthChallenge = NewAuthChallengeClient(c.config)
 	c.BackgroundJob = NewBackgroundJobClient(c.config)
 	c.Group = NewGroupClient(c.config)
 	c.Member = NewMemberClient(c.config)
@@ -228,7 +224,6 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ApiKey:                   NewApiKeyClient(cfg),
 		AuditEventType:           NewAuditEventTypeClient(cfg),
 		AuditLog:                 NewAuditLogClient(cfg),
-		AuthChallenge:            NewAuthChallengeClient(cfg),
 		BackgroundJob:            NewBackgroundJobClient(cfg),
 		Group:                    NewGroupClient(cfg),
 		Member:                   NewMemberClient(cfg),
@@ -272,7 +267,6 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ApiKey:                   NewApiKeyClient(cfg),
 		AuditEventType:           NewAuditEventTypeClient(cfg),
 		AuditLog:                 NewAuditLogClient(cfg),
-		AuthChallenge:            NewAuthChallengeClient(cfg),
 		BackgroundJob:            NewBackgroundJobClient(cfg),
 		Group:                    NewGroupClient(cfg),
 		Member:                   NewMemberClient(cfg),
@@ -322,12 +316,11 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.AdminGrant, c.ApiKey, c.AuditEventType, c.AuditLog, c.AuthChallenge,
-		c.BackgroundJob, c.Group, c.Member, c.MemberRole, c.Permission, c.Plugin,
-		c.PluginAdminMenu, c.PluginSettingsDefinition, c.PluginSettingsValue,
-		c.Resource, c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role,
-		c.RolePermission, c.Session, c.Space, c.TemplateInstallation, c.User,
-		c.UserMember,
+		c.AdminGrant, c.ApiKey, c.AuditEventType, c.AuditLog, c.BackgroundJob, c.Group,
+		c.Member, c.MemberRole, c.Permission, c.Plugin, c.PluginAdminMenu,
+		c.PluginSettingsDefinition, c.PluginSettingsValue, c.Resource,
+		c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role, c.RolePermission,
+		c.Session, c.Space, c.TemplateInstallation, c.User, c.UserMember,
 	} {
 		n.Use(hooks...)
 	}
@@ -337,12 +330,11 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.AdminGrant, c.ApiKey, c.AuditEventType, c.AuditLog, c.AuthChallenge,
-		c.BackgroundJob, c.Group, c.Member, c.MemberRole, c.Permission, c.Plugin,
-		c.PluginAdminMenu, c.PluginSettingsDefinition, c.PluginSettingsValue,
-		c.Resource, c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role,
-		c.RolePermission, c.Session, c.Space, c.TemplateInstallation, c.User,
-		c.UserMember,
+		c.AdminGrant, c.ApiKey, c.AuditEventType, c.AuditLog, c.BackgroundJob, c.Group,
+		c.Member, c.MemberRole, c.Permission, c.Plugin, c.PluginAdminMenu,
+		c.PluginSettingsDefinition, c.PluginSettingsValue, c.Resource,
+		c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role, c.RolePermission,
+		c.Session, c.Space, c.TemplateInstallation, c.User, c.UserMember,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -359,8 +351,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AuditEventType.mutate(ctx, m)
 	case *AuditLogMutation:
 		return c.AuditLog.mutate(ctx, m)
-	case *AuthChallengeMutation:
-		return c.AuthChallenge.mutate(ctx, m)
 	case *BackgroundJobMutation:
 		return c.BackgroundJob.mutate(ctx, m)
 	case *GroupMutation:
@@ -936,139 +926,6 @@ func (c *AuditLogClient) mutate(ctx context.Context, m *AuditLogMutation) (Value
 		return (&AuditLogDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown AuditLog mutation op: %q", m.Op())
-	}
-}
-
-// AuthChallengeClient is a client for the AuthChallenge schema.
-type AuthChallengeClient struct {
-	config
-}
-
-// NewAuthChallengeClient returns a client for the AuthChallenge from the given config.
-func NewAuthChallengeClient(c config) *AuthChallengeClient {
-	return &AuthChallengeClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `authchallenge.Hooks(f(g(h())))`.
-func (c *AuthChallengeClient) Use(hooks ...Hook) {
-	c.hooks.AuthChallenge = append(c.hooks.AuthChallenge, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `authchallenge.Intercept(f(g(h())))`.
-func (c *AuthChallengeClient) Intercept(interceptors ...Interceptor) {
-	c.inters.AuthChallenge = append(c.inters.AuthChallenge, interceptors...)
-}
-
-// Create returns a builder for creating a AuthChallenge entity.
-func (c *AuthChallengeClient) Create() *AuthChallengeCreate {
-	mutation := newAuthChallengeMutation(c.config, OpCreate)
-	return &AuthChallengeCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of AuthChallenge entities.
-func (c *AuthChallengeClient) CreateBulk(builders ...*AuthChallengeCreate) *AuthChallengeCreateBulk {
-	return &AuthChallengeCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *AuthChallengeClient) MapCreateBulk(slice any, setFunc func(*AuthChallengeCreate, int)) *AuthChallengeCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &AuthChallengeCreateBulk{err: fmt.Errorf("calling to AuthChallengeClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*AuthChallengeCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &AuthChallengeCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for AuthChallenge.
-func (c *AuthChallengeClient) Update() *AuthChallengeUpdate {
-	mutation := newAuthChallengeMutation(c.config, OpUpdate)
-	return &AuthChallengeUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *AuthChallengeClient) UpdateOne(_m *AuthChallenge) *AuthChallengeUpdateOne {
-	mutation := newAuthChallengeMutation(c.config, OpUpdateOne, withAuthChallenge(_m))
-	return &AuthChallengeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *AuthChallengeClient) UpdateOneID(id string) *AuthChallengeUpdateOne {
-	mutation := newAuthChallengeMutation(c.config, OpUpdateOne, withAuthChallengeID(id))
-	return &AuthChallengeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for AuthChallenge.
-func (c *AuthChallengeClient) Delete() *AuthChallengeDelete {
-	mutation := newAuthChallengeMutation(c.config, OpDelete)
-	return &AuthChallengeDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *AuthChallengeClient) DeleteOne(_m *AuthChallenge) *AuthChallengeDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *AuthChallengeClient) DeleteOneID(id string) *AuthChallengeDeleteOne {
-	builder := c.Delete().Where(authchallenge.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &AuthChallengeDeleteOne{builder}
-}
-
-// Query returns a query builder for AuthChallenge.
-func (c *AuthChallengeClient) Query() *AuthChallengeQuery {
-	return &AuthChallengeQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeAuthChallenge},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a AuthChallenge entity by its id.
-func (c *AuthChallengeClient) Get(ctx context.Context, id string) (*AuthChallenge, error) {
-	return c.Query().Where(authchallenge.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *AuthChallengeClient) GetX(ctx context.Context, id string) *AuthChallenge {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// Hooks returns the client hooks.
-func (c *AuthChallengeClient) Hooks() []Hook {
-	return c.hooks.AuthChallenge
-}
-
-// Interceptors returns the client interceptors.
-func (c *AuthChallengeClient) Interceptors() []Interceptor {
-	return c.inters.AuthChallenge
-}
-
-func (c *AuthChallengeClient) mutate(ctx context.Context, m *AuthChallengeMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&AuthChallengeCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&AuthChallengeUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&AuthChallengeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&AuthChallengeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown AuthChallenge mutation op: %q", m.Op())
 	}
 }
 
@@ -3735,17 +3592,17 @@ func (c *UserMemberClient) mutate(ctx context.Context, m *UserMemberMutation) (V
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AdminGrant, ApiKey, AuditEventType, AuditLog, AuthChallenge, BackgroundJob,
-		Group, Member, MemberRole, Permission, Plugin, PluginAdminMenu,
-		PluginSettingsDefinition, PluginSettingsValue, Resource, ResourceAction,
-		ResourceMapping, ResourceType, Role, RolePermission, Session, Space,
-		TemplateInstallation, User, UserMember []ent.Hook
+		AdminGrant, ApiKey, AuditEventType, AuditLog, BackgroundJob, Group, Member,
+		MemberRole, Permission, Plugin, PluginAdminMenu, PluginSettingsDefinition,
+		PluginSettingsValue, Resource, ResourceAction, ResourceMapping, ResourceType,
+		Role, RolePermission, Session, Space, TemplateInstallation, User,
+		UserMember []ent.Hook
 	}
 	inters struct {
-		AdminGrant, ApiKey, AuditEventType, AuditLog, AuthChallenge, BackgroundJob,
-		Group, Member, MemberRole, Permission, Plugin, PluginAdminMenu,
-		PluginSettingsDefinition, PluginSettingsValue, Resource, ResourceAction,
-		ResourceMapping, ResourceType, Role, RolePermission, Session, Space,
-		TemplateInstallation, User, UserMember []ent.Interceptor
+		AdminGrant, ApiKey, AuditEventType, AuditLog, BackgroundJob, Group, Member,
+		MemberRole, Permission, Plugin, PluginAdminMenu, PluginSettingsDefinition,
+		PluginSettingsValue, Resource, ResourceAction, ResourceMapping, ResourceType,
+		Role, RolePermission, Session, Space, TemplateInstallation, User,
+		UserMember []ent.Interceptor
 	}
 )
