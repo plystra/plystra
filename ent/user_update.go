@@ -136,6 +136,26 @@ func (_u *UserUpdate) ClearPasswordChangedAt() *UserUpdate {
 	return _u
 }
 
+// SetEmailVerifiedAt sets the "email_verified_at" field.
+func (_u *UserUpdate) SetEmailVerifiedAt(v time.Time) *UserUpdate {
+	_u.mutation.SetEmailVerifiedAt(v)
+	return _u
+}
+
+// SetNillableEmailVerifiedAt sets the "email_verified_at" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableEmailVerifiedAt(v *time.Time) *UserUpdate {
+	if v != nil {
+		_u.SetEmailVerifiedAt(*v)
+	}
+	return _u
+}
+
+// ClearEmailVerifiedAt clears the value of the "email_verified_at" field.
+func (_u *UserUpdate) ClearEmailVerifiedAt() *UserUpdate {
+	_u.mutation.ClearEmailVerifiedAt()
+	return _u
+}
+
 // SetLastLoginAt sets the "last_login_at" field.
 func (_u *UserUpdate) SetLastLoginAt(v time.Time) *UserUpdate {
 	_u.mutation.SetLastLoginAt(v)
@@ -287,6 +307,12 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.PasswordChangedAtCleared() {
 		_spec.ClearField(user.FieldPasswordChangedAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.EmailVerifiedAt(); ok {
+		_spec.SetField(user.FieldEmailVerifiedAt, field.TypeTime, value)
+	}
+	if _u.mutation.EmailVerifiedAtCleared() {
+		_spec.ClearField(user.FieldEmailVerifiedAt, field.TypeTime)
+	}
 	if value, ok := _u.mutation.LastLoginAt(); ok {
 		_spec.SetField(user.FieldLastLoginAt, field.TypeTime, value)
 	}
@@ -433,6 +459,26 @@ func (_u *UserUpdateOne) SetNillablePasswordChangedAt(v *time.Time) *UserUpdateO
 // ClearPasswordChangedAt clears the value of the "password_changed_at" field.
 func (_u *UserUpdateOne) ClearPasswordChangedAt() *UserUpdateOne {
 	_u.mutation.ClearPasswordChangedAt()
+	return _u
+}
+
+// SetEmailVerifiedAt sets the "email_verified_at" field.
+func (_u *UserUpdateOne) SetEmailVerifiedAt(v time.Time) *UserUpdateOne {
+	_u.mutation.SetEmailVerifiedAt(v)
+	return _u
+}
+
+// SetNillableEmailVerifiedAt sets the "email_verified_at" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableEmailVerifiedAt(v *time.Time) *UserUpdateOne {
+	if v != nil {
+		_u.SetEmailVerifiedAt(*v)
+	}
+	return _u
+}
+
+// ClearEmailVerifiedAt clears the value of the "email_verified_at" field.
+func (_u *UserUpdateOne) ClearEmailVerifiedAt() *UserUpdateOne {
+	_u.mutation.ClearEmailVerifiedAt()
 	return _u
 }
 
@@ -616,6 +662,12 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if _u.mutation.PasswordChangedAtCleared() {
 		_spec.ClearField(user.FieldPasswordChangedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.EmailVerifiedAt(); ok {
+		_spec.SetField(user.FieldEmailVerifiedAt, field.TypeTime, value)
+	}
+	if _u.mutation.EmailVerifiedAtCleared() {
+		_spec.ClearField(user.FieldEmailVerifiedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.LastLoginAt(); ok {
 		_spec.SetField(user.FieldLastLoginAt, field.TypeTime, value)

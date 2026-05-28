@@ -64,8 +64,15 @@ func (l *loginAttemptLimiter) retryAfter(keys []string) time.Duration {
 }
 
 func (l *loginAttemptLimiter) recordFailure(keys []string) time.Duration {
+	return l.recordAttempt(keys, l.limit)
+}
+
+func (l *loginAttemptLimiter) recordAttempt(keys []string, limit int) time.Duration {
 	if l == nil {
 		return 0
+	}
+	if limit < 1 {
+		limit = l.limit
 	}
 	now := l.now().UTC()
 	l.mu.Lock()
@@ -79,7 +86,7 @@ func (l *loginAttemptLimiter) recordFailure(keys []string) time.Duration {
 		}
 		record.Failures++
 		record.LastSeen = now
-		if record.Failures >= l.limit {
+		if record.Failures >= limit {
 			record.LockedUntil = now.Add(l.lockout)
 		}
 		l.records[key] = record

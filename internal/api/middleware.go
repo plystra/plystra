@@ -160,7 +160,7 @@ func publicRoute(r *http.Request) bool {
 	}
 	if r.Method == http.MethodPost {
 		switch path {
-		case "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout":
+		case "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/email-code", "/api/v1/auth/email-code/verify", "/api/v1/auth/magic-link", "/api/v1/auth/magic-link/consume", "/api/v1/auth/refresh", "/api/v1/auth/logout":
 			return true
 		case "/api/v1/actor/switch-member":
 			return true

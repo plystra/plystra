@@ -175,6 +175,52 @@ func validateProductionConfig() error {
 	if isLocalPublicURL(publicURL) {
 		return fmt.Errorf("SERVER_PUBLIC_URL must not point to localhost in production")
 	}
+	if err := validateProductionEmailConfig(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateProductionEmailConfig() error {
+	mode := strings.ToLower(strings.TrimSpace(firstEnv("PLYSTRA_EMAIL_DELIVERY_MODE", "EMAIL_DELIVERY_MODE")))
+	if mode == "" {
+		mode = "capability"
+	}
+	if mode == "log" {
+		return fmt.Errorf("PLYSTRA_EMAIL_DELIVERY_MODE=log is not allowed in production")
+	}
+	if mode != "capability" {
+		return fmt.Errorf("PLYSTRA_EMAIL_DELIVERY_MODE must be capability in production")
+	}
+	if strings.TrimSpace(firstEnv("PLYSTRA_EMAIL_CAPABILITY_URL", "EMAIL_CAPABILITY_URL")) == "" {
+		return fmt.Errorf("PLYSTRA_EMAIL_CAPABILITY_URL is required in production")
+	}
+	if !registrationSecretSafe("PLYSTRA_EMAIL_CAPABILITY_TOKEN") && !registrationSecretSafe("EMAIL_CAPABILITY_TOKEN") {
+		return fmt.Errorf("PLYSTRA_EMAIL_CAPABILITY_TOKEN must be set and at least 32 characters in production")
+	}
+	if strings.TrimSpace(firstEnv("PLYSTRA_AUTH_EMAIL_FROM", "EMAIL_FROM")) == "" {
+		return fmt.Errorf("PLYSTRA_AUTH_EMAIL_FROM is required in production")
+	}
+	if firstEnv("PLYSTRA_PUBLIC_APP_URL", "PUBLIC_APP_URL", "SERVER_PUBLIC_URL", "PLYSTRA_SERVER_PUBLIC_URL") == "" {
+		return fmt.Errorf("PLYSTRA_PUBLIC_APP_URL or SERVER_PUBLIC_URL is required for magic links in production")
+	}
+	if err := validateConfiguredRedirectOrigins(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateConfiguredRedirectOrigins() error {
+	for _, raw := range strings.Split(firstEnv("PLYSTRA_AUTH_ALLOWED_REDIRECT_ORIGINS"), ",") {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
+			continue
+		}
+		parsed, err := url.Parse(raw)
+		if err != nil || parsed.Scheme != "https" || parsed.Host == "" {
+			return fmt.Errorf("PLYSTRA_AUTH_ALLOWED_REDIRECT_ORIGINS must contain absolute https origins")
+		}
+	}
 	return nil
 }
 

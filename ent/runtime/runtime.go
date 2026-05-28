@@ -9,6 +9,7 @@ import (
 	"github.com/plystra/plystra/ent/apikey"
 	"github.com/plystra/plystra/ent/auditeventtype"
 	"github.com/plystra/plystra/ent/auditlog"
+	"github.com/plystra/plystra/ent/authchallenge"
 	"github.com/plystra/plystra/ent/backgroundjob"
 	"github.com/plystra/plystra/ent/group"
 	"github.com/plystra/plystra/ent/member"
@@ -168,6 +169,50 @@ func init() {
 	auditlogDescID := auditlogFields[0].Descriptor()
 	// auditlog.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	auditlog.IDValidator = auditlogDescID.Validators[0].(func(string) error)
+	authchallengeFields := schema.AuthChallenge{}.Fields()
+	_ = authchallengeFields
+	// authchallengeDescPurpose is the schema descriptor for purpose field.
+	authchallengeDescPurpose := authchallengeFields[1].Descriptor()
+	// authchallenge.PurposeValidator is a validator for the "purpose" field. It is called by the builders before save.
+	authchallenge.PurposeValidator = authchallengeDescPurpose.Validators[0].(func(string) error)
+	// authchallengeDescDeliveryMethod is the schema descriptor for delivery_method field.
+	authchallengeDescDeliveryMethod := authchallengeFields[2].Descriptor()
+	// authchallenge.DeliveryMethodValidator is a validator for the "delivery_method" field. It is called by the builders before save.
+	authchallenge.DeliveryMethodValidator = authchallengeDescDeliveryMethod.Validators[0].(func(string) error)
+	// authchallengeDescEmail is the schema descriptor for email field.
+	authchallengeDescEmail := authchallengeFields[3].Descriptor()
+	// authchallenge.EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	authchallenge.EmailValidator = authchallengeDescEmail.Validators[0].(func(string) error)
+	// authchallengeDescSecretHash is the schema descriptor for secret_hash field.
+	authchallengeDescSecretHash := authchallengeFields[5].Descriptor()
+	// authchallenge.SecretHashValidator is a validator for the "secret_hash" field. It is called by the builders before save.
+	authchallenge.SecretHashValidator = authchallengeDescSecretHash.Validators[0].(func(string) error)
+	// authchallengeDescAttempts is the schema descriptor for attempts field.
+	authchallengeDescAttempts := authchallengeFields[10].Descriptor()
+	// authchallenge.DefaultAttempts holds the default value on creation for the attempts field.
+	authchallenge.DefaultAttempts = authchallengeDescAttempts.Default.(int)
+	// authchallengeDescMaxAttempts is the schema descriptor for max_attempts field.
+	authchallengeDescMaxAttempts := authchallengeFields[11].Descriptor()
+	// authchallenge.DefaultMaxAttempts holds the default value on creation for the max_attempts field.
+	authchallenge.DefaultMaxAttempts = authchallengeDescMaxAttempts.Default.(int)
+	// authchallengeDescStatus is the schema descriptor for status field.
+	authchallengeDescStatus := authchallengeFields[12].Descriptor()
+	// authchallenge.DefaultStatus holds the default value on creation for the status field.
+	authchallenge.DefaultStatus = authchallengeDescStatus.Default.(string)
+	// authchallengeDescCreatedAt is the schema descriptor for created_at field.
+	authchallengeDescCreatedAt := authchallengeFields[18].Descriptor()
+	// authchallenge.DefaultCreatedAt holds the default value on creation for the created_at field.
+	authchallenge.DefaultCreatedAt = authchallengeDescCreatedAt.Default.(func() time.Time)
+	// authchallengeDescUpdatedAt is the schema descriptor for updated_at field.
+	authchallengeDescUpdatedAt := authchallengeFields[19].Descriptor()
+	// authchallenge.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	authchallenge.DefaultUpdatedAt = authchallengeDescUpdatedAt.Default.(func() time.Time)
+	// authchallenge.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	authchallenge.UpdateDefaultUpdatedAt = authchallengeDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// authchallengeDescID is the schema descriptor for id field.
+	authchallengeDescID := authchallengeFields[0].Descriptor()
+	// authchallenge.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	authchallenge.IDValidator = authchallengeDescID.Validators[0].(func(string) error)
 	backgroundjobFields := schema.BackgroundJob{}.Fields()
 	_ = backgroundjobFields
 	// backgroundjobDescJobType is the schema descriptor for job_type field.
@@ -763,11 +808,11 @@ func init() {
 	// user.DefaultStatus holds the default value on creation for the status field.
 	user.DefaultStatus = userDescStatus.Default.(string)
 	// userDescCreatedAt is the schema descriptor for created_at field.
-	userDescCreatedAt := userFields[9].Descriptor()
+	userDescCreatedAt := userFields[10].Descriptor()
 	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
 	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
 	// userDescUpdatedAt is the schema descriptor for updated_at field.
-	userDescUpdatedAt := userFields[10].Descriptor()
+	userDescUpdatedAt := userFields[11].Descriptor()
 	// user.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
 	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

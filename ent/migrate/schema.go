@@ -182,6 +182,58 @@ var (
 		Columns:    AuditLogsColumns,
 		PrimaryKey: []*schema.Column{AuditLogsColumns[0]},
 	}
+	// AuthChallengesColumns holds the columns for the "auth_challenges" table.
+	AuthChallengesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "purpose", Type: field.TypeString},
+		{Name: "delivery_method", Type: field.TypeString},
+		{Name: "email", Type: field.TypeString},
+		{Name: "user_id", Type: field.TypeString, Nullable: true},
+		{Name: "secret_hash", Type: field.TypeString},
+		{Name: "code_hash", Type: field.TypeString, Nullable: true},
+		{Name: "redirect_url", Type: field.TypeString, Nullable: true},
+		{Name: "request_ip", Type: field.TypeString, Nullable: true},
+		{Name: "request_user_agent", Type: field.TypeString, Nullable: true},
+		{Name: "attempts", Type: field.TypeInt, Default: schema.Expr("0")},
+		{Name: "max_attempts", Type: field.TypeInt, Default: schema.Expr("5")},
+		{Name: "status", Type: field.TypeString, Default: schema.Expr("'pending'")},
+		{Name: "expires_at", Type: field.TypeTime},
+		{Name: "consumed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "revoked_at", Type: field.TypeTime, Nullable: true},
+		{Name: "email_provider_message_id", Type: field.TypeString, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, Default: schema.Expr("'{}'::jsonb")},
+		{Name: "created_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+		{Name: "updated_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+	}
+	// AuthChallengesTable holds the schema information for the "auth_challenges" table.
+	AuthChallengesTable = &schema.Table{
+		Name:       "auth_challenges",
+		Columns:    AuthChallengesColumns,
+		PrimaryKey: []*schema.Column{AuthChallengesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "authchallenge_email_purpose_status",
+				Unique:  false,
+				Columns: []*schema.Column{AuthChallengesColumns[3], AuthChallengesColumns[1], AuthChallengesColumns[12]},
+			},
+			{
+				Name:    "authchallenge_secret_hash",
+				Unique:  true,
+				Columns: []*schema.Column{AuthChallengesColumns[5]},
+			},
+			{
+				Name:    "authchallenge_code_hash",
+				Unique:  false,
+				Columns: []*schema.Column{AuthChallengesColumns[6]},
+			},
+			{
+				Name:    "authchallenge_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{AuthChallengesColumns[13]},
+			},
+		},
+	}
 	// BackgroundJobsColumns holds the columns for the "background_jobs" table.
 	BackgroundJobsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -638,6 +690,7 @@ var (
 		{Name: "status", Type: field.TypeString, Default: schema.Expr("'active'")},
 		{Name: "password_hash", Type: field.TypeString, Nullable: true},
 		{Name: "password_changed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "email_verified_at", Type: field.TypeTime, Nullable: true},
 		{Name: "last_login_at", Type: field.TypeTime, Nullable: true},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, Default: schema.Expr("'{}'::jsonb")},
 		{Name: "created_at", Type: field.TypeTime, Default: schema.Expr("now()")},
@@ -688,6 +741,7 @@ var (
 		APIKeysTable,
 		AuditEventTypesTable,
 		AuditLogsTable,
+		AuthChallengesTable,
 		BackgroundJobsTable,
 		GroupsTable,
 		MembersTable,

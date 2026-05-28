@@ -59,6 +59,22 @@ components:
                 status:
                     type: string
             type: object
+        ApiAuthConsumeMagicLinkRequest:
+            properties:
+                token:
+                    type: string
+            type: object
+        ApiAuthEmailCodeRequest:
+            properties:
+                email:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                redirect_url:
+                    type: string
+            type: object
         ApiAuthLoginRequest:
             properties:
                 email:
@@ -69,6 +85,17 @@ components:
         ApiAuthLogoutRequest:
             properties:
                 refresh_token:
+                    type: string
+            type: object
+        ApiAuthMagicLinkRequest:
+            properties:
+                email:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                redirect_url:
                     type: string
             type: object
         ApiAuthRefreshRequest:
@@ -99,6 +126,13 @@ components:
                     type: string
                 username:
                     nullable: true
+                    type: string
+            type: object
+        ApiAuthVerifyEmailCodeRequest:
+            properties:
+                code:
+                    type: string
+                email:
                     type: string
             type: object
         ApiAuthzRequest:
@@ -458,6 +492,26 @@ components:
                 user_agent:
                     type: string
             type: object
+        ApiOpenAPIAuthChallengeAcceptedResponse:
+            properties:
+                accepted:
+                    example: true
+                    type: boolean
+                challenge_id:
+                    description: Only returned outside production mode.
+                    type: string
+                delivery_method:
+                    example: email_code
+                    type: string
+                email_delivery_mode:
+                    example: capability
+                    type: string
+                email_provider_message_id:
+                    type: string
+                expires_at:
+                    format: date-time
+                    type: string
+            type: object
         ApiOpenAPIAuthzCheckResponse:
             properties:
                 allow:
@@ -485,6 +539,20 @@ components:
                     $ref: '#/components/schemas/ApiOpenAPIAuthzCheckResponse'
                 row:
                     $ref: '#/components/schemas/ApiOpenAPIResource'
+            type: object
+        ApiOpenAPIEmailCodeVerifyResponse:
+            properties:
+                challenge_id:
+                    type: string
+                email:
+                    example: alice@example.com
+                    type: string
+                user_id:
+                    example: user_alice
+                    type: string
+                verified:
+                    example: true
+                    type: boolean
             type: object
         ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAPIKey:
             properties:
@@ -526,6 +594,14 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
+        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthChallengeAcceptedResponse:
+            properties:
+                data:
+                    $ref: '#/components/schemas/ApiOpenAPIAuthChallengeAcceptedResponse'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
         ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthzCheckResponse:
             properties:
                 data:
@@ -538,6 +614,14 @@ components:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIDataRowMutationResponse'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
+        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIEmailCodeVerifyResponse:
+            properties:
+                data:
+                    $ref: '#/components/schemas/ApiOpenAPIEmailCodeVerifyResponse'
                 request_id:
                     example: req_01hzyj6b6q8
                     type: string
@@ -1659,6 +1743,10 @@ components:
                     type: string
                 email:
                     type: string
+                email_verified_at:
+                    format: date-time
+                    nullable: true
+                    type: string
                 id:
                     type: string
                 last_login_at:
@@ -2706,6 +2794,57 @@ paths:
             summary: Get audit log detail
             tags:
                 - Audit
+    /api/v1/auth/email-code:
+        post:
+            description: Creates a short-lived single-use email verification challenge and sends it through the configured external email capability.
+            operationId: requestEmailVerificationCode
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiAuthEmailCodeRequest'
+                required: true
+            responses:
+                "202":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthChallengeAcceptedResponse'
+                    description: Accepted
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            summary: Send an email verification code
+            tags:
+                - Auth
+    /api/v1/auth/email-code/verify:
+        post:
+            operationId: verifyEmailCode
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiAuthVerifyEmailCodeRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIEmailCodeVerifyResponse'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            summary: Verify an email code
+            tags:
+                - Auth
     /api/v1/auth/login:
         post:
             operationId: login
@@ -2754,6 +2893,57 @@ paths:
                                 $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
                     description: Error response.
             summary: Revoke a session token
+            tags:
+                - Auth
+    /api/v1/auth/magic-link:
+        post:
+            description: Creates a short-lived single-use magic-link challenge and sends it through the configured external email capability.
+            operationId: requestMagicLink
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiAuthMagicLinkRequest'
+                required: true
+            responses:
+                "202":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthChallengeAcceptedResponse'
+                    description: Accepted
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            summary: Send a magic sign-in link
+            tags:
+                - Auth
+    /api/v1/auth/magic-link/consume:
+        post:
+            operationId: consumeMagicLink
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiAuthConsumeMagicLinkRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPILoginResponse'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            summary: Consume a magic sign-in link
             tags:
                 - Auth
     /api/v1/auth/refresh:

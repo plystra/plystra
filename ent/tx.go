@@ -20,6 +20,8 @@ type Tx struct {
 	AuditEventType *AuditEventTypeClient
 	// AuditLog is the client for interacting with the AuditLog builders.
 	AuditLog *AuditLogClient
+	// AuthChallenge is the client for interacting with the AuthChallenge builders.
+	AuthChallenge *AuthChallengeClient
 	// BackgroundJob is the client for interacting with the BackgroundJob builders.
 	BackgroundJob *BackgroundJobClient
 	// Group is the client for interacting with the Group builders.
@@ -195,6 +197,7 @@ func (tx *Tx) init() {
 	tx.ApiKey = NewApiKeyClient(tx.config)
 	tx.AuditEventType = NewAuditEventTypeClient(tx.config)
 	tx.AuditLog = NewAuditLogClient(tx.config)
+	tx.AuthChallenge = NewAuthChallengeClient(tx.config)
 	tx.BackgroundJob = NewBackgroundJobClient(tx.config)
 	tx.Group = NewGroupClient(tx.config)
 	tx.Member = NewMemberClient(tx.config)

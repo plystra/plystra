@@ -18,6 +18,9 @@ type AuditEventType func(*sql.Selector)
 // AuditLog is the predicate function for auditlog builders.
 type AuditLog func(*sql.Selector)
 
+// AuthChallenge is the predicate function for authchallenge builders.
+type AuthChallenge func(*sql.Selector)
+
 // BackgroundJob is the predicate function for backgroundjob builders.
 type BackgroundJob func(*sql.Selector)
 

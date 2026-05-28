@@ -11,6 +11,7 @@ User -> UserMember -> Member -> Space
 Core provides:
 
 - HTTP API for users, spaces, groups, members, roles, permissions, resources, admin grants, API keys, and audit logs.
+- Native auth flows for password login, email verification codes, and magic-link sign-in. Email delivery runs through an external capability contract so SMTP, Cloudflare Email Sending, and future providers stay outside Core.
 - Authorization checks with explainable allow/deny traces.
 - Context Mode for protecting one existing application action without syncing users, organizations, or resources first.
 - Ent-managed PostgreSQL schema with versioned Atlas migrations.
@@ -100,7 +101,16 @@ For first integrations, call `/api/v1/authz/check` from your backend with truste
 
 Inline actor, resource, and grant context is API-key-only. Never accept those fields directly from a browser request body; derive them from trusted server-side session and database state.
 
-Registration is disabled by default. For production, keep it closed unless your onboarding flow needs it. Token-protected ordinary registration requires `PLYSTRA_AUTH_REGISTRATION_TOKEN` and creates a User plus personal Space/Member/UserMember and a Space admin grant. Public user-only registration can be enabled with `PLYSTRA_AUTH_PUBLIC_USER_REGISTRATION_ENABLED=true`; it creates only a User and does not create a personal Space, Member, UserMember, Space admin grant, or session. Use `PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN` only for controlled first-super-admin bootstrap.
+Registration is disabled by default. For production, keep it closed unless your onboarding flow needs it. Token-protected ordinary registration requires `PLYSTRA_AUTH_REGISTRATION_TOKEN` and creates a User plus personal Space/Member/UserMember and a Space admin grant. Public user-only registration can be enabled with `PLYSTRA_AUTH_PUBLIC_USER_REGISTRATION_ENABLED=true`; it creates only a User and does not create a personal Space, Member, UserMember binding, Space admin grant, or session. Use `PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN` only for controlled first-super-admin bootstrap.
+
+Email verification codes and magic links are available through:
+
+- `POST /api/v1/auth/email-code`
+- `POST /api/v1/auth/email-code/verify`
+- `POST /api/v1/auth/magic-link`
+- `POST /api/v1/auth/magic-link/consume`
+
+Production must set `PLYSTRA_EMAIL_CAPABILITY_URL`, `PLYSTRA_EMAIL_CAPABILITY_TOKEN`, and `PLYSTRA_AUTH_EMAIL_FROM`. Core stores only HMAC hashes for challenge tokens/codes and sends mail through the independent email capability contract. Challenge send and verification attempts are rate-limited by normalized email and source IP. Magic-link `redirect_url` values must use HTTPS and match `PLYSTRA_PUBLIC_APP_URL`, `SERVER_PUBLIC_URL`, or an origin listed in `PLYSTRA_AUTH_ALLOWED_REDIRECT_ORIGINS`. Local development can omit the capability URL and use log mode; production rejects log mode at startup.
 
 ## Documentation
 

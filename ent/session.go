@@ -26,9 +26,9 @@ type Session struct {
 	// ActiveUserMemberID holds the value of the "active_user_member_id" field.
 	ActiveUserMemberID *string `json:"active_user_member_id,omitempty"`
 	// AccessTokenHash holds the value of the "access_token_hash" field.
-	AccessTokenHash string `json:"access_token_hash,omitempty"`
+	AccessTokenHash string `json:"-"`
 	// RefreshTokenHash holds the value of the "refresh_token_hash" field.
-	RefreshTokenHash string `json:"refresh_token_hash,omitempty"`
+	RefreshTokenHash string `json:"-"`
 	// ExpiresAt holds the value of the "expires_at" field.
 	ExpiresAt time.Time `json:"expires_at,omitempty"`
 	// RefreshExpiresAt holds the value of the "refresh_expires_at" field.
@@ -214,11 +214,9 @@ func (_m *Session) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	builder.WriteString("access_token_hash=")
-	builder.WriteString(_m.AccessTokenHash)
+	builder.WriteString("access_token_hash=<sensitive>")
 	builder.WriteString(", ")
-	builder.WriteString("refresh_token_hash=")
-	builder.WriteString(_m.RefreshTokenHash)
+	builder.WriteString("refresh_token_hash=<sensitive>")
 	builder.WriteString(", ")
 	builder.WriteString("expires_at=")
 	builder.WriteString(_m.ExpiresAt.Format(time.ANSIC))

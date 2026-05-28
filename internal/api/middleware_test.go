@@ -341,6 +341,21 @@ func TestPublicOperationalRoutesDoNotRequireBearerSession(t *testing.T) {
 	}
 }
 
+func TestPublicAuthEmailRoutesDoNotRequireBearerSession(t *testing.T) {
+	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
+	for _, path := range []string{"/api/v1/auth/email-code", "/api/v1/auth/email-code/verify", "/api/v1/auth/magic-link", "/api/v1/auth/magic-link/consume"} {
+		req := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{}`))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		server.requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			writeData(w, r, http.StatusOK, map[string]any{"ok": true})
+		})).ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s status = %d, want public route through middleware", path, rec.Code)
+		}
+	}
+}
+
 func TestAdminGrantPermissionMatching(t *testing.T) {
 	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
 	for _, tc := range []struct {
