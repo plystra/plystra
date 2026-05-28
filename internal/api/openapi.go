@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/plystra/plystra/internal/plugins"
+	"github.com/plystra/plystra/internal/templates"
 )
 
 const OpenAPIVersion = "1.0.0-rc121"
@@ -82,8 +83,12 @@ type openAPIHealth struct {
 }
 
 type openAPIReady struct {
-	Status        string `json:"status" example:"ready"`
-	SchemaVersion string `json:"schema_version" example:"016"`
+	Status                string         `json:"status" example:"ready"`
+	SchemaVersion         string         `json:"schema_version" example:"017"`
+	ExpectedSchemaVersion string         `json:"expected_schema_version" example:"017"`
+	TraceVersion          string         `json:"trace_version" example:"1.0"`
+	SystemCapabilities    map[string]any `json:"system_capabilities"`
+	Plugins               map[string]any `json:"plugins"`
 }
 
 type openAPIVersionResponse struct {
@@ -485,11 +490,11 @@ type openAPIPluginValidationResponse struct {
 }
 
 type openAPITemplateInstallResponse struct {
-	InstallationID string           `json:"installation_id"`
-	Status         string           `json:"status"`
-	Template       templateManifest `json:"template"`
-	Preview        map[string]any   `json:"preview"`
-	Applied        map[string]any   `json:"applied"`
+	InstallationID string             `json:"installation_id"`
+	Status         string             `json:"status"`
+	Template       templates.Manifest `json:"template"`
+	Preview        map[string]any     `json:"preview"`
+	Applied        map[string]any     `json:"applied"`
 }
 
 type openAPIDataRowMutationResponse struct {
@@ -1006,10 +1011,10 @@ func openAPIRoutes() []openAPIRoute {
 			PluginKey string `path:"plugin_key"`
 		}), Response: new(openAPIListEnvelope[openAPIPluginAdminMenu]), Security: openAPIAdmin},
 
-		{Method: http.MethodGet, Path: "/api/v1/templates", Tag: "Templates", ID: "listTemplates", Summary: "List templates", Params: new(openAPILimitQuery), Response: new(openAPIListEnvelope[templateManifest]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/templates", Tag: "Templates", ID: "listTemplates", Summary: "List templates", Params: new(openAPILimitQuery), Response: new(openAPIListEnvelope[templates.Manifest]), Security: openAPIAdmin},
 		{Method: http.MethodGet, Path: "/api/v1/templates/{template_id}", Tag: "Templates", ID: "getTemplate", Summary: "Get template", Params: new(struct {
 			TemplateID string `path:"template_id"`
-		}), Response: new(openAPIEnvelope[templateManifest]), Security: openAPIAdmin},
+		}), Response: new(openAPIEnvelope[templates.Manifest]), Security: openAPIAdmin},
 		{Method: http.MethodPost, Path: "/api/v1/templates/{template_id}/preview-install", Tag: "Templates", ID: "previewTemplateInstall", Summary: "Preview template installation", Params: new(struct {
 			TemplateID string `path:"template_id"`
 		}), Body: new(templateInstallRequest), Response: new(openAPIEnvelope[map[string]any]), Security: openAPIAdmin},

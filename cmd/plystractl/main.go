@@ -46,6 +46,42 @@ func main() {
 			fmt.Fprintf(os.Stderr, "doctor: %v\n", err)
 			os.Exit(1)
 		}
+	case "templates":
+		if len(os.Args) < 3 {
+			usage()
+			os.Exit(1)
+		}
+		if err := runTemplates(os.Args[2], os.Args[3:]); err != nil {
+			fmt.Fprintf(os.Stderr, "templates %s: %v\n", os.Args[2], err)
+			os.Exit(1)
+		}
+	case "backup":
+		if len(os.Args) < 3 {
+			usage()
+			os.Exit(1)
+		}
+		if err := runBackup(ctx, os.Args[2], os.Args[3:]); err != nil {
+			fmt.Fprintf(os.Stderr, "backup %s: %v\n", os.Args[2], err)
+			os.Exit(1)
+		}
+	case "restore":
+		if len(os.Args) < 3 {
+			usage()
+			os.Exit(1)
+		}
+		if err := runRestore(ctx, os.Args[2], os.Args[3:]); err != nil {
+			fmt.Fprintf(os.Stderr, "restore %s: %v\n", os.Args[2], err)
+			os.Exit(1)
+		}
+	case "upgrade":
+		if len(os.Args) < 3 {
+			usage()
+			os.Exit(1)
+		}
+		if err := runUpgrade(ctx, os.Args[2], os.Args[3:]); err != nil {
+			fmt.Fprintf(os.Stderr, "upgrade %s: %v\n", os.Args[2], err)
+			os.Exit(1)
+		}
 	case "admin":
 		if len(os.Args) < 3 {
 			usage()
@@ -64,6 +100,10 @@ func main() {
 func usage() {
 	fmt.Fprintln(os.Stderr, "usage: plystractl migrate <status|plan|up|verify>")
 	fmt.Fprintln(os.Stderr, "       plystractl ent <status|plan|check|apply>")
+	fmt.Fprintln(os.Stderr, "       plystractl templates <list|describe> [template_id]")
+	fmt.Fprintln(os.Stderr, "       plystractl backup <manifest|pg-dump-command> [--out <path>]")
+	fmt.Fprintln(os.Stderr, "       plystractl restore <pg-restore-command|verify-backup> [--file <path>]")
+	fmt.Fprintln(os.Stderr, "       plystractl upgrade <plan|verify|record> [--version <version>]")
 	fmt.Fprintln(os.Stderr, "       plystractl admin bootstrap-super-admin --user-id <user_id> [--member-id <member_id>] [--grant-id <admin_grant_id>] [--if-exists <error|ok>]")
 	fmt.Fprintln(os.Stderr, "       plystractl doctor")
 }

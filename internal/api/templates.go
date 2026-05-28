@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -21,6 +20,7 @@ import (
 	coreent "github.com/plystra/plystra/ent"
 	entspace "github.com/plystra/plystra/ent/space"
 	"github.com/plystra/plystra/internal/plugins"
+	"github.com/plystra/plystra/internal/templates"
 )
 
 func pluginSettingValueMap(value any) map[string]any {
@@ -33,48 +33,16 @@ func pluginSettingValueMap(value any) map[string]any {
 	return map[string]any{"value": value}
 }
 
-type templateManifest struct {
-	ID              string               `json:"id"`
-	Name            string               `json:"name"`
-	Version         string               `json:"version"`
-	RequiresCore    string               `json:"requires_core"`
-	RequiredPlugins []string             `json:"required_plugins"`
-	Spaces          []templateSpace      `json:"spaces"`
-	Groups          []templateGroup      `json:"groups"`
-	Roles           []templateRole       `json:"roles"`
-	Permissions     []templatePermission `json:"permissions"`
-}
-
-type templateSpace struct {
-	Key  string `json:"key"`
-	Name string `json:"name"`
-}
-
-type templateGroup struct {
-	Key  string `json:"key"`
-	Name string `json:"name"`
-}
-
-type templateRole struct {
-	Key string `json:"key"`
-}
-
-type templatePermission struct {
-	Role     string `json:"role"`
-	Resource string `json:"resource"`
-	Action   string `json:"action"`
-	Scope    string `json:"scope"`
-}
-
 type templateInstallRequest struct {
-	SpaceID                string `json:"space_id"`
-	AllowMissingPlugins    bool   `json:"allow_missing_plugins"`
-	InstalledByUserID      string `json:"installed_by_user_id"`
-	InstalledByMemberID    string `json:"installed_by_member_id"`
-	ActorUserID            string `json:"actor_user_id"`
-	ActorMemberID          string `json:"actor_member_id"`
-	ActorUserMemberID      string `json:"actor_user_member_id"`
-	AllowExistingResources bool   `json:"allow_existing_resources"`
+	SpaceID                  string `json:"space_id"`
+	AllowMissingPlugins      bool   `json:"allow_missing_plugins"`
+	AllowMissingCapabilities bool   `json:"allow_missing_capabilities"`
+	InstalledByUserID        string `json:"installed_by_user_id"`
+	InstalledByMemberID      string `json:"installed_by_member_id"`
+	ActorUserID              string `json:"actor_user_id"`
+	ActorMemberID            string `json:"actor_member_id"`
+	ActorUserMemberID        string `json:"actor_user_member_id"`
+	AllowExistingResources   bool   `json:"allow_existing_resources"`
 }
 
 func (s *Server) handleTemplates(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +50,7 @@ func (s *Server) handleTemplates(w http.ResponseWriter, r *http.Request) {
 		writeMethodNotAllowed(w, r)
 		return
 	}
-	writeList(w, r, http.StatusOK, templateCatalog(), limitFrom(r, 50))
+	writeList(w, r, http.StatusOK, templates.Catalog(), limitFrom(r, 50))
 }
 
 func (s *Server) handleTemplateSubroutes(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +60,7 @@ func (s *Server) handleTemplateSubroutes(w http.ResponseWriter, r *http.Request)
 		http.NotFound(w, r)
 		return
 	}
-	tpl, ok := templateByID(parts[0])
+	tpl, ok := templates.ByID(parts[0])
 	if !ok {
 		writeError(w, r, http.StatusNotFound, "TEMPLATE_NOT_FOUND", "Template was not found.", nil)
 		return
@@ -118,7 +86,12 @@ func (s *Server) handleTemplateSubroutes(w http.ResponseWriter, r *http.Request)
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to validate template plugins.", err.Error())
 			return
 		}
-		writeData(w, r, http.StatusOK, templatePreview(tpl, missing))
+		missingCapabilities, providers, err := s.resolveTemplateCapabilities(r.Context(), tpl)
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to resolve template capabilities.", err.Error())
+			return
+		}
+		writeData(w, r, http.StatusOK, templates.Preview(tpl, missing, missingCapabilities, providers))
 	case len(parts) == 2 && parts[1] == "install":
 		s.handleTemplateInstall(w, r, tpl)
 	default:
@@ -126,7 +99,7 @@ func (s *Server) handleTemplateSubroutes(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (s *Server) handleTemplateInstall(w http.ResponseWriter, r *http.Request, tpl templateManifest) {
+func (s *Server) handleTemplateInstall(w http.ResponseWriter, r *http.Request, tpl templates.Manifest) {
 	if r.Method != http.MethodPost {
 		writeMethodNotAllowed(w, r)
 		return
@@ -148,12 +121,21 @@ func (s *Server) handleTemplateInstall(w http.ResponseWriter, r *http.Request, t
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Template requires plugins that are not enabled.", map[string]any{"missing_plugins": missing})
 		return
 	}
+	missingCapabilities, capabilityProviders, err := s.resolveTemplateCapabilities(r.Context(), tpl)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to resolve template capabilities.", err.Error())
+		return
+	}
+	if len(missingCapabilities) > 0 && !req.AllowMissingCapabilities {
+		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Template requires capabilities that are not provided by enabled plugins.", map[string]any{"missing_capabilities": missingCapabilities})
+		return
+	}
 	applied, err := s.applyTemplateDefaults(r.Context(), tpl, req)
 	if err != nil {
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Failed to apply template defaults.", err.Error())
 		return
 	}
-	snapshot, err := templateManifestMap(tpl)
+	snapshot, err := templates.ManifestMap(tpl)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to encode template manifest.", err.Error())
 		return
@@ -187,31 +169,19 @@ func (s *Server) handleTemplateInstall(w http.ResponseWriter, r *http.Request, t
 		"installation_id": installationID,
 		"status":          "installed",
 		"template":        tpl,
-		"preview":         templatePreview(tpl, missing),
+		"preview":         templates.Preview(tpl, missing, missingCapabilities, capabilityProviders),
 		"applied":         applied,
 	})
 }
 
-func (s *Server) validateTemplateCoreVersion(tpl templateManifest) error {
+func (s *Server) validateTemplateCoreVersion(tpl templates.Manifest) error {
 	if !plugins.VersionSatisfies(s.coreVersion, tpl.RequiresCore) {
 		return fmt.Errorf("requires_core %q is not satisfied by Core %q", tpl.RequiresCore, s.coreVersion)
 	}
 	return nil
 }
 
-func templateManifestMap(tpl templateManifest) (map[string]any, error) {
-	raw, err := json.Marshal(tpl)
-	if err != nil {
-		return nil, err
-	}
-	var out map[string]any
-	if err := json.Unmarshal(raw, &out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (s *Server) applyTemplateDefaults(ctx context.Context, tpl templateManifest, req templateInstallRequest) (map[string]any, error) {
+func (s *Server) applyTemplateDefaults(ctx context.Context, tpl templates.Manifest, req templateInstallRequest) (map[string]any, error) {
 	applied := map[string]any{
 		"spaces":           []string{},
 		"groups":           []string{},
@@ -351,7 +321,7 @@ func (s *Server) applyTemplateDefaults(ctx context.Context, tpl templateManifest
 	return applied, nil
 }
 
-func (s *Server) writeTemplateInstallAudit(ctx context.Context, tpl templateManifest, req templateInstallRequest, installationID string, applied map[string]any, missing []string) error {
+func (s *Server) writeTemplateInstallAudit(ctx context.Context, tpl templates.Manifest, req templateInstallRequest, installationID string, applied map[string]any, missing []string) error {
 	if s.ent == nil {
 		return errors.New("ent client is not configured")
 	}
@@ -420,7 +390,7 @@ func (s *Server) writeTemplateInstallAudit(ctx context.Context, tpl templateMani
 	return err
 }
 
-func (s *Server) missingTemplatePlugins(ctx context.Context, tpl templateManifest) ([]string, error) {
+func (s *Server) missingTemplatePlugins(ctx context.Context, tpl templates.Manifest) ([]string, error) {
 	if s.ent == nil {
 		return nil, errors.New("ent client is not configured")
 	}
@@ -441,68 +411,83 @@ func (s *Server) missingTemplatePlugins(ctx context.Context, tpl templateManifes
 	return missing, nil
 }
 
-func templatePreview(tpl templateManifest, missingPlugins []string) map[string]any {
-	return map[string]any{
-		"template_id":     tpl.ID,
-		"missing_plugins": missingPlugins,
-		"changes": map[string]any{
-			"spaces":      tpl.Spaces,
-			"groups":      tpl.Groups,
-			"roles":       tpl.Roles,
-			"permissions": tpl.Permissions,
-		},
+func (s *Server) resolveTemplateCapabilities(ctx context.Context, tpl templates.Manifest) ([]templates.CapabilityRequirement, map[string]string, error) {
+	if s.ent == nil {
+		return nil, nil, errors.New("ent client is not configured")
 	}
-}
-
-func templateCatalog() []templateManifest {
-	return []templateManifest{
-		{
-			ID:           "blank",
-			Name:         "Blank",
-			Version:      "1.0.0",
-			RequiresCore: ">=1.0.0 <2.0.0",
-		},
-		{
-			ID:              "internal-admin",
-			Name:            "Internal Admin",
-			Version:         "1.0.0",
-			RequiresCore:    ">=1.0.0 <2.0.0",
-			RequiredPlugins: []string{"plystra.api_keys", "plystra.webhooks"},
-			Spaces:          []templateSpace{{Key: "default", Name: "Default Workspace"}},
-			Groups: []templateGroup{
-				{Key: "operations", Name: "Operations"},
-				{Key: "finance", Name: "Finance"},
-			},
-			Roles: []templateRole{{Key: "space_owner"}, {Key: "auditor"}, {Key: "operator"}},
-			Permissions: []templatePermission{
-				{Role: "space_owner", Resource: "api_key", Action: "read", Scope: "space"},
-				{Role: "space_owner", Resource: "webhook_endpoint", Action: "read", Scope: "space"},
-			},
-		},
-		{
-			ID:              "community-lite",
-			Name:            "Community Lite",
-			Version:         "1.0.0",
-			RequiresCore:    ">=1.0.0 <2.0.0",
-			RequiredPlugins: []string{"plystra.moderation"},
-			Spaces:          []templateSpace{{Key: "community", Name: "Community"}},
-			Groups: []templateGroup{
-				{Key: "general", Name: "General"},
-				{Key: "moderation", Name: "Moderation"},
-			},
-			Roles: []templateRole{{Key: "moderator"}, {Key: "member"}},
-			Permissions: []templatePermission{
-				{Role: "moderator", Resource: "report", Action: "resolve", Scope: "group_tree"},
-			},
-		},
+	if len(tpl.RequiredCapabilities) == 0 {
+		return nil, map[string]string{}, nil
 	}
-}
-
-func templateByID(id string) (templateManifest, bool) {
-	for _, tpl := range templateCatalog() {
-		if tpl.ID == id {
-			return tpl, true
+	pluginRows, err := s.ent.Plugin.Query().
+		Where(entplugin.StatusIn("enabled", "installed")).
+		All(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	providers := map[string]string{}
+	for _, requirement := range tpl.RequiredCapabilities {
+		if requirement.Optional {
+			continue
+		}
+		for _, pluginRow := range pluginRows {
+			manifest, ok := pluginRow.Manifest["capabilities"].([]any)
+			if !ok {
+				continue
+			}
+			for _, raw := range manifest {
+				item, ok := raw.(map[string]any)
+				if !ok {
+					continue
+				}
+				if stringAny(item["id"]) != requirement.ID {
+					continue
+				}
+				if !capabilityLevelSatisfies(stringAny(item["level"]), requirement.MinLevel) {
+					continue
+				}
+				version := stringAny(item["version"])
+				if requirement.Version != "" && !plugins.VersionSatisfies(version, requirement.Version) {
+					continue
+				}
+				providers[requirement.ID] = pluginRow.Key
+			}
 		}
 	}
-	return templateManifest{}, false
+	missing := []templates.CapabilityRequirement{}
+	for _, requirement := range tpl.RequiredCapabilities {
+		if requirement.Optional {
+			continue
+		}
+		if providers[requirement.ID] == "" {
+			missing = append(missing, requirement)
+		}
+	}
+	return missing, providers, nil
+}
+
+func capabilityLevelSatisfies(actual, required string) bool {
+	if required == "" {
+		required = "experimental"
+	}
+	return capabilityLevelRank(actual) >= capabilityLevelRank(required)
+}
+
+func capabilityLevelRank(level string) int {
+	switch level {
+	case "experimental":
+		return 1
+	case "standard":
+		return 2
+	case "enterprise":
+		return 3
+	default:
+		return 0
+	}
+}
+
+func stringAny(value any) string {
+	if text, ok := value.(string); ok {
+		return strings.TrimSpace(text)
+	}
+	return ""
 }

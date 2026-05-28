@@ -8,20 +8,22 @@ import (
 )
 
 type Manifest struct {
-	ID               string                 `json:"id"`
-	Name             string                 `json:"name"`
-	Description      string                 `json:"description"`
-	Version          string                 `json:"version"`
-	Source           string                 `json:"source"`
-	Status           string                 `json:"status"`
-	ManifestVersion  string                 `json:"manifest_version"`
-	PluginAPIVersion string                 `json:"plugin_api_version"`
-	RequiresCore     string                 `json:"requires_core"`
-	Resources        []ResourceDefinition   `json:"resources"`
-	Permissions      []PermissionDefinition `json:"permissions"`
-	AuditEvents      []AuditEventDefinition `json:"audit_events"`
-	AdminMenus       []AdminMenuDefinition  `json:"admin_menu"`
-	Settings         []SettingDefinition    `json:"settings"`
+	ID               string                  `json:"id"`
+	Name             string                  `json:"name"`
+	Description      string                  `json:"description"`
+	Version          string                  `json:"version"`
+	Source           string                  `json:"source"`
+	Status           string                  `json:"status"`
+	ManifestVersion  string                  `json:"manifest_version"`
+	PluginAPIVersion string                  `json:"plugin_api_version"`
+	RequiresCore     string                  `json:"requires_core"`
+	Resources        []ResourceDefinition    `json:"resources"`
+	Permissions      []PermissionDefinition  `json:"permissions"`
+	AuditEvents      []AuditEventDefinition  `json:"audit_events"`
+	AdminMenus       []AdminMenuDefinition   `json:"admin_menu"`
+	Settings         []SettingDefinition     `json:"settings"`
+	Capabilities     []CapabilityDefinition  `json:"capabilities"`
+	Requires         []CapabilityRequirement `json:"requires_capabilities"`
 }
 
 type ResourceDefinition struct {
@@ -59,9 +61,24 @@ type SettingDefinition struct {
 	Description string `json:"description"`
 }
 
+type CapabilityDefinition struct {
+	ID          string `json:"id"`
+	Version     string `json:"version"`
+	Level       string `json:"level"`
+	Description string `json:"description"`
+}
+
+type CapabilityRequirement struct {
+	ID       string `json:"id"`
+	Version  string `json:"version"`
+	MinLevel string `json:"min_level"`
+	Optional bool   `json:"optional"`
+}
+
 var pluginIDPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`)
 var semverLikePattern = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9_.-]+)?$`)
 var keyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+var capabilityIDPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`)
 
 func ValidateManifest(manifest Manifest) []string {
 	var errors []string
@@ -146,6 +163,34 @@ func ValidateManifest(manifest Manifest) []string {
 		}
 	}
 
+	capabilityKeys := map[string]bool{}
+	for i, capability := range manifest.Capabilities {
+		if !capabilityIDPattern.MatchString(capability.ID) {
+			errors = append(errors, fmt.Sprintf("capabilities[%d].id is invalid", i))
+		}
+		if capabilityKeys[capability.ID] {
+			errors = append(errors, fmt.Sprintf("duplicate capability %q", capability.ID))
+		}
+		capabilityKeys[capability.ID] = true
+		if capability.Version == "" || !semverLikePattern.MatchString(capability.Version) {
+			errors = append(errors, fmt.Sprintf("capabilities[%d].version must be semantic version-like", i))
+		}
+		if !validCapabilityLevel(capability.Level) {
+			errors = append(errors, fmt.Sprintf("capabilities[%d].level must be one of experimental, standard, or enterprise", i))
+		}
+	}
+	for i, requirement := range manifest.Requires {
+		if !capabilityIDPattern.MatchString(requirement.ID) {
+			errors = append(errors, fmt.Sprintf("requires_capabilities[%d].id is invalid", i))
+		}
+		if strings.TrimSpace(requirement.Version) == "" {
+			errors = append(errors, fmt.Sprintf("requires_capabilities[%d].version is required", i))
+		}
+		if requirement.MinLevel != "" && !validCapabilityLevel(requirement.MinLevel) {
+			errors = append(errors, fmt.Sprintf("requires_capabilities[%d].min_level must be one of experimental, standard, or enterprise", i))
+		}
+	}
+
 	return errors
 }
 
@@ -166,6 +211,15 @@ func ValidateManifestForCore(manifest Manifest, coreVersion string) []string {
 func validScope(scope string) bool {
 	switch scope {
 	case "self", "group", "group_tree", "space", "global":
+		return true
+	default:
+		return false
+	}
+}
+
+func validCapabilityLevel(level string) bool {
+	switch level {
+	case "experimental", "standard", "enterprise":
 		return true
 	default:
 		return false

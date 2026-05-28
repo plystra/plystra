@@ -84,6 +84,7 @@ func (s *Server) handleReady(w http.ResponseWriter, r *http.Request) {
 		"expected_schema_version": expectedSchemaVersion,
 		"trace_version":           traceVersion(),
 		"system_capabilities":     s.capabilityStates(),
+		"plugins":                 s.pluginReadiness(r.Context()),
 	})
 }
 
@@ -104,6 +105,7 @@ func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
 		"resource_registry_version": "1.0",
 		"build_time":                time.Now().UTC().Format(time.RFC3339),
 		"system_capabilities":       s.capabilityStates(),
+		"plugins":                   s.pluginReadiness(r.Context()),
 	})
 }
 
@@ -239,4 +241,27 @@ func traceVersion() string {
 		return value
 	}
 	return "1.0"
+}
+
+func (s *Server) pluginReadiness(ctx context.Context) map[string]any {
+	if s.ent == nil {
+		return map[string]any{"status": "unavailable"}
+	}
+	rows, err := s.ent.Plugin.Query().All(ctx)
+	if err != nil {
+		return map[string]any{"status": "error", "error": err.Error()}
+	}
+	byStatus := map[string]int{}
+	for _, row := range rows {
+		byStatus[row.Status]++
+	}
+	status := "ready"
+	if byStatus["failed"] > 0 {
+		status = "degraded"
+	}
+	return map[string]any{
+		"status":    status,
+		"total":     len(rows),
+		"by_status": byStatus,
+	}
 }

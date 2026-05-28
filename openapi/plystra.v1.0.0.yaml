@@ -734,10 +734,10 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiTemplateManifest:
+        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalTemplatesManifest:
             properties:
                 data:
-                    $ref: '#/components/schemas/ApiTemplateManifest'
+                    $ref: '#/components/schemas/TemplatesManifest'
                 request_id:
                     example: req_01hzyj6b6q8
                     type: string
@@ -1085,11 +1085,11 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiTemplateManifest:
+        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalTemplatesManifest:
             properties:
                 data:
                     items:
-                        $ref: '#/components/schemas/ApiTemplateManifest'
+                        $ref: '#/components/schemas/TemplatesManifest'
                     nullable: true
                     type: array
                 pagination:
@@ -1352,11 +1352,25 @@ components:
             type: object
         ApiOpenAPIReady:
             properties:
+                expected_schema_version:
+                    example: "017"
+                    type: string
+                plugins:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
                 schema_version:
-                    example: "016"
+                    example: "017"
                     type: string
                 status:
                     example: ready
+                    type: string
+                system_capabilities:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                trace_version:
+                    example: "1.0"
                     type: string
             type: object
         ApiOpenAPIRefreshResponse:
@@ -1646,7 +1660,7 @@ components:
                 status:
                     type: string
                 template:
-                    $ref: '#/components/schemas/ApiTemplateManifest'
+                    $ref: '#/components/schemas/TemplatesManifest'
             type: object
         ApiOpenAPIUser:
             properties:
@@ -1968,13 +1982,6 @@ components:
                 user_member_id:
                     type: string
             type: object
-        ApiTemplateGroup:
-            properties:
-                key:
-                    type: string
-                name:
-                    type: string
-            type: object
         ApiTemplateInstallRequest:
             properties:
                 actor_member_id:
@@ -1985,6 +1992,8 @@ components:
                     type: string
                 allow_existing_resources:
                     type: boolean
+                allow_missing_capabilities:
+                    type: boolean
                 allow_missing_plugins:
                     type: boolean
                 installed_by_member_id:
@@ -1992,65 +2001,6 @@ components:
                 installed_by_user_id:
                     type: string
                 space_id:
-                    type: string
-            type: object
-        ApiTemplateManifest:
-            properties:
-                groups:
-                    items:
-                        $ref: '#/components/schemas/ApiTemplateGroup'
-                    nullable: true
-                    type: array
-                id:
-                    type: string
-                name:
-                    type: string
-                permissions:
-                    items:
-                        $ref: '#/components/schemas/ApiTemplatePermission'
-                    nullable: true
-                    type: array
-                required_plugins:
-                    items:
-                        type: string
-                    nullable: true
-                    type: array
-                requires_core:
-                    type: string
-                roles:
-                    items:
-                        $ref: '#/components/schemas/ApiTemplateRole'
-                    nullable: true
-                    type: array
-                spaces:
-                    items:
-                        $ref: '#/components/schemas/ApiTemplateSpace'
-                    nullable: true
-                    type: array
-                version:
-                    type: string
-            type: object
-        ApiTemplatePermission:
-            properties:
-                action:
-                    type: string
-                resource:
-                    type: string
-                role:
-                    type: string
-                scope:
-                    type: string
-            type: object
-        ApiTemplateRole:
-            properties:
-                key:
-                    type: string
-            type: object
-        ApiTemplateSpace:
-            properties:
-                key:
-                    type: string
-                name:
                     type: string
             type: object
         ApiUserMemberMutationRequest:
@@ -2190,6 +2140,28 @@ components:
                 risk_level:
                     type: string
             type: object
+        PluginsCapabilityDefinition:
+            properties:
+                description:
+                    type: string
+                id:
+                    type: string
+                level:
+                    type: string
+                version:
+                    type: string
+            type: object
+        PluginsCapabilityRequirement:
+            properties:
+                id:
+                    type: string
+                min_level:
+                    type: string
+                optional:
+                    type: boolean
+                version:
+                    type: string
+            type: object
         PluginsManifest:
             properties:
                 admin_menu:
@@ -2200,6 +2172,11 @@ components:
                 audit_events:
                     items:
                         $ref: '#/components/schemas/PluginsAuditEventDefinition'
+                    nullable: true
+                    type: array
+                capabilities:
+                    items:
+                        $ref: '#/components/schemas/PluginsCapabilityDefinition'
                     nullable: true
                     type: array
                 description:
@@ -2217,6 +2194,11 @@ components:
                     type: array
                 plugin_api_version:
                     type: string
+                requires_capabilities:
+                    items:
+                        $ref: '#/components/schemas/PluginsCapabilityRequirement'
+                    nullable: true
+                    type: array
                 requires_core:
                     type: string
                 resources:
@@ -2269,6 +2251,90 @@ components:
                 scope:
                     type: string
                 type:
+                    type: string
+            type: object
+        TemplatesCapabilityRequirement:
+            properties:
+                id:
+                    type: string
+                min_level:
+                    type: string
+                optional:
+                    type: boolean
+                reason:
+                    type: string
+                version:
+                    type: string
+            type: object
+        TemplatesGroup:
+            properties:
+                key:
+                    type: string
+                name:
+                    type: string
+            type: object
+        TemplatesManifest:
+            properties:
+                groups:
+                    items:
+                        $ref: '#/components/schemas/TemplatesGroup'
+                    nullable: true
+                    type: array
+                id:
+                    type: string
+                name:
+                    type: string
+                permissions:
+                    items:
+                        $ref: '#/components/schemas/TemplatesPermission'
+                    nullable: true
+                    type: array
+                required_capabilities:
+                    items:
+                        $ref: '#/components/schemas/TemplatesCapabilityRequirement'
+                    nullable: true
+                    type: array
+                required_plugins:
+                    items:
+                        type: string
+                    nullable: true
+                    type: array
+                requires_core:
+                    type: string
+                roles:
+                    items:
+                        $ref: '#/components/schemas/TemplatesRole'
+                    nullable: true
+                    type: array
+                spaces:
+                    items:
+                        $ref: '#/components/schemas/TemplatesSpace'
+                    nullable: true
+                    type: array
+                version:
+                    type: string
+            type: object
+        TemplatesPermission:
+            properties:
+                action:
+                    type: string
+                resource:
+                    type: string
+                role:
+                    type: string
+                scope:
+                    type: string
+            type: object
+        TemplatesRole:
+            properties:
+                key:
+                    type: string
+            type: object
+        TemplatesSpace:
+            properties:
+                key:
+                    type: string
+                name:
                     type: string
             type: object
     securitySchemes:
@@ -5490,7 +5556,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiTemplateManifest'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalTemplatesManifest'
                     description: OK
                 default:
                     content:
@@ -5518,7 +5584,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiTemplateManifest'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalTemplatesManifest'
                     description: OK
                 default:
                     content:

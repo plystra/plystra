@@ -141,6 +141,21 @@ go run ./cmd/plystractl doctor
 
 Before opening a pull request, run the same checks as CI.
 
+## Backend OS Alpha Operations
+
+The alpha backend assembly flow is intentionally transparent:
+
+```powershell
+go run ./cmd/plystractl templates list
+go run ./cmd/plystractl templates describe auth-ready-saas
+go run ./cmd/plystractl backup manifest --out plystra-backup-manifest.json
+go run ./cmd/plystractl backup pg-dump-command
+go run ./cmd/plystractl upgrade plan
+go run ./cmd/plystractl upgrade verify
+```
+
+`/api/v1/ready` reports Core readiness, migration state, system capabilities, and plugin status counts. Production alpha still requires external PostgreSQL and versioned migrations; cloud hosting and marketplace behavior are outside this phase.
+
 ## Security
 
 Please do not report security issues in public GitHub issues. See [SECURITY.md](SECURITY.md) for reporting guidance and production security expectations.

@@ -5603,7 +5603,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiTemplateManifest"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalTemplatesManifest"
                 }
               }
             }
@@ -5652,7 +5652,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiTemplateManifest"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalTemplatesManifest"
                 }
               }
             }
@@ -7303,11 +7303,11 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiTemplateManifest": {
+      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalTemplatesManifest": {
         "type": "object",
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/ApiTemplateManifest"
+            "$ref": "#/components/schemas/TemplatesManifest"
           },
           "request_id": {
             "type": "string",
@@ -7813,13 +7813,13 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiTemplateManifest": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalTemplatesManifest": {
         "type": "object",
         "properties": {
           "data": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ApiTemplateManifest"
+              "$ref": "#/components/schemas/TemplatesManifest"
             },
             "nullable": true
           },
@@ -8195,13 +8195,31 @@
       "ApiOpenAPIReady": {
         "type": "object",
         "properties": {
+          "expected_schema_version": {
+            "type": "string",
+            "example": "017"
+          },
+          "plugins": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
           "schema_version": {
             "type": "string",
-            "example": "016"
+            "example": "017"
           },
           "status": {
             "type": "string",
             "example": "ready"
+          },
+          "system_capabilities": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "trace_version": {
+            "type": "string",
+            "example": "1.0"
           }
         }
       },
@@ -8615,7 +8633,7 @@
             "type": "string"
           },
           "template": {
-            "$ref": "#/components/schemas/ApiTemplateManifest"
+            "$ref": "#/components/schemas/TemplatesManifest"
           }
         }
       },
@@ -9073,17 +9091,6 @@
           }
         }
       },
-      "ApiTemplateGroup": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        }
-      },
       "ApiTemplateInstallRequest": {
         "type": "object",
         "properties": {
@@ -9099,6 +9106,9 @@
           "allow_existing_resources": {
             "type": "boolean"
           },
+          "allow_missing_capabilities": {
+            "type": "boolean"
+          },
           "allow_missing_plugins": {
             "type": "boolean"
           },
@@ -9109,94 +9119,6 @@
             "type": "string"
           },
           "space_id": {
-            "type": "string"
-          }
-        }
-      },
-      "ApiTemplateManifest": {
-        "type": "object",
-        "properties": {
-          "groups": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ApiTemplateGroup"
-            },
-            "nullable": true
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "permissions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ApiTemplatePermission"
-            },
-            "nullable": true
-          },
-          "required_plugins": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          },
-          "requires_core": {
-            "type": "string"
-          },
-          "roles": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ApiTemplateRole"
-            },
-            "nullable": true
-          },
-          "spaces": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ApiTemplateSpace"
-            },
-            "nullable": true
-          },
-          "version": {
-            "type": "string"
-          }
-        }
-      },
-      "ApiTemplatePermission": {
-        "type": "object",
-        "properties": {
-          "action": {
-            "type": "string"
-          },
-          "resource": {
-            "type": "string"
-          },
-          "role": {
-            "type": "string"
-          },
-          "scope": {
-            "type": "string"
-          }
-        }
-      },
-      "ApiTemplateRole": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string"
-          }
-        }
-      },
-      "ApiTemplateSpace": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "name": {
             "type": "string"
           }
         }
@@ -9402,6 +9324,40 @@
           }
         }
       },
+      "PluginsCapabilityDefinition": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "PluginsCapabilityRequirement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "min_level": {
+            "type": "string"
+          },
+          "optional": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
       "PluginsManifest": {
         "type": "object",
         "properties": {
@@ -9416,6 +9372,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PluginsAuditEventDefinition"
+            },
+            "nullable": true
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginsCapabilityDefinition"
             },
             "nullable": true
           },
@@ -9440,6 +9403,13 @@
           },
           "plugin_api_version": {
             "type": "string"
+          },
+          "requires_capabilities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginsCapabilityRequirement"
+            },
+            "nullable": true
           },
           "requires_core": {
             "type": "string"
@@ -9518,6 +9488,132 @@
             "type": "string"
           },
           "type": {
+            "type": "string"
+          }
+        }
+      },
+      "TemplatesCapabilityRequirement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "min_level": {
+            "type": "string"
+          },
+          "optional": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "TemplatesGroup": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "TemplatesManifest": {
+        "type": "object",
+        "properties": {
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplatesGroup"
+            },
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplatesPermission"
+            },
+            "nullable": true
+          },
+          "required_capabilities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplatesCapabilityRequirement"
+            },
+            "nullable": true
+          },
+          "required_plugins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "requires_core": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplatesRole"
+            },
+            "nullable": true
+          },
+          "spaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplatesSpace"
+            },
+            "nullable": true
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "TemplatesPermission": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          }
+        }
+      },
+      "TemplatesRole": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        }
+      },
+      "TemplatesSpace": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
             "type": "string"
           }
         }
