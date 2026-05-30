@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -95,11 +96,6 @@ func backupManifest(ctx context.Context) (map[string]any, error) {
 	}
 	schemaVersion := ""
 	_ = pool.QueryRow(ctx, `SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1`).Scan(&schemaVersion)
-	count := func(table string) (int64, error) {
-		var value int64
-		err := pool.QueryRow(ctx, `SELECT count(*) FROM `+table).Scan(&value)
-		return value, err
-	}
 	tables := map[string]int64{}
 	for _, table := range []string{
 		"users",
@@ -111,11 +107,25 @@ func backupManifest(ctx context.Context) (map[string]any, error) {
 		"template_installations",
 		"audit_logs",
 	} {
-		value, err := count(table)
+		value, err := countRequiredTable(ctx, pool, table)
 		if err != nil {
 			return nil, fmt.Errorf("read %s count: %w", table, err)
 		}
 		tables[table] = value
+	}
+	pluginTables := map[string]int64{}
+	for _, table := range []string{
+		"plugin_auth_challenges",
+		"plugin_auth_settings",
+		"plugin_email_smtp_settings",
+	} {
+		value, exists, err := countOptionalTable(ctx, pool, table)
+		if err != nil {
+			return nil, fmt.Errorf("read optional plugin table %s count: %w", table, err)
+		}
+		if exists {
+			pluginTables[table] = value
+		}
 	}
 	return map[string]any{
 		"format":                   "plystra.backup.manifest.v1",
@@ -123,6 +133,7 @@ func backupManifest(ctx context.Context) (map[string]any, error) {
 		"database_url_fingerprint": databaseURLFingerprint(databaseURL()),
 		"schema_version":           schemaVersion,
 		"tables":                   tables,
+		"plugin_tables":            pluginTables,
 		"backup_scope": []string{
 			"PostgreSQL database dump",
 			"environment configuration and secrets from runtime secret store",
@@ -138,6 +149,36 @@ func backupManifest(ctx context.Context) (map[string]any, error) {
 			"start Core and plugins",
 		},
 	}, nil
+}
+
+var tableNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+
+func countRequiredTable(ctx context.Context, pool *pgxpool.Pool, table string) (int64, error) {
+	var value int64
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM `+safeTableIdentifier(table)).Scan(&value); err != nil {
+		return 0, err
+	}
+	return value, nil
+}
+
+func countOptionalTable(ctx context.Context, pool *pgxpool.Pool, table string) (int64, bool, error) {
+	table = safeTableIdentifier(table)
+	var exists bool
+	if err := pool.QueryRow(ctx, `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
+		return 0, false, err
+	}
+	if !exists {
+		return 0, false, nil
+	}
+	value, err := countRequiredTable(ctx, pool, table)
+	return value, true, err
+}
+
+func safeTableIdentifier(table string) string {
+	if !tableNamePattern.MatchString(table) {
+		panic("invalid static table identifier: " + table)
+	}
+	return table
 }
 
 func pgDumpCommand(rawURL string) string {

@@ -82,12 +82,29 @@ func TestCreateTemplateAppGeneratesInspectableAlphaScaffold(t *testing.T) {
 		"Required plugins: plystra.auth_complete",
 		"Required capabilities: email.transactional",
 		"migrations never create one automatically",
+		"Review generated README, deployment profile, environment example, and install explanation before starting services",
 		"production email delivery requires an independent email capability provider",
 	} {
 		if !strings.Contains(explanation, want) {
 			t.Fatalf("install explanation missing %q", want)
 		}
 	}
+}
+
+func TestBackupManifestStaticTableNamesAreSafe(t *testing.T) {
+	for _, table := range []string{
+		"users",
+		"plugin_auth_challenges",
+		"plugin_auth_settings",
+		"plugin_email_smtp_settings",
+	} {
+		if got := safeTableIdentifier(table); got != table {
+			t.Fatalf("safeTableIdentifier(%q) = %q", table, got)
+		}
+	}
+
+	assertPanics(t, func() { safeTableIdentifier("users;drop_table") })
+	assertPanics(t, func() { safeTableIdentifier("public.users") })
 }
 
 func TestCreateTemplateAppRefusesExistingOutputDirectory(t *testing.T) {
@@ -108,4 +125,14 @@ func readGeneratedFile(t *testing.T, path string) string {
 		t.Fatal(err)
 	}
 	return string(raw)
+}
+
+func assertPanics(t *testing.T, fn func()) {
+	t.Helper()
+	defer func() {
+		if recover() == nil {
+			t.Fatal("expected panic")
+		}
+	}()
+	fn()
 }
