@@ -2266,6 +2266,44 @@ components:
                 version:
                     type: string
             type: object
+        TemplatesDeploymentProfile:
+            properties:
+                backup:
+                    items:
+                        type: string
+                    nullable: true
+                    type: array
+                configuration:
+                    items:
+                        type: string
+                    nullable: true
+                    type: array
+                database:
+                    type: string
+                health_checks:
+                    items:
+                        type: string
+                    nullable: true
+                    type: array
+                id:
+                    type: string
+                one_command_start:
+                    items:
+                        type: string
+                    nullable: true
+                    type: array
+                requires_external_postgres:
+                    type: boolean
+                restore:
+                    items:
+                        type: string
+                    nullable: true
+                    type: array
+                runtime:
+                    type: string
+                structured_logs:
+                    type: boolean
+            type: object
         TemplatesGroup:
             properties:
                 key:
@@ -2275,6 +2313,10 @@ components:
             type: object
         TemplatesManifest:
             properties:
+                deployment_profile:
+                    $ref: '#/components/schemas/TemplatesDeploymentProfile'
+                description:
+                    type: string
                 groups:
                     items:
                         $ref: '#/components/schemas/TemplatesGroup'
@@ -2282,6 +2324,11 @@ components:
                     type: array
                 id:
                     type: string
+                limitations:
+                    items:
+                        type: string
+                    nullable: true
+                    type: array
                 name:
                     type: string
                 permissions:

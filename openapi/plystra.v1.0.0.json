@@ -9512,6 +9512,61 @@
           }
         }
       },
+      "TemplatesDeploymentProfile": {
+        "type": "object",
+        "properties": {
+          "backup": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "configuration": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "database": {
+            "type": "string"
+          },
+          "health_checks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          },
+          "one_command_start": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "requires_external_postgres": {
+            "type": "boolean"
+          },
+          "restore": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "runtime": {
+            "type": "string"
+          },
+          "structured_logs": {
+            "type": "boolean"
+          }
+        }
+      },
       "TemplatesGroup": {
         "type": "object",
         "properties": {
@@ -9526,6 +9581,12 @@
       "TemplatesManifest": {
         "type": "object",
         "properties": {
+          "deployment_profile": {
+            "$ref": "#/components/schemas/TemplatesDeploymentProfile"
+          },
+          "description": {
+            "type": "string"
+          },
           "groups": {
             "type": "array",
             "items": {
@@ -9535,6 +9596,13 @@
           },
           "id": {
             "type": "string"
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
           },
           "name": {
             "type": "string"

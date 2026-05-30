@@ -7,10 +7,13 @@ import (
 type Manifest struct {
 	ID                   string                  `json:"id"`
 	Name                 string                  `json:"name"`
+	Description          string                  `json:"description"`
 	Version              string                  `json:"version"`
 	RequiresCore         string                  `json:"requires_core"`
 	RequiredPlugins      []string                `json:"required_plugins"`
 	RequiredCapabilities []CapabilityRequirement `json:"required_capabilities"`
+	DeploymentProfile    DeploymentProfile       `json:"deployment_profile"`
+	Limitations          []string                `json:"limitations"`
 	Spaces               []Space                 `json:"spaces"`
 	Groups               []Group                 `json:"groups"`
 	Roles                []Role                  `json:"roles"`
@@ -46,22 +49,83 @@ type Permission struct {
 	Scope    string `json:"scope"`
 }
 
+type DeploymentProfile struct {
+	ID                       string   `json:"id"`
+	Runtime                  string   `json:"runtime"`
+	Database                 string   `json:"database"`
+	Configuration            []string `json:"configuration"`
+	HealthChecks             []string `json:"health_checks"`
+	StructuredLogs           bool     `json:"structured_logs"`
+	Backup                   []string `json:"backup"`
+	Restore                  []string `json:"restore"`
+	OneCommandStart          []string `json:"one_command_start"`
+	RequiresExternalPostgres bool     `json:"requires_external_postgres"`
+}
+
+func alphaDeploymentProfile() DeploymentProfile {
+	return DeploymentProfile{
+		ID:       "backend-os-alpha-compose",
+		Runtime:  "single Plystra Core container plus official plugin sidecars when selected",
+		Database: "external PostgreSQL 16+ for production alpha",
+		Configuration: []string{
+			"environment variables for process bootstrap and secrets",
+			"database-backed plugin settings for non-sensitive mutable plugin configuration",
+			"versioned migrations before startup",
+		},
+		HealthChecks: []string{
+			"GET /api/v1/health",
+			"GET /api/v1/ready",
+			"plugin /health endpoints when plugin containers are enabled",
+		},
+		StructuredLogs: true,
+		Backup: []string{
+			"pg_dump custom-format PostgreSQL dump",
+			"backup manifest from plystractl backup manifest",
+			"runtime environment and secret-manager export",
+			"plugin-owned tables in the same database",
+		},
+		Restore: []string{
+			"restore PostgreSQL dump into an empty database",
+			"restore runtime environment and secrets",
+			"run plystractl migrate verify",
+			"run plystractl doctor",
+		},
+		OneCommandStart: []string{
+			"docker compose --env-file .env up -d",
+		},
+		RequiresExternalPostgres: true,
+	}
+}
+
 func Catalog() []Manifest {
+	alphaProfile := alphaDeploymentProfile()
 	return []Manifest{
 		{
-			ID:           "blank",
-			Name:         "Blank",
-			Version:      "1.0.0",
-			RequiresCore: ">=1.0.0 <2.0.0",
+			ID:                "blank",
+			Name:              "Blank",
+			Description:       "Minimal production-alpha Plystra Core baseline with no optional plugin requirements.",
+			Version:           "1.0.0",
+			RequiresCore:      ">=1.0.0 <2.0.0",
+			DeploymentProfile: alphaProfile,
+			Limitations: []string{
+				"does not install a frontend application",
+				"requires an operator-created first instance super admin",
+			},
 		},
 		{
 			ID:                   "internal-admin",
 			Name:                 "Internal Admin",
+			Description:          "Internal operations backend template with API key governance and webhook metadata requirements.",
 			Version:              "1.0.0",
 			RequiresCore:         ">=1.0.0 <2.0.0",
 			RequiredPlugins:      []string{"plystra.api_keys", "plystra.webhooks"},
 			RequiredCapabilities: []CapabilityRequirement{{ID: "api_key.credential", MinLevel: "standard", Version: ">=1.0.0 <2.0.0"}},
-			Spaces:               []Space{{Key: "default", Name: "Default Workspace"}},
+			DeploymentProfile:    alphaProfile,
+			Limitations: []string{
+				"plugin runtime is limited to official metadata and sidecar lifecycle in alpha",
+				"generated defaults must be reviewed before production use",
+			},
+			Spaces: []Space{{Key: "default", Name: "Default Workspace"}},
 			Groups: []Group{
 				{Key: "operations", Name: "Operations"},
 				{Key: "finance", Name: "Finance"},
@@ -73,12 +137,18 @@ func Catalog() []Manifest {
 			},
 		},
 		{
-			ID:              "community-lite",
-			Name:            "Community Lite",
-			Version:         "1.0.0",
-			RequiresCore:    ">=1.0.0 <2.0.0",
-			RequiredPlugins: []string{"plystra.moderation"},
-			Spaces:          []Space{{Key: "community", Name: "Community"}},
+			ID:                "community-lite",
+			Name:              "Community Lite",
+			Description:       "Small community backend template with moderation-oriented groups, roles, and permissions.",
+			Version:           "1.0.0",
+			RequiresCore:      ">=1.0.0 <2.0.0",
+			RequiredPlugins:   []string{"plystra.moderation"},
+			DeploymentProfile: alphaProfile,
+			Limitations: []string{
+				"moderation plugin must be installed and operated separately",
+				"does not include a hosted frontend or marketplace workflow",
+			},
+			Spaces: []Space{{Key: "community", Name: "Community"}},
 			Groups: []Group{
 				{Key: "general", Name: "General"},
 				{Key: "moderation", Name: "Moderation"},
@@ -91,11 +161,18 @@ func Catalog() []Manifest {
 		{
 			ID:                   "auth-ready-saas",
 			Name:                 "Auth Ready SaaS",
+			Description:          "Small SaaS backend template that pairs Plystra Core with the Complete Auth plugin and transactional email capability.",
 			Version:              "1.0.0",
 			RequiresCore:         ">=1.0.0 <2.0.0",
 			RequiredPlugins:      []string{"plystra.auth_complete"},
 			RequiredCapabilities: []CapabilityRequirement{{ID: "email.transactional", MinLevel: "standard", Version: ">=1.0.0 <2.0.0"}},
-			Spaces:               []Space{{Key: "default", Name: "Default SaaS Workspace"}},
+			DeploymentProfile:    alphaProfile,
+			Limitations: []string{
+				"production email delivery requires an independent email capability provider",
+				"public registration remains disabled until enabled through plugin database settings",
+				"cloud hosting and marketplace behavior are outside Backend OS Alpha",
+			},
+			Spaces: []Space{{Key: "default", Name: "Default SaaS Workspace"}},
 			Groups: []Group{
 				{Key: "admins", Name: "Admins"},
 				{Key: "members", Name: "Members"},
@@ -124,6 +201,7 @@ func Preview(tpl Manifest, missingPlugins []string, missingCapabilities []Capabi
 		"missing_plugins":      missingPlugins,
 		"missing_capabilities": missingCapabilities,
 		"capability_providers": capabilityProviders,
+		"install_explanation":  InstallExplanation(tpl, missingPlugins, missingCapabilities, capabilityProviders),
 		"changes": map[string]any{
 			"spaces":       tpl.Spaces,
 			"groups":       tpl.Groups,
@@ -132,6 +210,29 @@ func Preview(tpl Manifest, missingPlugins []string, missingCapabilities []Capabi
 			"capabilities": tpl.RequiredCapabilities,
 		},
 	}
+}
+
+func InstallExplanation(tpl Manifest, missingPlugins []string, missingCapabilities []CapabilityRequirement, capabilityProviders map[string]string) []string {
+	steps := []string{
+		"Create an inspectable application directory from the template manifest.",
+		"Review generated README, deployment profile, environment example, and install explanation before starting services.",
+		"Configure strong secrets, public URL, CORS origins, and external PostgreSQL connection string.",
+		"Apply and verify versioned migrations before exposing protected APIs.",
+		"Bootstrap the first instance super admin explicitly; migrations never create one automatically.",
+	}
+	if len(tpl.RequiredPlugins) > 0 {
+		steps = append(steps, "Install and operate required official plugin sidecars before enabling template-dependent flows.")
+	}
+	if len(tpl.RequiredCapabilities) > 0 {
+		steps = append(steps, "Resolve required capability providers and keep provider secrets outside generated files.")
+	}
+	if len(missingPlugins) > 0 || len(missingCapabilities) > 0 {
+		steps = append(steps, "Resolve missing plugins or capabilities before treating the template as production-ready.")
+	}
+	if len(capabilityProviders) > 0 {
+		steps = append(steps, "Capability providers are recorded in the generated manifest for operator review.")
+	}
+	return steps
 }
 
 func ManifestMap(tpl Manifest) (map[string]any, error) {

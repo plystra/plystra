@@ -148,11 +148,14 @@ The alpha backend assembly flow is intentionally transparent:
 ```powershell
 go run ./cmd/plystractl templates list
 go run ./cmd/plystractl templates describe auth-ready-saas
+go run ./cmd/plystractl templates create --template auth-ready-saas --name "Acme SaaS" --out ./acme-saas
 go run ./cmd/plystractl backup manifest --out plystra-backup-manifest.json
 go run ./cmd/plystractl backup pg-dump-command
 go run ./cmd/plystractl upgrade plan
 go run ./cmd/plystractl upgrade verify
 ```
+
+`templates create` writes an inspectable application directory with `README.md`, `.env.example`, `docker-compose.yml`, `plystra/template-installation.json`, and `plystra/install-explanation.md`. The generated scaffold never writes real secrets and never creates the first instance super admin automatically.
 
 `/api/v1/ready` reports Core readiness, migration state, system capabilities, and plugin status counts. Production alpha still requires external PostgreSQL and versioned migrations; cloud hosting and marketplace behavior are outside this phase.
 

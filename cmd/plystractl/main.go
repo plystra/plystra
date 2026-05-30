@@ -101,6 +101,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "usage: plystractl migrate <status|plan|up|verify>")
 	fmt.Fprintln(os.Stderr, "       plystractl ent <status|plan|check|apply>")
 	fmt.Fprintln(os.Stderr, "       plystractl templates <list|describe> [template_id]")
+	fmt.Fprintln(os.Stderr, "       plystractl templates create --template <template_id> --out <dir> [--name <app_name>]")
 	fmt.Fprintln(os.Stderr, "       plystractl backup <manifest|pg-dump-command> [--out <path>]")
 	fmt.Fprintln(os.Stderr, "       plystractl restore <pg-restore-command|verify-backup> [--file <path>]")
 	fmt.Fprintln(os.Stderr, "       plystractl upgrade <plan|verify|record> [--version <version>]")
