@@ -105,6 +105,12 @@ Registration is disabled by default. For production, keep it closed unless your 
 
 Core intentionally keeps authentication minimal: password login, protected registration, session refresh, logout, and actor context. Full authentication flows such as email verification codes, magic links, MFA, and external identity-provider integrations belong in the separate full-auth plugin repository. That plugin pulls email delivery contracts only when email delivery is enabled.
 
+## Generic App Data
+
+Backend OS Alpha can store ordinary application data in Plystra Core when a project does not want a separate business database for structured records. Create a space-scoped model under `/api/v1/spaces/{space_id}/data/models`; Core registers a model-specific resource type such as `data_customer`, creates read/create/update/archive/delete permission definitions, and returns those permission IDs in the model response.
+
+Applications then bind those generated permissions to roles through `/api/v1/spaces/{space_id}/role-permissions` and assign roles to Members with `/api/v1/spaces/{space_id}/member-role-grants`. Record endpoints under `/api/v1/spaces/{space_id}/data/models/{model_key}/records` are governed by the normal Plystra authorization engine and write revision history. Audit logs include model, record, and changed key names for explainability, but do not copy business field values by default.
+
 ## Documentation
 
 Full installation, integration, operations, SDK, security, and release documentation lives at [docs.plystra.com](https://docs.plystra.com).

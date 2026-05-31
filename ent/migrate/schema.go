@@ -132,6 +132,133 @@ var (
 			},
 		},
 	}
+	// AppDataModelsColumns holds the columns for the "app_data_models" table.
+	AppDataModelsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "space_id", Type: field.TypeString},
+		{Name: "key", Type: field.TypeString},
+		{Name: "display_name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "source", Type: field.TypeString, Default: schema.Expr("'app'")},
+		{Name: "status", Type: field.TypeString, Default: schema.Expr("'active'")},
+		{Name: "schema", Type: field.TypeJSON, Default: schema.Expr("'{}'::jsonb")},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, Default: schema.Expr("'{}'::jsonb")},
+		{Name: "created_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+		{Name: "updated_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+	}
+	// AppDataModelsTable holds the schema information for the "app_data_models" table.
+	AppDataModelsTable = &schema.Table{
+		Name:       "app_data_models",
+		Columns:    AppDataModelsColumns,
+		PrimaryKey: []*schema.Column{AppDataModelsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "appdatamodel_space_id_key",
+				Unique:  true,
+				Columns: []*schema.Column{AppDataModelsColumns[1], AppDataModelsColumns[2]},
+			},
+			{
+				Name:    "appdatamodel_space_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataModelsColumns[1], AppDataModelsColumns[6]},
+			},
+			{
+				Name:    "appdatamodel_key",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataModelsColumns[2]},
+			},
+		},
+	}
+	// AppDataRecordsColumns holds the columns for the "app_data_records" table.
+	AppDataRecordsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "space_id", Type: field.TypeString},
+		{Name: "model_id", Type: field.TypeString},
+		{Name: "model_key", Type: field.TypeString},
+		{Name: "group_id", Type: field.TypeString, Nullable: true},
+		{Name: "owner_member_id", Type: field.TypeString, Nullable: true},
+		{Name: "display_name", Type: field.TypeString, Nullable: true},
+		{Name: "visibility", Type: field.TypeString, Default: schema.Expr("'private'")},
+		{Name: "status", Type: field.TypeString, Default: schema.Expr("'active'")},
+		{Name: "data", Type: field.TypeJSON, Default: schema.Expr("'{}'::jsonb")},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, Default: schema.Expr("'{}'::jsonb")},
+		{Name: "created_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+		{Name: "updated_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+	}
+	// AppDataRecordsTable holds the schema information for the "app_data_records" table.
+	AppDataRecordsTable = &schema.Table{
+		Name:       "app_data_records",
+		Columns:    AppDataRecordsColumns,
+		PrimaryKey: []*schema.Column{AppDataRecordsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "appdatarecord_space_id_model_key_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppDataRecordsColumns[1], AppDataRecordsColumns[3], AppDataRecordsColumns[0]},
+			},
+			{
+				Name:    "appdatarecord_model_id",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataRecordsColumns[2]},
+			},
+			{
+				Name:    "appdatarecord_space_id_model_key_status",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataRecordsColumns[1], AppDataRecordsColumns[3], AppDataRecordsColumns[8]},
+			},
+			{
+				Name:    "appdatarecord_space_id_group_id",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataRecordsColumns[1], AppDataRecordsColumns[4]},
+			},
+			{
+				Name:    "appdatarecord_space_id_owner_member_id",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataRecordsColumns[1], AppDataRecordsColumns[5]},
+			},
+		},
+	}
+	// AppDataRecordRevisionsColumns holds the columns for the "app_data_record_revisions" table.
+	AppDataRecordRevisionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "record_id", Type: field.TypeString},
+		{Name: "space_id", Type: field.TypeString},
+		{Name: "model_id", Type: field.TypeString},
+		{Name: "model_key", Type: field.TypeString},
+		{Name: "revision", Type: field.TypeInt},
+		{Name: "operation", Type: field.TypeString},
+		{Name: "actor_user_id", Type: field.TypeString, Nullable: true},
+		{Name: "actor_member_id", Type: field.TypeString, Nullable: true},
+		{Name: "actor_user_member_id", Type: field.TypeString, Nullable: true},
+		{Name: "data", Type: field.TypeJSON, Default: schema.Expr("'{}'::jsonb")},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, Default: schema.Expr("'{}'::jsonb")},
+		{Name: "created_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+	}
+	// AppDataRecordRevisionsTable holds the schema information for the "app_data_record_revisions" table.
+	AppDataRecordRevisionsTable = &schema.Table{
+		Name:       "app_data_record_revisions",
+		Columns:    AppDataRecordRevisionsColumns,
+		PrimaryKey: []*schema.Column{AppDataRecordRevisionsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "appdatarecordrevision_record_id_revision",
+				Unique:  true,
+				Columns: []*schema.Column{AppDataRecordRevisionsColumns[1], AppDataRecordRevisionsColumns[5]},
+			},
+			{
+				Name:    "appdatarecordrevision_space_id_model_key_record_id",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataRecordRevisionsColumns[2], AppDataRecordRevisionsColumns[4], AppDataRecordRevisionsColumns[1]},
+			},
+			{
+				Name:    "appdatarecordrevision_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataRecordRevisionsColumns[12]},
+			},
+		},
+	}
 	// AuditEventTypesColumns holds the columns for the "audit_event_types" table.
 	AuditEventTypesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -686,6 +813,9 @@ var (
 	Tables = []*schema.Table{
 		AdminGrantsTable,
 		APIKeysTable,
+		AppDataModelsTable,
+		AppDataRecordsTable,
+		AppDataRecordRevisionsTable,
 		AuditEventTypesTable,
 		AuditLogsTable,
 		BackgroundJobsTable,

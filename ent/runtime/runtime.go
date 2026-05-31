@@ -7,6 +7,9 @@ import (
 
 	"github.com/plystra/plystra/ent/admingrant"
 	"github.com/plystra/plystra/ent/apikey"
+	"github.com/plystra/plystra/ent/appdatamodel"
+	"github.com/plystra/plystra/ent/appdatarecord"
+	"github.com/plystra/plystra/ent/appdatarecordrevision"
 	"github.com/plystra/plystra/ent/auditeventtype"
 	"github.com/plystra/plystra/ent/auditlog"
 	"github.com/plystra/plystra/ent/backgroundjob"
@@ -104,6 +107,112 @@ func init() {
 	apikeyDescID := apikeyFields[0].Descriptor()
 	// apikey.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	apikey.IDValidator = apikeyDescID.Validators[0].(func(string) error)
+	appdatamodelFields := schema.AppDataModel{}.Fields()
+	_ = appdatamodelFields
+	// appdatamodelDescSpaceID is the schema descriptor for space_id field.
+	appdatamodelDescSpaceID := appdatamodelFields[1].Descriptor()
+	// appdatamodel.SpaceIDValidator is a validator for the "space_id" field. It is called by the builders before save.
+	appdatamodel.SpaceIDValidator = appdatamodelDescSpaceID.Validators[0].(func(string) error)
+	// appdatamodelDescKey is the schema descriptor for key field.
+	appdatamodelDescKey := appdatamodelFields[2].Descriptor()
+	// appdatamodel.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	appdatamodel.KeyValidator = appdatamodelDescKey.Validators[0].(func(string) error)
+	// appdatamodelDescDisplayName is the schema descriptor for display_name field.
+	appdatamodelDescDisplayName := appdatamodelFields[3].Descriptor()
+	// appdatamodel.DisplayNameValidator is a validator for the "display_name" field. It is called by the builders before save.
+	appdatamodel.DisplayNameValidator = appdatamodelDescDisplayName.Validators[0].(func(string) error)
+	// appdatamodelDescSource is the schema descriptor for source field.
+	appdatamodelDescSource := appdatamodelFields[5].Descriptor()
+	// appdatamodel.DefaultSource holds the default value on creation for the source field.
+	appdatamodel.DefaultSource = appdatamodelDescSource.Default.(string)
+	// appdatamodelDescStatus is the schema descriptor for status field.
+	appdatamodelDescStatus := appdatamodelFields[6].Descriptor()
+	// appdatamodel.DefaultStatus holds the default value on creation for the status field.
+	appdatamodel.DefaultStatus = appdatamodelDescStatus.Default.(string)
+	// appdatamodelDescCreatedAt is the schema descriptor for created_at field.
+	appdatamodelDescCreatedAt := appdatamodelFields[9].Descriptor()
+	// appdatamodel.DefaultCreatedAt holds the default value on creation for the created_at field.
+	appdatamodel.DefaultCreatedAt = appdatamodelDescCreatedAt.Default.(func() time.Time)
+	// appdatamodelDescUpdatedAt is the schema descriptor for updated_at field.
+	appdatamodelDescUpdatedAt := appdatamodelFields[10].Descriptor()
+	// appdatamodel.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	appdatamodel.DefaultUpdatedAt = appdatamodelDescUpdatedAt.Default.(func() time.Time)
+	// appdatamodel.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	appdatamodel.UpdateDefaultUpdatedAt = appdatamodelDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// appdatamodelDescID is the schema descriptor for id field.
+	appdatamodelDescID := appdatamodelFields[0].Descriptor()
+	// appdatamodel.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	appdatamodel.IDValidator = appdatamodelDescID.Validators[0].(func(string) error)
+	appdatarecordFields := schema.AppDataRecord{}.Fields()
+	_ = appdatarecordFields
+	// appdatarecordDescSpaceID is the schema descriptor for space_id field.
+	appdatarecordDescSpaceID := appdatarecordFields[1].Descriptor()
+	// appdatarecord.SpaceIDValidator is a validator for the "space_id" field. It is called by the builders before save.
+	appdatarecord.SpaceIDValidator = appdatarecordDescSpaceID.Validators[0].(func(string) error)
+	// appdatarecordDescModelID is the schema descriptor for model_id field.
+	appdatarecordDescModelID := appdatarecordFields[2].Descriptor()
+	// appdatarecord.ModelIDValidator is a validator for the "model_id" field. It is called by the builders before save.
+	appdatarecord.ModelIDValidator = appdatarecordDescModelID.Validators[0].(func(string) error)
+	// appdatarecordDescModelKey is the schema descriptor for model_key field.
+	appdatarecordDescModelKey := appdatarecordFields[3].Descriptor()
+	// appdatarecord.ModelKeyValidator is a validator for the "model_key" field. It is called by the builders before save.
+	appdatarecord.ModelKeyValidator = appdatarecordDescModelKey.Validators[0].(func(string) error)
+	// appdatarecordDescVisibility is the schema descriptor for visibility field.
+	appdatarecordDescVisibility := appdatarecordFields[7].Descriptor()
+	// appdatarecord.DefaultVisibility holds the default value on creation for the visibility field.
+	appdatarecord.DefaultVisibility = appdatarecordDescVisibility.Default.(string)
+	// appdatarecordDescStatus is the schema descriptor for status field.
+	appdatarecordDescStatus := appdatarecordFields[8].Descriptor()
+	// appdatarecord.DefaultStatus holds the default value on creation for the status field.
+	appdatarecord.DefaultStatus = appdatarecordDescStatus.Default.(string)
+	// appdatarecordDescCreatedAt is the schema descriptor for created_at field.
+	appdatarecordDescCreatedAt := appdatarecordFields[11].Descriptor()
+	// appdatarecord.DefaultCreatedAt holds the default value on creation for the created_at field.
+	appdatarecord.DefaultCreatedAt = appdatarecordDescCreatedAt.Default.(func() time.Time)
+	// appdatarecordDescUpdatedAt is the schema descriptor for updated_at field.
+	appdatarecordDescUpdatedAt := appdatarecordFields[12].Descriptor()
+	// appdatarecord.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	appdatarecord.DefaultUpdatedAt = appdatarecordDescUpdatedAt.Default.(func() time.Time)
+	// appdatarecord.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	appdatarecord.UpdateDefaultUpdatedAt = appdatarecordDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// appdatarecordDescID is the schema descriptor for id field.
+	appdatarecordDescID := appdatarecordFields[0].Descriptor()
+	// appdatarecord.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	appdatarecord.IDValidator = appdatarecordDescID.Validators[0].(func(string) error)
+	appdatarecordrevisionFields := schema.AppDataRecordRevision{}.Fields()
+	_ = appdatarecordrevisionFields
+	// appdatarecordrevisionDescRecordID is the schema descriptor for record_id field.
+	appdatarecordrevisionDescRecordID := appdatarecordrevisionFields[1].Descriptor()
+	// appdatarecordrevision.RecordIDValidator is a validator for the "record_id" field. It is called by the builders before save.
+	appdatarecordrevision.RecordIDValidator = appdatarecordrevisionDescRecordID.Validators[0].(func(string) error)
+	// appdatarecordrevisionDescSpaceID is the schema descriptor for space_id field.
+	appdatarecordrevisionDescSpaceID := appdatarecordrevisionFields[2].Descriptor()
+	// appdatarecordrevision.SpaceIDValidator is a validator for the "space_id" field. It is called by the builders before save.
+	appdatarecordrevision.SpaceIDValidator = appdatarecordrevisionDescSpaceID.Validators[0].(func(string) error)
+	// appdatarecordrevisionDescModelID is the schema descriptor for model_id field.
+	appdatarecordrevisionDescModelID := appdatarecordrevisionFields[3].Descriptor()
+	// appdatarecordrevision.ModelIDValidator is a validator for the "model_id" field. It is called by the builders before save.
+	appdatarecordrevision.ModelIDValidator = appdatarecordrevisionDescModelID.Validators[0].(func(string) error)
+	// appdatarecordrevisionDescModelKey is the schema descriptor for model_key field.
+	appdatarecordrevisionDescModelKey := appdatarecordrevisionFields[4].Descriptor()
+	// appdatarecordrevision.ModelKeyValidator is a validator for the "model_key" field. It is called by the builders before save.
+	appdatarecordrevision.ModelKeyValidator = appdatarecordrevisionDescModelKey.Validators[0].(func(string) error)
+	// appdatarecordrevisionDescRevision is the schema descriptor for revision field.
+	appdatarecordrevisionDescRevision := appdatarecordrevisionFields[5].Descriptor()
+	// appdatarecordrevision.RevisionValidator is a validator for the "revision" field. It is called by the builders before save.
+	appdatarecordrevision.RevisionValidator = appdatarecordrevisionDescRevision.Validators[0].(func(int) error)
+	// appdatarecordrevisionDescOperation is the schema descriptor for operation field.
+	appdatarecordrevisionDescOperation := appdatarecordrevisionFields[6].Descriptor()
+	// appdatarecordrevision.OperationValidator is a validator for the "operation" field. It is called by the builders before save.
+	appdatarecordrevision.OperationValidator = appdatarecordrevisionDescOperation.Validators[0].(func(string) error)
+	// appdatarecordrevisionDescCreatedAt is the schema descriptor for created_at field.
+	appdatarecordrevisionDescCreatedAt := appdatarecordrevisionFields[12].Descriptor()
+	// appdatarecordrevision.DefaultCreatedAt holds the default value on creation for the created_at field.
+	appdatarecordrevision.DefaultCreatedAt = appdatarecordrevisionDescCreatedAt.Default.(func() time.Time)
+	// appdatarecordrevisionDescID is the schema descriptor for id field.
+	appdatarecordrevisionDescID := appdatarecordrevisionFields[0].Descriptor()
+	// appdatarecordrevision.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	appdatarecordrevision.IDValidator = appdatarecordrevisionDescID.Validators[0].(func(string) error)
 	auditeventtypeFields := schema.AuditEventType{}.Fields()
 	_ = auditeventtypeFields
 	// auditeventtypeDescKey is the schema descriptor for key field.

@@ -57,6 +57,23 @@ func (s *Server) requestMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		if !publicRoute(ctxReq) {
+			if appDataBusinessRoute(ctxReq.URL.Path) && apiKeyTokenFromRequest(ctxReq) == "" {
+				session, err := s.sessionFromRequest(ctxReq.Context(), ctxReq)
+				if errors.Is(err, pgx.ErrNoRows) {
+					writeError(recorder, ctxReq, http.StatusUnauthorized, "AUTHENTICATION_REQUIRED", "A valid access token is required.", nil)
+					return
+				}
+				if err != nil {
+					writeError(recorder, ctxReq, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to authenticate app data request.", err.Error())
+					return
+				}
+				ctxReq = ctxReq.WithContext(context.WithValue(ctxReq.Context(), adminPrincipalKey, adminPrincipal{
+					CredentialType: "session",
+					Session:        session,
+				}))
+				next.ServeHTTP(recorder, ctxReq)
+				return
+			}
 			requirement := adminRequirementFor(ctxReq.Method, ctxReq.URL.Path, ctxReq.URL.Query().Get("space_id"))
 			principal, allowed, err := s.adminCredentialAllowed(ctxReq.Context(), ctxReq, requirement)
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -167,6 +184,23 @@ func publicRoute(r *http.Request) bool {
 		}
 	}
 	return r.Method == http.MethodGet && path == "/api/v1/actor/context"
+}
+
+func appDataBusinessRoute(path string) bool {
+	parts := pathParts(path)
+	if len(parts) >= 8 &&
+		parts[0] == "api" &&
+		parts[1] == "v1" &&
+		parts[2] == "spaces" &&
+		parts[4] == "data" &&
+		parts[5] == "models" &&
+		parts[7] == "records" {
+		return true
+	}
+	return len(parts) == 5 &&
+		parts[0] == "api" &&
+		parts[1] == "v1" &&
+		parts[2] == "app-data"
 }
 
 func (s *Server) metricsAuthorized(r *http.Request) bool {

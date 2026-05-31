@@ -16,6 +16,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/plystra/plystra/ent/admingrant"
 	"github.com/plystra/plystra/ent/apikey"
+	"github.com/plystra/plystra/ent/appdatamodel"
+	"github.com/plystra/plystra/ent/appdatarecord"
+	"github.com/plystra/plystra/ent/appdatarecordrevision"
 	"github.com/plystra/plystra/ent/auditeventtype"
 	"github.com/plystra/plystra/ent/auditlog"
 	"github.com/plystra/plystra/ent/backgroundjob"
@@ -49,6 +52,12 @@ type Client struct {
 	AdminGrant *AdminGrantClient
 	// ApiKey is the client for interacting with the ApiKey builders.
 	ApiKey *ApiKeyClient
+	// AppDataModel is the client for interacting with the AppDataModel builders.
+	AppDataModel *AppDataModelClient
+	// AppDataRecord is the client for interacting with the AppDataRecord builders.
+	AppDataRecord *AppDataRecordClient
+	// AppDataRecordRevision is the client for interacting with the AppDataRecordRevision builders.
+	AppDataRecordRevision *AppDataRecordRevisionClient
 	// AuditEventType is the client for interacting with the AuditEventType builders.
 	AuditEventType *AuditEventTypeClient
 	// AuditLog is the client for interacting with the AuditLog builders.
@@ -106,6 +115,9 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.AdminGrant = NewAdminGrantClient(c.config)
 	c.ApiKey = NewApiKeyClient(c.config)
+	c.AppDataModel = NewAppDataModelClient(c.config)
+	c.AppDataRecord = NewAppDataRecordClient(c.config)
+	c.AppDataRecordRevision = NewAppDataRecordRevisionClient(c.config)
 	c.AuditEventType = NewAuditEventTypeClient(c.config)
 	c.AuditLog = NewAuditLogClient(c.config)
 	c.BackgroundJob = NewBackgroundJobClient(c.config)
@@ -222,6 +234,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		config:                   cfg,
 		AdminGrant:               NewAdminGrantClient(cfg),
 		ApiKey:                   NewApiKeyClient(cfg),
+		AppDataModel:             NewAppDataModelClient(cfg),
+		AppDataRecord:            NewAppDataRecordClient(cfg),
+		AppDataRecordRevision:    NewAppDataRecordRevisionClient(cfg),
 		AuditEventType:           NewAuditEventTypeClient(cfg),
 		AuditLog:                 NewAuditLogClient(cfg),
 		BackgroundJob:            NewBackgroundJobClient(cfg),
@@ -265,6 +280,9 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		config:                   cfg,
 		AdminGrant:               NewAdminGrantClient(cfg),
 		ApiKey:                   NewApiKeyClient(cfg),
+		AppDataModel:             NewAppDataModelClient(cfg),
+		AppDataRecord:            NewAppDataRecordClient(cfg),
+		AppDataRecordRevision:    NewAppDataRecordRevisionClient(cfg),
 		AuditEventType:           NewAuditEventTypeClient(cfg),
 		AuditLog:                 NewAuditLogClient(cfg),
 		BackgroundJob:            NewBackgroundJobClient(cfg),
@@ -316,8 +334,9 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.AdminGrant, c.ApiKey, c.AuditEventType, c.AuditLog, c.BackgroundJob, c.Group,
-		c.Member, c.MemberRole, c.Permission, c.Plugin, c.PluginAdminMenu,
+		c.AdminGrant, c.ApiKey, c.AppDataModel, c.AppDataRecord,
+		c.AppDataRecordRevision, c.AuditEventType, c.AuditLog, c.BackgroundJob,
+		c.Group, c.Member, c.MemberRole, c.Permission, c.Plugin, c.PluginAdminMenu,
 		c.PluginSettingsDefinition, c.PluginSettingsValue, c.Resource,
 		c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role, c.RolePermission,
 		c.Session, c.Space, c.TemplateInstallation, c.User, c.UserMember,
@@ -330,8 +349,9 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.AdminGrant, c.ApiKey, c.AuditEventType, c.AuditLog, c.BackgroundJob, c.Group,
-		c.Member, c.MemberRole, c.Permission, c.Plugin, c.PluginAdminMenu,
+		c.AdminGrant, c.ApiKey, c.AppDataModel, c.AppDataRecord,
+		c.AppDataRecordRevision, c.AuditEventType, c.AuditLog, c.BackgroundJob,
+		c.Group, c.Member, c.MemberRole, c.Permission, c.Plugin, c.PluginAdminMenu,
 		c.PluginSettingsDefinition, c.PluginSettingsValue, c.Resource,
 		c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role, c.RolePermission,
 		c.Session, c.Space, c.TemplateInstallation, c.User, c.UserMember,
@@ -347,6 +367,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AdminGrant.mutate(ctx, m)
 	case *ApiKeyMutation:
 		return c.ApiKey.mutate(ctx, m)
+	case *AppDataModelMutation:
+		return c.AppDataModel.mutate(ctx, m)
+	case *AppDataRecordMutation:
+		return c.AppDataRecord.mutate(ctx, m)
+	case *AppDataRecordRevisionMutation:
+		return c.AppDataRecordRevision.mutate(ctx, m)
 	case *AuditEventTypeMutation:
 		return c.AuditEventType.mutate(ctx, m)
 	case *AuditLogMutation:
@@ -659,6 +685,405 @@ func (c *ApiKeyClient) mutate(ctx context.Context, m *ApiKeyMutation) (Value, er
 		return (&ApiKeyDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown ApiKey mutation op: %q", m.Op())
+	}
+}
+
+// AppDataModelClient is a client for the AppDataModel schema.
+type AppDataModelClient struct {
+	config
+}
+
+// NewAppDataModelClient returns a client for the AppDataModel from the given config.
+func NewAppDataModelClient(c config) *AppDataModelClient {
+	return &AppDataModelClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `appdatamodel.Hooks(f(g(h())))`.
+func (c *AppDataModelClient) Use(hooks ...Hook) {
+	c.hooks.AppDataModel = append(c.hooks.AppDataModel, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `appdatamodel.Intercept(f(g(h())))`.
+func (c *AppDataModelClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AppDataModel = append(c.inters.AppDataModel, interceptors...)
+}
+
+// Create returns a builder for creating a AppDataModel entity.
+func (c *AppDataModelClient) Create() *AppDataModelCreate {
+	mutation := newAppDataModelMutation(c.config, OpCreate)
+	return &AppDataModelCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AppDataModel entities.
+func (c *AppDataModelClient) CreateBulk(builders ...*AppDataModelCreate) *AppDataModelCreateBulk {
+	return &AppDataModelCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AppDataModelClient) MapCreateBulk(slice any, setFunc func(*AppDataModelCreate, int)) *AppDataModelCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AppDataModelCreateBulk{err: fmt.Errorf("calling to AppDataModelClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AppDataModelCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AppDataModelCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AppDataModel.
+func (c *AppDataModelClient) Update() *AppDataModelUpdate {
+	mutation := newAppDataModelMutation(c.config, OpUpdate)
+	return &AppDataModelUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AppDataModelClient) UpdateOne(_m *AppDataModel) *AppDataModelUpdateOne {
+	mutation := newAppDataModelMutation(c.config, OpUpdateOne, withAppDataModel(_m))
+	return &AppDataModelUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AppDataModelClient) UpdateOneID(id string) *AppDataModelUpdateOne {
+	mutation := newAppDataModelMutation(c.config, OpUpdateOne, withAppDataModelID(id))
+	return &AppDataModelUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AppDataModel.
+func (c *AppDataModelClient) Delete() *AppDataModelDelete {
+	mutation := newAppDataModelMutation(c.config, OpDelete)
+	return &AppDataModelDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AppDataModelClient) DeleteOne(_m *AppDataModel) *AppDataModelDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AppDataModelClient) DeleteOneID(id string) *AppDataModelDeleteOne {
+	builder := c.Delete().Where(appdatamodel.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AppDataModelDeleteOne{builder}
+}
+
+// Query returns a query builder for AppDataModel.
+func (c *AppDataModelClient) Query() *AppDataModelQuery {
+	return &AppDataModelQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAppDataModel},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AppDataModel entity by its id.
+func (c *AppDataModelClient) Get(ctx context.Context, id string) (*AppDataModel, error) {
+	return c.Query().Where(appdatamodel.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AppDataModelClient) GetX(ctx context.Context, id string) *AppDataModel {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AppDataModelClient) Hooks() []Hook {
+	return c.hooks.AppDataModel
+}
+
+// Interceptors returns the client interceptors.
+func (c *AppDataModelClient) Interceptors() []Interceptor {
+	return c.inters.AppDataModel
+}
+
+func (c *AppDataModelClient) mutate(ctx context.Context, m *AppDataModelMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AppDataModelCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AppDataModelUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AppDataModelUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AppDataModelDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AppDataModel mutation op: %q", m.Op())
+	}
+}
+
+// AppDataRecordClient is a client for the AppDataRecord schema.
+type AppDataRecordClient struct {
+	config
+}
+
+// NewAppDataRecordClient returns a client for the AppDataRecord from the given config.
+func NewAppDataRecordClient(c config) *AppDataRecordClient {
+	return &AppDataRecordClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `appdatarecord.Hooks(f(g(h())))`.
+func (c *AppDataRecordClient) Use(hooks ...Hook) {
+	c.hooks.AppDataRecord = append(c.hooks.AppDataRecord, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `appdatarecord.Intercept(f(g(h())))`.
+func (c *AppDataRecordClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AppDataRecord = append(c.inters.AppDataRecord, interceptors...)
+}
+
+// Create returns a builder for creating a AppDataRecord entity.
+func (c *AppDataRecordClient) Create() *AppDataRecordCreate {
+	mutation := newAppDataRecordMutation(c.config, OpCreate)
+	return &AppDataRecordCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AppDataRecord entities.
+func (c *AppDataRecordClient) CreateBulk(builders ...*AppDataRecordCreate) *AppDataRecordCreateBulk {
+	return &AppDataRecordCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AppDataRecordClient) MapCreateBulk(slice any, setFunc func(*AppDataRecordCreate, int)) *AppDataRecordCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AppDataRecordCreateBulk{err: fmt.Errorf("calling to AppDataRecordClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AppDataRecordCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AppDataRecordCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AppDataRecord.
+func (c *AppDataRecordClient) Update() *AppDataRecordUpdate {
+	mutation := newAppDataRecordMutation(c.config, OpUpdate)
+	return &AppDataRecordUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AppDataRecordClient) UpdateOne(_m *AppDataRecord) *AppDataRecordUpdateOne {
+	mutation := newAppDataRecordMutation(c.config, OpUpdateOne, withAppDataRecord(_m))
+	return &AppDataRecordUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AppDataRecordClient) UpdateOneID(id string) *AppDataRecordUpdateOne {
+	mutation := newAppDataRecordMutation(c.config, OpUpdateOne, withAppDataRecordID(id))
+	return &AppDataRecordUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AppDataRecord.
+func (c *AppDataRecordClient) Delete() *AppDataRecordDelete {
+	mutation := newAppDataRecordMutation(c.config, OpDelete)
+	return &AppDataRecordDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AppDataRecordClient) DeleteOne(_m *AppDataRecord) *AppDataRecordDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AppDataRecordClient) DeleteOneID(id string) *AppDataRecordDeleteOne {
+	builder := c.Delete().Where(appdatarecord.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AppDataRecordDeleteOne{builder}
+}
+
+// Query returns a query builder for AppDataRecord.
+func (c *AppDataRecordClient) Query() *AppDataRecordQuery {
+	return &AppDataRecordQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAppDataRecord},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AppDataRecord entity by its id.
+func (c *AppDataRecordClient) Get(ctx context.Context, id string) (*AppDataRecord, error) {
+	return c.Query().Where(appdatarecord.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AppDataRecordClient) GetX(ctx context.Context, id string) *AppDataRecord {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AppDataRecordClient) Hooks() []Hook {
+	return c.hooks.AppDataRecord
+}
+
+// Interceptors returns the client interceptors.
+func (c *AppDataRecordClient) Interceptors() []Interceptor {
+	return c.inters.AppDataRecord
+}
+
+func (c *AppDataRecordClient) mutate(ctx context.Context, m *AppDataRecordMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AppDataRecordCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AppDataRecordUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AppDataRecordUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AppDataRecordDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AppDataRecord mutation op: %q", m.Op())
+	}
+}
+
+// AppDataRecordRevisionClient is a client for the AppDataRecordRevision schema.
+type AppDataRecordRevisionClient struct {
+	config
+}
+
+// NewAppDataRecordRevisionClient returns a client for the AppDataRecordRevision from the given config.
+func NewAppDataRecordRevisionClient(c config) *AppDataRecordRevisionClient {
+	return &AppDataRecordRevisionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `appdatarecordrevision.Hooks(f(g(h())))`.
+func (c *AppDataRecordRevisionClient) Use(hooks ...Hook) {
+	c.hooks.AppDataRecordRevision = append(c.hooks.AppDataRecordRevision, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `appdatarecordrevision.Intercept(f(g(h())))`.
+func (c *AppDataRecordRevisionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AppDataRecordRevision = append(c.inters.AppDataRecordRevision, interceptors...)
+}
+
+// Create returns a builder for creating a AppDataRecordRevision entity.
+func (c *AppDataRecordRevisionClient) Create() *AppDataRecordRevisionCreate {
+	mutation := newAppDataRecordRevisionMutation(c.config, OpCreate)
+	return &AppDataRecordRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AppDataRecordRevision entities.
+func (c *AppDataRecordRevisionClient) CreateBulk(builders ...*AppDataRecordRevisionCreate) *AppDataRecordRevisionCreateBulk {
+	return &AppDataRecordRevisionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AppDataRecordRevisionClient) MapCreateBulk(slice any, setFunc func(*AppDataRecordRevisionCreate, int)) *AppDataRecordRevisionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AppDataRecordRevisionCreateBulk{err: fmt.Errorf("calling to AppDataRecordRevisionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AppDataRecordRevisionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AppDataRecordRevisionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AppDataRecordRevision.
+func (c *AppDataRecordRevisionClient) Update() *AppDataRecordRevisionUpdate {
+	mutation := newAppDataRecordRevisionMutation(c.config, OpUpdate)
+	return &AppDataRecordRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AppDataRecordRevisionClient) UpdateOne(_m *AppDataRecordRevision) *AppDataRecordRevisionUpdateOne {
+	mutation := newAppDataRecordRevisionMutation(c.config, OpUpdateOne, withAppDataRecordRevision(_m))
+	return &AppDataRecordRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AppDataRecordRevisionClient) UpdateOneID(id string) *AppDataRecordRevisionUpdateOne {
+	mutation := newAppDataRecordRevisionMutation(c.config, OpUpdateOne, withAppDataRecordRevisionID(id))
+	return &AppDataRecordRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AppDataRecordRevision.
+func (c *AppDataRecordRevisionClient) Delete() *AppDataRecordRevisionDelete {
+	mutation := newAppDataRecordRevisionMutation(c.config, OpDelete)
+	return &AppDataRecordRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AppDataRecordRevisionClient) DeleteOne(_m *AppDataRecordRevision) *AppDataRecordRevisionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AppDataRecordRevisionClient) DeleteOneID(id string) *AppDataRecordRevisionDeleteOne {
+	builder := c.Delete().Where(appdatarecordrevision.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AppDataRecordRevisionDeleteOne{builder}
+}
+
+// Query returns a query builder for AppDataRecordRevision.
+func (c *AppDataRecordRevisionClient) Query() *AppDataRecordRevisionQuery {
+	return &AppDataRecordRevisionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAppDataRecordRevision},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AppDataRecordRevision entity by its id.
+func (c *AppDataRecordRevisionClient) Get(ctx context.Context, id string) (*AppDataRecordRevision, error) {
+	return c.Query().Where(appdatarecordrevision.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AppDataRecordRevisionClient) GetX(ctx context.Context, id string) *AppDataRecordRevision {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AppDataRecordRevisionClient) Hooks() []Hook {
+	return c.hooks.AppDataRecordRevision
+}
+
+// Interceptors returns the client interceptors.
+func (c *AppDataRecordRevisionClient) Interceptors() []Interceptor {
+	return c.inters.AppDataRecordRevision
+}
+
+func (c *AppDataRecordRevisionClient) mutate(ctx context.Context, m *AppDataRecordRevisionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AppDataRecordRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AppDataRecordRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AppDataRecordRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AppDataRecordRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AppDataRecordRevision mutation op: %q", m.Op())
 	}
 }
 
@@ -3592,17 +4017,17 @@ func (c *UserMemberClient) mutate(ctx context.Context, m *UserMemberMutation) (V
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AdminGrant, ApiKey, AuditEventType, AuditLog, BackgroundJob, Group, Member,
-		MemberRole, Permission, Plugin, PluginAdminMenu, PluginSettingsDefinition,
-		PluginSettingsValue, Resource, ResourceAction, ResourceMapping, ResourceType,
-		Role, RolePermission, Session, Space, TemplateInstallation, User,
-		UserMember []ent.Hook
+		AdminGrant, ApiKey, AppDataModel, AppDataRecord, AppDataRecordRevision,
+		AuditEventType, AuditLog, BackgroundJob, Group, Member, MemberRole, Permission,
+		Plugin, PluginAdminMenu, PluginSettingsDefinition, PluginSettingsValue,
+		Resource, ResourceAction, ResourceMapping, ResourceType, Role, RolePermission,
+		Session, Space, TemplateInstallation, User, UserMember []ent.Hook
 	}
 	inters struct {
-		AdminGrant, ApiKey, AuditEventType, AuditLog, BackgroundJob, Group, Member,
-		MemberRole, Permission, Plugin, PluginAdminMenu, PluginSettingsDefinition,
-		PluginSettingsValue, Resource, ResourceAction, ResourceMapping, ResourceType,
-		Role, RolePermission, Session, Space, TemplateInstallation, User,
-		UserMember []ent.Interceptor
+		AdminGrant, ApiKey, AppDataModel, AppDataRecord, AppDataRecordRevision,
+		AuditEventType, AuditLog, BackgroundJob, Group, Member, MemberRole, Permission,
+		Plugin, PluginAdminMenu, PluginSettingsDefinition, PluginSettingsValue,
+		Resource, ResourceAction, ResourceMapping, ResourceType, Role, RolePermission,
+		Session, Space, TemplateInstallation, User, UserMember []ent.Interceptor
 	}
 )

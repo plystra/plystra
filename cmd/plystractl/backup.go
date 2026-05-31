@@ -105,6 +105,9 @@ func backupManifest(ctx context.Context) (map[string]any, error) {
 		"plugins",
 		"plugin_settings_values",
 		"template_installations",
+		"app_data_models",
+		"app_data_records",
+		"app_data_record_revisions",
 		"audit_logs",
 	} {
 		value, err := countRequiredTable(ctx, pool, table)
@@ -118,6 +121,11 @@ func backupManifest(ctx context.Context) (map[string]any, error) {
 		"plugin_auth_challenges",
 		"plugin_auth_settings",
 		"plugin_email_smtp_settings",
+		"plugin_saas_crm_accounts",
+		"plugin_saas_crm_deals",
+		"plugin_saas_crm_tasks",
+		"plugin_saas_crm_settings",
+		"plugin_migration_state",
 	} {
 		value, exists, err := countOptionalTable(ctx, pool, table)
 		if err != nil {

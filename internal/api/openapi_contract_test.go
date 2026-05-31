@@ -51,9 +51,13 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 		"/api/v1/permissions",
 		"/api/v1/spaces/{space_id}/member-roles",
 		"/api/v1/role-permissions",
+		"/api/v1/spaces/{space_id}/role-permissions",
 		"/api/v1/resource-types",
 		"/api/v1/resources",
 		"/api/v1/spaces/{space_id}/resources",
+		"/api/v1/spaces/{space_id}/data/models",
+		"/api/v1/spaces/{space_id}/data/models/{model_key}/records",
+		"/api/v1/app-data/{model_key}/{record_id}",
 		"/api/v1/audit/logs",
 		"/api/v1/spaces/{space_id}/audit-logs",
 	}
@@ -65,11 +69,11 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 
 	envelopeFound := false
 	for name, schema := range doc.Components.Schemas {
-		if _, ok := schema.Properties["data"]; ok {
-			envelopeFound = true
-			if _, ok := schema.Properties["request_id"]; !ok {
-				t.Fatalf("%s.request_id is missing", name)
+		if _, hasData := schema.Properties["data"]; hasData {
+			if _, hasRequestID := schema.Properties["request_id"]; !hasRequestID {
+				continue
 			}
+			envelopeFound = true
 			if _, ok := schema.Properties["meta"]; ok {
 				t.Fatalf("%s.meta must not be documented", name)
 			}

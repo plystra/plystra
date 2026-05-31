@@ -229,92 +229,9 @@ type rolePermissionMutationRequest struct {
 func (s *Server) handleRolePermissions(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		var req rolePermissionMutationRequest
-		if !decodeJSON(w, r, &req) {
-			return
-		}
-		if req.RoleID == "" || req.PermissionID == "" {
-			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "role_id and permission_id are required.", nil)
-			return
-		}
-		if req.ID == "" {
-			req.ID = newEntityID("rp")
-		}
-		spaceID, err := s.roleSpaceID(r.Context(), req.RoleID)
-		if err != nil {
-			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "role_id is invalid.", err.Error())
-			return
-		}
-		if exists, err := s.permissionExists(r.Context(), req.PermissionID); err != nil {
-			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to validate Permission.", err.Error())
-			return
-		} else if !exists {
-			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "permission_id is invalid.", nil)
-			return
-		}
-		client, ok := s.requireEnt(w, r)
-		if !ok {
-			return
-		}
-		existing, err := client.RolePermission.Query().Where(entrolepermission.RoleID(req.RoleID), entrolepermission.PermissionID(req.PermissionID)).Only(r.Context())
-		if coreent.IsNotFound(err) {
-			_, err = client.RolePermission.Create().
-				SetID(req.ID).
-				SetRoleID(req.RoleID).
-				SetPermissionID(req.PermissionID).
-				SetMetadata(nonNilMap(req.Metadata)).
-				Save(r.Context())
-		} else if err == nil {
-			err = client.RolePermission.UpdateOneID(existing.ID).
-				ClearDeletedAt().
-				SetMetadata(nonNilMap(req.Metadata)).
-				Exec(r.Context())
-		}
-		if err != nil {
-			writeError(w, r, http.StatusConflict, "ROLE_PERMISSION_CREATE_FAILED", "Failed to create RolePermission.", err.Error())
-			return
-		}
-		row, err := s.loadRolePermissionByPair(r.Context(), req.RoleID, req.PermissionID)
-		if err != nil {
-			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load RolePermission.", err.Error())
-			return
-		}
-		s.recordMutationAudit(r.Context(), r, req.Actor, firstNonEmpty(req.AuditSpaceID, spaceID), "role_permission.created", "role_permission", stringFromMap(row, "id"), row)
-		writeData(w, r, http.StatusCreated, row)
+		s.createRolePermission(w, r, "")
 	case http.MethodGet:
-		limit := limitFrom(r, 50)
-		client, ok := s.requireEnt(w, r)
-		if !ok {
-			return
-		}
-		rolePermissions, err := client.RolePermission.Query().
-			Where(entrolepermission.DeletedAtIsNil()).
-			Limit(limit).
-			All(r.Context())
-		if err != nil {
-			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list RolePermissions.", err.Error())
-			return
-		}
-		rows := make([]map[string]any, 0, len(rolePermissions))
-		for _, rolePermission := range rolePermissions {
-			row, err := s.rolePermissionMapWithRefs(r.Context(), rolePermission)
-			if err != nil {
-				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list RolePermissions.", err.Error())
-				return
-			}
-			rows = append(rows, row)
-		}
-		sort.SliceStable(rows, func(i, j int) bool {
-			for _, key := range []string{"space_id", "role_key", "resource", "action", "scope"} {
-				left, _ := rows[i][key].(string)
-				right, _ := rows[j][key].(string)
-				if left != right {
-					return left < right
-				}
-			}
-			return false
-		})
-		writeList(w, r, http.StatusOK, rows, limit)
+		s.listRolePermissions(w, r, "")
 	default:
 		writeMethodNotAllowed(w, r)
 	}
@@ -368,6 +285,159 @@ func (s *Server) handleRolePermissionSubroutes(w http.ResponseWriter, r *http.Re
 	}
 }
 
+func (s *Server) handleSpaceRolePermissions(w http.ResponseWriter, r *http.Request, spaceID string, parts []string) {
+	if len(parts) == 0 {
+		switch r.Method {
+		case http.MethodPost:
+			s.createRolePermission(w, r, spaceID)
+		case http.MethodGet:
+			s.listRolePermissions(w, r, spaceID)
+		default:
+			writeMethodNotAllowed(w, r)
+		}
+		return
+	}
+	id := parts[0]
+	if len(parts) == 1 {
+		switch r.Method {
+		case http.MethodGet:
+			row, err := s.loadRolePermissionInSpace(r.Context(), spaceID, id)
+			if errors.Is(err, pgx.ErrNoRows) {
+				writeError(w, r, http.StatusNotFound, "ROLE_PERMISSION_NOT_FOUND", "RolePermission was not found.", nil)
+				return
+			}
+			if err != nil {
+				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load RolePermission.", err.Error())
+				return
+			}
+			writeData(w, r, http.StatusOK, row)
+		case http.MethodDelete:
+			s.deleteRolePermission(w, r, spaceID, id)
+		default:
+			writeMethodNotAllowed(w, r)
+		}
+		return
+	}
+	http.NotFound(w, r)
+}
+
+func (s *Server) createRolePermission(w http.ResponseWriter, r *http.Request, requiredSpaceID string) {
+	var req rolePermissionMutationRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	if req.RoleID == "" || req.PermissionID == "" {
+		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "role_id and permission_id are required.", nil)
+		return
+	}
+	if req.ID == "" {
+		req.ID = newEntityID("rp")
+	}
+	spaceID, err := s.roleSpaceID(r.Context(), req.RoleID)
+	if err != nil {
+		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "role_id is invalid.", err.Error())
+		return
+	}
+	if requiredSpaceID != "" && spaceID != requiredSpaceID {
+		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "role_id is not in the requested Space.", nil)
+		return
+	}
+	if exists, err := s.permissionExists(r.Context(), req.PermissionID); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to validate Permission.", err.Error())
+		return
+	} else if !exists {
+		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "permission_id is invalid.", nil)
+		return
+	}
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	existing, err := client.RolePermission.Query().Where(entrolepermission.RoleID(req.RoleID), entrolepermission.PermissionID(req.PermissionID)).Only(r.Context())
+	if coreent.IsNotFound(err) {
+		_, err = client.RolePermission.Create().
+			SetID(req.ID).
+			SetRoleID(req.RoleID).
+			SetPermissionID(req.PermissionID).
+			SetMetadata(nonNilMap(req.Metadata)).
+			Save(r.Context())
+	} else if err == nil {
+		err = client.RolePermission.UpdateOneID(existing.ID).
+			ClearDeletedAt().
+			SetMetadata(nonNilMap(req.Metadata)).
+			Exec(r.Context())
+	}
+	if err != nil {
+		writeError(w, r, http.StatusConflict, "ROLE_PERMISSION_CREATE_FAILED", "Failed to create RolePermission.", err.Error())
+		return
+	}
+	row, err := s.loadRolePermissionByPair(r.Context(), req.RoleID, req.PermissionID)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load RolePermission.", err.Error())
+		return
+	}
+	auditSpaceID := firstNonEmpty(req.AuditSpaceID, spaceID)
+	s.recordMutationAudit(r.Context(), r, req.Actor, auditSpaceID, "role_permission.created", "role_permission", stringFromMap(row, "id"), row)
+	writeData(w, r, http.StatusCreated, row)
+}
+
+func (s *Server) listRolePermissions(w http.ResponseWriter, r *http.Request, spaceID string) {
+	limit := limitFrom(r, 50)
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	rolePermissions, err := client.RolePermission.Query().
+		Where(entrolepermission.DeletedAtIsNil()).
+		Limit(limit).
+		All(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list RolePermissions.", err.Error())
+		return
+	}
+	rows := make([]map[string]any, 0, len(rolePermissions))
+	for _, rolePermission := range rolePermissions {
+		row, err := s.rolePermissionMapWithRefs(r.Context(), rolePermission)
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list RolePermissions.", err.Error())
+			return
+		}
+		if spaceID != "" && stringFromMap(row, "space_id") != spaceID {
+			continue
+		}
+		rows = append(rows, row)
+	}
+	sortRolePermissionRows(rows)
+	writeList(w, r, http.StatusOK, rows, limit)
+}
+
+func (s *Server) deleteRolePermission(w http.ResponseWriter, r *http.Request, requiredSpaceID, id string) {
+	var req rolePermissionMutationRequest
+	if !decodeOptionalJSON(w, r, &req) {
+		return
+	}
+	row, err := s.loadRolePermissionInSpace(r.Context(), requiredSpaceID, id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, r, http.StatusNotFound, "ROLE_PERMISSION_NOT_FOUND", "RolePermission was not found.", nil)
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load RolePermission.", err.Error())
+		return
+	}
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	err = client.RolePermission.UpdateOneID(id).SetDeletedAt(time.Now().UTC()).Exec(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to revoke RolePermission.", err.Error())
+		return
+	}
+	s.recordMutationAudit(r.Context(), r, req.Actor, firstNonEmpty(req.AuditSpaceID, stringFromMap(row, "space_id")), "role_permission.revoked", "role_permission", id, row)
+	writeData(w, r, http.StatusOK, row)
+}
+
 func (s *Server) loadRolePermission(ctx context.Context, id string) (map[string]any, error) {
 	if s.ent == nil {
 		return nil, errors.New("ent client is not configured")
@@ -394,6 +464,30 @@ func (s *Server) loadRolePermissionByPair(ctx context.Context, roleID, permissio
 		return nil, err
 	}
 	return s.rolePermissionMapWithRefs(ctx, row)
+}
+
+func (s *Server) loadRolePermissionInSpace(ctx context.Context, spaceID, id string) (map[string]any, error) {
+	row, err := s.loadRolePermission(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if spaceID != "" && stringFromMap(row, "space_id") != spaceID {
+		return nil, pgx.ErrNoRows
+	}
+	return row, nil
+}
+
+func sortRolePermissionRows(rows []map[string]any) {
+	sort.SliceStable(rows, func(i, j int) bool {
+		for _, key := range []string{"space_id", "role_key", "resource", "action", "scope"} {
+			left, _ := rows[i][key].(string)
+			right, _ := rows[j][key].(string)
+			if left != right {
+				return left < right
+			}
+		}
+		return false
+	})
 }
 
 func (s *Server) roleSpaceID(ctx context.Context, roleID string) (string, error) {

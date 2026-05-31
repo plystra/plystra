@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	entappdatarecord "github.com/plystra/plystra/ent/appdatarecord"
 	entgroup "github.com/plystra/plystra/ent/group"
 	entmember "github.com/plystra/plystra/ent/member"
 	entresource "github.com/plystra/plystra/ent/resource"
@@ -170,6 +171,42 @@ func (s *Server) loadResourceTarget(ctx context.Context, resourceType, resourceI
 		Resource: authz.ResourceSnapshot{
 			ID:            row.ID,
 			Type:          row.ResourceType,
+			SpaceID:       row.SpaceID,
+			GroupID:       derefString(row.GroupID),
+			OwnerMemberID: derefString(row.OwnerMemberID),
+			DisplayName:   derefString(row.DisplayName),
+			Visibility:    row.Visibility,
+			Status:        row.Status,
+			Metadata:      nonNilMap(row.Metadata),
+		},
+	}
+	group, err := s.loadGroupSnapshot(ctx, target.Resource.SpaceID, target.Resource.GroupID)
+	if err != nil {
+		return authz.TargetSnapshot{}, err
+	}
+	target.Group = group
+	return target, nil
+}
+
+func (s *Server) loadAppDataRecordTarget(ctx context.Context, modelKey, recordID string) (authz.TargetSnapshot, error) {
+	if s.ent == nil {
+		return authz.TargetSnapshot{}, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.AppDataRecord.Query().Where(entappdatarecord.ModelKey(modelKey), entappdatarecord.ID(recordID), entappdatarecord.DeletedAtIsNil()).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return authz.TargetSnapshot{}, pgx.ErrNoRows
+	}
+	if err != nil {
+		return authz.TargetSnapshot{}, err
+	}
+	return s.appDataRecordTarget(ctx, row)
+}
+
+func (s *Server) appDataRecordTarget(ctx context.Context, row *coreent.AppDataRecord) (authz.TargetSnapshot, error) {
+	target := authz.TargetSnapshot{
+		Resource: authz.ResourceSnapshot{
+			ID:            row.ID,
+			Type:          appDataModelResourceType(row.ModelKey),
 			SpaceID:       row.SpaceID,
 			GroupID:       derefString(row.GroupID),
 			OwnerMemberID: derefString(row.OwnerMemberID),

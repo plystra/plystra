@@ -13,6 +13,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/plystra/plystra/ent/admingrant"
 	"github.com/plystra/plystra/ent/apikey"
+	"github.com/plystra/plystra/ent/appdatamodel"
+	"github.com/plystra/plystra/ent/appdatarecord"
+	"github.com/plystra/plystra/ent/appdatarecordrevision"
 	"github.com/plystra/plystra/ent/auditeventtype"
 	"github.com/plystra/plystra/ent/auditlog"
 	"github.com/plystra/plystra/ent/backgroundjob"
@@ -49,6 +52,9 @@ const (
 	// Node types.
 	TypeAdminGrant               = "AdminGrant"
 	TypeApiKey                   = "ApiKey"
+	TypeAppDataModel             = "AppDataModel"
+	TypeAppDataRecord            = "AppDataRecord"
+	TypeAppDataRecordRevision    = "AppDataRecordRevision"
 	TypeAuditEventType           = "AuditEventType"
 	TypeAuditLog                 = "AuditLog"
 	TypeBackgroundJob            = "BackgroundJob"
@@ -2938,6 +2944,3057 @@ func (m *ApiKeyMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *ApiKeyMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown ApiKey edge %s", name)
+}
+
+// AppDataModelMutation represents an operation that mutates the AppDataModel nodes in the graph.
+type AppDataModelMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *string
+	space_id      *string
+	key           *string
+	display_name  *string
+	description   *string
+	source        *string
+	status        *string
+	schema        *map[string]interface{}
+	metadata      *map[string]interface{}
+	created_at    *time.Time
+	updated_at    *time.Time
+	deleted_at    *time.Time
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*AppDataModel, error)
+	predicates    []predicate.AppDataModel
+}
+
+var _ ent.Mutation = (*AppDataModelMutation)(nil)
+
+// appdatamodelOption allows management of the mutation configuration using functional options.
+type appdatamodelOption func(*AppDataModelMutation)
+
+// newAppDataModelMutation creates new mutation for the AppDataModel entity.
+func newAppDataModelMutation(c config, op Op, opts ...appdatamodelOption) *AppDataModelMutation {
+	m := &AppDataModelMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeAppDataModel,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withAppDataModelID sets the ID field of the mutation.
+func withAppDataModelID(id string) appdatamodelOption {
+	return func(m *AppDataModelMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *AppDataModel
+		)
+		m.oldValue = func(ctx context.Context) (*AppDataModel, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().AppDataModel.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withAppDataModel sets the old AppDataModel of the mutation.
+func withAppDataModel(node *AppDataModel) appdatamodelOption {
+	return func(m *AppDataModelMutation) {
+		m.oldValue = func(context.Context) (*AppDataModel, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m AppDataModelMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m AppDataModelMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of AppDataModel entities.
+func (m *AppDataModelMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *AppDataModelMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *AppDataModelMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().AppDataModel.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetSpaceID sets the "space_id" field.
+func (m *AppDataModelMutation) SetSpaceID(s string) {
+	m.space_id = &s
+}
+
+// SpaceID returns the value of the "space_id" field in the mutation.
+func (m *AppDataModelMutation) SpaceID() (r string, exists bool) {
+	v := m.space_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSpaceID returns the old "space_id" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldSpaceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSpaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSpaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSpaceID: %w", err)
+	}
+	return oldValue.SpaceID, nil
+}
+
+// ResetSpaceID resets all changes to the "space_id" field.
+func (m *AppDataModelMutation) ResetSpaceID() {
+	m.space_id = nil
+}
+
+// SetKey sets the "key" field.
+func (m *AppDataModelMutation) SetKey(s string) {
+	m.key = &s
+}
+
+// Key returns the value of the "key" field in the mutation.
+func (m *AppDataModelMutation) Key() (r string, exists bool) {
+	v := m.key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKey returns the old "key" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKey: %w", err)
+	}
+	return oldValue.Key, nil
+}
+
+// ResetKey resets all changes to the "key" field.
+func (m *AppDataModelMutation) ResetKey() {
+	m.key = nil
+}
+
+// SetDisplayName sets the "display_name" field.
+func (m *AppDataModelMutation) SetDisplayName(s string) {
+	m.display_name = &s
+}
+
+// DisplayName returns the value of the "display_name" field in the mutation.
+func (m *AppDataModelMutation) DisplayName() (r string, exists bool) {
+	v := m.display_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisplayName returns the old "display_name" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldDisplayName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisplayName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisplayName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisplayName: %w", err)
+	}
+	return oldValue.DisplayName, nil
+}
+
+// ResetDisplayName resets all changes to the "display_name" field.
+func (m *AppDataModelMutation) ResetDisplayName() {
+	m.display_name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *AppDataModelMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *AppDataModelMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *AppDataModelMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[appdatamodel.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *AppDataModelMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[appdatamodel.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *AppDataModelMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, appdatamodel.FieldDescription)
+}
+
+// SetSource sets the "source" field.
+func (m *AppDataModelMutation) SetSource(s string) {
+	m.source = &s
+}
+
+// Source returns the value of the "source" field in the mutation.
+func (m *AppDataModelMutation) Source() (r string, exists bool) {
+	v := m.source
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSource returns the old "source" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldSource(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSource is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSource requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSource: %w", err)
+	}
+	return oldValue.Source, nil
+}
+
+// ResetSource resets all changes to the "source" field.
+func (m *AppDataModelMutation) ResetSource() {
+	m.source = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *AppDataModelMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *AppDataModelMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *AppDataModelMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetSchema sets the "schema" field.
+func (m *AppDataModelMutation) SetSchema(value map[string]interface{}) {
+	m.schema = &value
+}
+
+// Schema returns the value of the "schema" field in the mutation.
+func (m *AppDataModelMutation) Schema() (r map[string]interface{}, exists bool) {
+	v := m.schema
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSchema returns the old "schema" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldSchema(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSchema is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSchema requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSchema: %w", err)
+	}
+	return oldValue.Schema, nil
+}
+
+// ResetSchema resets all changes to the "schema" field.
+func (m *AppDataModelMutation) ResetSchema() {
+	m.schema = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *AppDataModelMutation) SetMetadata(value map[string]interface{}) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *AppDataModelMutation) Metadata() (r map[string]interface{}, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldMetadata(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *AppDataModelMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[appdatamodel.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *AppDataModelMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[appdatamodel.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *AppDataModelMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, appdatamodel.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *AppDataModelMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *AppDataModelMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *AppDataModelMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *AppDataModelMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *AppDataModelMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *AppDataModelMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *AppDataModelMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *AppDataModelMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *AppDataModelMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[appdatamodel.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *AppDataModelMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[appdatamodel.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *AppDataModelMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, appdatamodel.FieldDeletedAt)
+}
+
+// Where appends a list predicates to the AppDataModelMutation builder.
+func (m *AppDataModelMutation) Where(ps ...predicate.AppDataModel) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the AppDataModelMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *AppDataModelMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.AppDataModel, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *AppDataModelMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *AppDataModelMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (AppDataModel).
+func (m *AppDataModelMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *AppDataModelMutation) Fields() []string {
+	fields := make([]string, 0, 11)
+	if m.space_id != nil {
+		fields = append(fields, appdatamodel.FieldSpaceID)
+	}
+	if m.key != nil {
+		fields = append(fields, appdatamodel.FieldKey)
+	}
+	if m.display_name != nil {
+		fields = append(fields, appdatamodel.FieldDisplayName)
+	}
+	if m.description != nil {
+		fields = append(fields, appdatamodel.FieldDescription)
+	}
+	if m.source != nil {
+		fields = append(fields, appdatamodel.FieldSource)
+	}
+	if m.status != nil {
+		fields = append(fields, appdatamodel.FieldStatus)
+	}
+	if m.schema != nil {
+		fields = append(fields, appdatamodel.FieldSchema)
+	}
+	if m.metadata != nil {
+		fields = append(fields, appdatamodel.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, appdatamodel.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, appdatamodel.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, appdatamodel.FieldDeletedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *AppDataModelMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case appdatamodel.FieldSpaceID:
+		return m.SpaceID()
+	case appdatamodel.FieldKey:
+		return m.Key()
+	case appdatamodel.FieldDisplayName:
+		return m.DisplayName()
+	case appdatamodel.FieldDescription:
+		return m.Description()
+	case appdatamodel.FieldSource:
+		return m.Source()
+	case appdatamodel.FieldStatus:
+		return m.Status()
+	case appdatamodel.FieldSchema:
+		return m.Schema()
+	case appdatamodel.FieldMetadata:
+		return m.Metadata()
+	case appdatamodel.FieldCreatedAt:
+		return m.CreatedAt()
+	case appdatamodel.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case appdatamodel.FieldDeletedAt:
+		return m.DeletedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *AppDataModelMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case appdatamodel.FieldSpaceID:
+		return m.OldSpaceID(ctx)
+	case appdatamodel.FieldKey:
+		return m.OldKey(ctx)
+	case appdatamodel.FieldDisplayName:
+		return m.OldDisplayName(ctx)
+	case appdatamodel.FieldDescription:
+		return m.OldDescription(ctx)
+	case appdatamodel.FieldSource:
+		return m.OldSource(ctx)
+	case appdatamodel.FieldStatus:
+		return m.OldStatus(ctx)
+	case appdatamodel.FieldSchema:
+		return m.OldSchema(ctx)
+	case appdatamodel.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case appdatamodel.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case appdatamodel.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case appdatamodel.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown AppDataModel field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppDataModelMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case appdatamodel.FieldSpaceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSpaceID(v)
+		return nil
+	case appdatamodel.FieldKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKey(v)
+		return nil
+	case appdatamodel.FieldDisplayName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisplayName(v)
+		return nil
+	case appdatamodel.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case appdatamodel.FieldSource:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSource(v)
+		return nil
+	case appdatamodel.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case appdatamodel.FieldSchema:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSchema(v)
+		return nil
+	case appdatamodel.FieldMetadata:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case appdatamodel.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case appdatamodel.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case appdatamodel.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AppDataModel field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *AppDataModelMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *AppDataModelMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppDataModelMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown AppDataModel numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *AppDataModelMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(appdatamodel.FieldDescription) {
+		fields = append(fields, appdatamodel.FieldDescription)
+	}
+	if m.FieldCleared(appdatamodel.FieldMetadata) {
+		fields = append(fields, appdatamodel.FieldMetadata)
+	}
+	if m.FieldCleared(appdatamodel.FieldDeletedAt) {
+		fields = append(fields, appdatamodel.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *AppDataModelMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *AppDataModelMutation) ClearField(name string) error {
+	switch name {
+	case appdatamodel.FieldDescription:
+		m.ClearDescription()
+		return nil
+	case appdatamodel.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case appdatamodel.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AppDataModel nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *AppDataModelMutation) ResetField(name string) error {
+	switch name {
+	case appdatamodel.FieldSpaceID:
+		m.ResetSpaceID()
+		return nil
+	case appdatamodel.FieldKey:
+		m.ResetKey()
+		return nil
+	case appdatamodel.FieldDisplayName:
+		m.ResetDisplayName()
+		return nil
+	case appdatamodel.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case appdatamodel.FieldSource:
+		m.ResetSource()
+		return nil
+	case appdatamodel.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case appdatamodel.FieldSchema:
+		m.ResetSchema()
+		return nil
+	case appdatamodel.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case appdatamodel.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case appdatamodel.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case appdatamodel.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AppDataModel field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *AppDataModelMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *AppDataModelMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *AppDataModelMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *AppDataModelMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *AppDataModelMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *AppDataModelMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *AppDataModelMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown AppDataModel unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *AppDataModelMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown AppDataModel edge %s", name)
+}
+
+// AppDataRecordMutation represents an operation that mutates the AppDataRecord nodes in the graph.
+type AppDataRecordMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	space_id        *string
+	model_id        *string
+	model_key       *string
+	group_id        *string
+	owner_member_id *string
+	display_name    *string
+	visibility      *string
+	status          *string
+	data            *map[string]interface{}
+	metadata        *map[string]interface{}
+	created_at      *time.Time
+	updated_at      *time.Time
+	deleted_at      *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*AppDataRecord, error)
+	predicates      []predicate.AppDataRecord
+}
+
+var _ ent.Mutation = (*AppDataRecordMutation)(nil)
+
+// appdatarecordOption allows management of the mutation configuration using functional options.
+type appdatarecordOption func(*AppDataRecordMutation)
+
+// newAppDataRecordMutation creates new mutation for the AppDataRecord entity.
+func newAppDataRecordMutation(c config, op Op, opts ...appdatarecordOption) *AppDataRecordMutation {
+	m := &AppDataRecordMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeAppDataRecord,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withAppDataRecordID sets the ID field of the mutation.
+func withAppDataRecordID(id string) appdatarecordOption {
+	return func(m *AppDataRecordMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *AppDataRecord
+		)
+		m.oldValue = func(ctx context.Context) (*AppDataRecord, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().AppDataRecord.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withAppDataRecord sets the old AppDataRecord of the mutation.
+func withAppDataRecord(node *AppDataRecord) appdatarecordOption {
+	return func(m *AppDataRecordMutation) {
+		m.oldValue = func(context.Context) (*AppDataRecord, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m AppDataRecordMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m AppDataRecordMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of AppDataRecord entities.
+func (m *AppDataRecordMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *AppDataRecordMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *AppDataRecordMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().AppDataRecord.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetSpaceID sets the "space_id" field.
+func (m *AppDataRecordMutation) SetSpaceID(s string) {
+	m.space_id = &s
+}
+
+// SpaceID returns the value of the "space_id" field in the mutation.
+func (m *AppDataRecordMutation) SpaceID() (r string, exists bool) {
+	v := m.space_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSpaceID returns the old "space_id" field's value of the AppDataRecord entity.
+// If the AppDataRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordMutation) OldSpaceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSpaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSpaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSpaceID: %w", err)
+	}
+	return oldValue.SpaceID, nil
+}
+
+// ResetSpaceID resets all changes to the "space_id" field.
+func (m *AppDataRecordMutation) ResetSpaceID() {
+	m.space_id = nil
+}
+
+// SetModelID sets the "model_id" field.
+func (m *AppDataRecordMutation) SetModelID(s string) {
+	m.model_id = &s
+}
+
+// ModelID returns the value of the "model_id" field in the mutation.
+func (m *AppDataRecordMutation) ModelID() (r string, exists bool) {
+	v := m.model_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldModelID returns the old "model_id" field's value of the AppDataRecord entity.
+// If the AppDataRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordMutation) OldModelID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldModelID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldModelID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldModelID: %w", err)
+	}
+	return oldValue.ModelID, nil
+}
+
+// ResetModelID resets all changes to the "model_id" field.
+func (m *AppDataRecordMutation) ResetModelID() {
+	m.model_id = nil
+}
+
+// SetModelKey sets the "model_key" field.
+func (m *AppDataRecordMutation) SetModelKey(s string) {
+	m.model_key = &s
+}
+
+// ModelKey returns the value of the "model_key" field in the mutation.
+func (m *AppDataRecordMutation) ModelKey() (r string, exists bool) {
+	v := m.model_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldModelKey returns the old "model_key" field's value of the AppDataRecord entity.
+// If the AppDataRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordMutation) OldModelKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldModelKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldModelKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldModelKey: %w", err)
+	}
+	return oldValue.ModelKey, nil
+}
+
+// ResetModelKey resets all changes to the "model_key" field.
+func (m *AppDataRecordMutation) ResetModelKey() {
+	m.model_key = nil
+}
+
+// SetGroupID sets the "group_id" field.
+func (m *AppDataRecordMutation) SetGroupID(s string) {
+	m.group_id = &s
+}
+
+// GroupID returns the value of the "group_id" field in the mutation.
+func (m *AppDataRecordMutation) GroupID() (r string, exists bool) {
+	v := m.group_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGroupID returns the old "group_id" field's value of the AppDataRecord entity.
+// If the AppDataRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordMutation) OldGroupID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGroupID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGroupID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGroupID: %w", err)
+	}
+	return oldValue.GroupID, nil
+}
+
+// ClearGroupID clears the value of the "group_id" field.
+func (m *AppDataRecordMutation) ClearGroupID() {
+	m.group_id = nil
+	m.clearedFields[appdatarecord.FieldGroupID] = struct{}{}
+}
+
+// GroupIDCleared returns if the "group_id" field was cleared in this mutation.
+func (m *AppDataRecordMutation) GroupIDCleared() bool {
+	_, ok := m.clearedFields[appdatarecord.FieldGroupID]
+	return ok
+}
+
+// ResetGroupID resets all changes to the "group_id" field.
+func (m *AppDataRecordMutation) ResetGroupID() {
+	m.group_id = nil
+	delete(m.clearedFields, appdatarecord.FieldGroupID)
+}
+
+// SetOwnerMemberID sets the "owner_member_id" field.
+func (m *AppDataRecordMutation) SetOwnerMemberID(s string) {
+	m.owner_member_id = &s
+}
+
+// OwnerMemberID returns the value of the "owner_member_id" field in the mutation.
+func (m *AppDataRecordMutation) OwnerMemberID() (r string, exists bool) {
+	v := m.owner_member_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOwnerMemberID returns the old "owner_member_id" field's value of the AppDataRecord entity.
+// If the AppDataRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordMutation) OldOwnerMemberID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOwnerMemberID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOwnerMemberID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOwnerMemberID: %w", err)
+	}
+	return oldValue.OwnerMemberID, nil
+}
+
+// ClearOwnerMemberID clears the value of the "owner_member_id" field.
+func (m *AppDataRecordMutation) ClearOwnerMemberID() {
+	m.owner_member_id = nil
+	m.clearedFields[appdatarecord.FieldOwnerMemberID] = struct{}{}
+}
+
+// OwnerMemberIDCleared returns if the "owner_member_id" field was cleared in this mutation.
+func (m *AppDataRecordMutation) OwnerMemberIDCleared() bool {
+	_, ok := m.clearedFields[appdatarecord.FieldOwnerMemberID]
+	return ok
+}
+
+// ResetOwnerMemberID resets all changes to the "owner_member_id" field.
+func (m *AppDataRecordMutation) ResetOwnerMemberID() {
+	m.owner_member_id = nil
+	delete(m.clearedFields, appdatarecord.FieldOwnerMemberID)
+}
+
+// SetDisplayName sets the "display_name" field.
+func (m *AppDataRecordMutation) SetDisplayName(s string) {
+	m.display_name = &s
+}
+
+// DisplayName returns the value of the "display_name" field in the mutation.
+func (m *AppDataRecordMutation) DisplayName() (r string, exists bool) {
+	v := m.display_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisplayName returns the old "display_name" field's value of the AppDataRecord entity.
+// If the AppDataRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordMutation) OldDisplayName(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisplayName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisplayName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisplayName: %w", err)
+	}
+	return oldValue.DisplayName, nil
+}
+
+// ClearDisplayName clears the value of the "display_name" field.
+func (m *AppDataRecordMutation) ClearDisplayName() {
+	m.display_name = nil
+	m.clearedFields[appdatarecord.FieldDisplayName] = struct{}{}
+}
+
+// DisplayNameCleared returns if the "display_name" field was cleared in this mutation.
+func (m *AppDataRecordMutation) DisplayNameCleared() bool {
+	_, ok := m.clearedFields[appdatarecord.FieldDisplayName]
+	return ok
+}
+
+// ResetDisplayName resets all changes to the "display_name" field.
+func (m *AppDataRecordMutation) ResetDisplayName() {
+	m.display_name = nil
+	delete(m.clearedFields, appdatarecord.FieldDisplayName)
+}
+
+// SetVisibility sets the "visibility" field.
+func (m *AppDataRecordMutation) SetVisibility(s string) {
+	m.visibility = &s
+}
+
+// Visibility returns the value of the "visibility" field in the mutation.
+func (m *AppDataRecordMutation) Visibility() (r string, exists bool) {
+	v := m.visibility
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVisibility returns the old "visibility" field's value of the AppDataRecord entity.
+// If the AppDataRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordMutation) OldVisibility(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVisibility is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVisibility requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVisibility: %w", err)
+	}
+	return oldValue.Visibility, nil
+}
+
+// ResetVisibility resets all changes to the "visibility" field.
+func (m *AppDataRecordMutation) ResetVisibility() {
+	m.visibility = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *AppDataRecordMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *AppDataRecordMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the AppDataRecord entity.
+// If the AppDataRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *AppDataRecordMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetData sets the "data" field.
+func (m *AppDataRecordMutation) SetData(value map[string]interface{}) {
+	m.data = &value
+}
+
+// Data returns the value of the "data" field in the mutation.
+func (m *AppDataRecordMutation) Data() (r map[string]interface{}, exists bool) {
+	v := m.data
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldData returns the old "data" field's value of the AppDataRecord entity.
+// If the AppDataRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordMutation) OldData(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldData is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldData requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldData: %w", err)
+	}
+	return oldValue.Data, nil
+}
+
+// ResetData resets all changes to the "data" field.
+func (m *AppDataRecordMutation) ResetData() {
+	m.data = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *AppDataRecordMutation) SetMetadata(value map[string]interface{}) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *AppDataRecordMutation) Metadata() (r map[string]interface{}, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the AppDataRecord entity.
+// If the AppDataRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordMutation) OldMetadata(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *AppDataRecordMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[appdatarecord.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *AppDataRecordMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[appdatarecord.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *AppDataRecordMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, appdatarecord.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *AppDataRecordMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *AppDataRecordMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the AppDataRecord entity.
+// If the AppDataRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *AppDataRecordMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *AppDataRecordMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *AppDataRecordMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the AppDataRecord entity.
+// If the AppDataRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *AppDataRecordMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *AppDataRecordMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *AppDataRecordMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the AppDataRecord entity.
+// If the AppDataRecord object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *AppDataRecordMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[appdatarecord.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *AppDataRecordMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[appdatarecord.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *AppDataRecordMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, appdatarecord.FieldDeletedAt)
+}
+
+// Where appends a list predicates to the AppDataRecordMutation builder.
+func (m *AppDataRecordMutation) Where(ps ...predicate.AppDataRecord) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the AppDataRecordMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *AppDataRecordMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.AppDataRecord, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *AppDataRecordMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *AppDataRecordMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (AppDataRecord).
+func (m *AppDataRecordMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *AppDataRecordMutation) Fields() []string {
+	fields := make([]string, 0, 13)
+	if m.space_id != nil {
+		fields = append(fields, appdatarecord.FieldSpaceID)
+	}
+	if m.model_id != nil {
+		fields = append(fields, appdatarecord.FieldModelID)
+	}
+	if m.model_key != nil {
+		fields = append(fields, appdatarecord.FieldModelKey)
+	}
+	if m.group_id != nil {
+		fields = append(fields, appdatarecord.FieldGroupID)
+	}
+	if m.owner_member_id != nil {
+		fields = append(fields, appdatarecord.FieldOwnerMemberID)
+	}
+	if m.display_name != nil {
+		fields = append(fields, appdatarecord.FieldDisplayName)
+	}
+	if m.visibility != nil {
+		fields = append(fields, appdatarecord.FieldVisibility)
+	}
+	if m.status != nil {
+		fields = append(fields, appdatarecord.FieldStatus)
+	}
+	if m.data != nil {
+		fields = append(fields, appdatarecord.FieldData)
+	}
+	if m.metadata != nil {
+		fields = append(fields, appdatarecord.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, appdatarecord.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, appdatarecord.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, appdatarecord.FieldDeletedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *AppDataRecordMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case appdatarecord.FieldSpaceID:
+		return m.SpaceID()
+	case appdatarecord.FieldModelID:
+		return m.ModelID()
+	case appdatarecord.FieldModelKey:
+		return m.ModelKey()
+	case appdatarecord.FieldGroupID:
+		return m.GroupID()
+	case appdatarecord.FieldOwnerMemberID:
+		return m.OwnerMemberID()
+	case appdatarecord.FieldDisplayName:
+		return m.DisplayName()
+	case appdatarecord.FieldVisibility:
+		return m.Visibility()
+	case appdatarecord.FieldStatus:
+		return m.Status()
+	case appdatarecord.FieldData:
+		return m.Data()
+	case appdatarecord.FieldMetadata:
+		return m.Metadata()
+	case appdatarecord.FieldCreatedAt:
+		return m.CreatedAt()
+	case appdatarecord.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case appdatarecord.FieldDeletedAt:
+		return m.DeletedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *AppDataRecordMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case appdatarecord.FieldSpaceID:
+		return m.OldSpaceID(ctx)
+	case appdatarecord.FieldModelID:
+		return m.OldModelID(ctx)
+	case appdatarecord.FieldModelKey:
+		return m.OldModelKey(ctx)
+	case appdatarecord.FieldGroupID:
+		return m.OldGroupID(ctx)
+	case appdatarecord.FieldOwnerMemberID:
+		return m.OldOwnerMemberID(ctx)
+	case appdatarecord.FieldDisplayName:
+		return m.OldDisplayName(ctx)
+	case appdatarecord.FieldVisibility:
+		return m.OldVisibility(ctx)
+	case appdatarecord.FieldStatus:
+		return m.OldStatus(ctx)
+	case appdatarecord.FieldData:
+		return m.OldData(ctx)
+	case appdatarecord.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case appdatarecord.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case appdatarecord.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case appdatarecord.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown AppDataRecord field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppDataRecordMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case appdatarecord.FieldSpaceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSpaceID(v)
+		return nil
+	case appdatarecord.FieldModelID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetModelID(v)
+		return nil
+	case appdatarecord.FieldModelKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetModelKey(v)
+		return nil
+	case appdatarecord.FieldGroupID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGroupID(v)
+		return nil
+	case appdatarecord.FieldOwnerMemberID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOwnerMemberID(v)
+		return nil
+	case appdatarecord.FieldDisplayName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisplayName(v)
+		return nil
+	case appdatarecord.FieldVisibility:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVisibility(v)
+		return nil
+	case appdatarecord.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case appdatarecord.FieldData:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetData(v)
+		return nil
+	case appdatarecord.FieldMetadata:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case appdatarecord.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case appdatarecord.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case appdatarecord.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AppDataRecord field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *AppDataRecordMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *AppDataRecordMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppDataRecordMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown AppDataRecord numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *AppDataRecordMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(appdatarecord.FieldGroupID) {
+		fields = append(fields, appdatarecord.FieldGroupID)
+	}
+	if m.FieldCleared(appdatarecord.FieldOwnerMemberID) {
+		fields = append(fields, appdatarecord.FieldOwnerMemberID)
+	}
+	if m.FieldCleared(appdatarecord.FieldDisplayName) {
+		fields = append(fields, appdatarecord.FieldDisplayName)
+	}
+	if m.FieldCleared(appdatarecord.FieldMetadata) {
+		fields = append(fields, appdatarecord.FieldMetadata)
+	}
+	if m.FieldCleared(appdatarecord.FieldDeletedAt) {
+		fields = append(fields, appdatarecord.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *AppDataRecordMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *AppDataRecordMutation) ClearField(name string) error {
+	switch name {
+	case appdatarecord.FieldGroupID:
+		m.ClearGroupID()
+		return nil
+	case appdatarecord.FieldOwnerMemberID:
+		m.ClearOwnerMemberID()
+		return nil
+	case appdatarecord.FieldDisplayName:
+		m.ClearDisplayName()
+		return nil
+	case appdatarecord.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case appdatarecord.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AppDataRecord nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *AppDataRecordMutation) ResetField(name string) error {
+	switch name {
+	case appdatarecord.FieldSpaceID:
+		m.ResetSpaceID()
+		return nil
+	case appdatarecord.FieldModelID:
+		m.ResetModelID()
+		return nil
+	case appdatarecord.FieldModelKey:
+		m.ResetModelKey()
+		return nil
+	case appdatarecord.FieldGroupID:
+		m.ResetGroupID()
+		return nil
+	case appdatarecord.FieldOwnerMemberID:
+		m.ResetOwnerMemberID()
+		return nil
+	case appdatarecord.FieldDisplayName:
+		m.ResetDisplayName()
+		return nil
+	case appdatarecord.FieldVisibility:
+		m.ResetVisibility()
+		return nil
+	case appdatarecord.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case appdatarecord.FieldData:
+		m.ResetData()
+		return nil
+	case appdatarecord.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case appdatarecord.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case appdatarecord.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case appdatarecord.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AppDataRecord field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *AppDataRecordMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *AppDataRecordMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *AppDataRecordMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *AppDataRecordMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *AppDataRecordMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *AppDataRecordMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *AppDataRecordMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown AppDataRecord unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *AppDataRecordMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown AppDataRecord edge %s", name)
+}
+
+// AppDataRecordRevisionMutation represents an operation that mutates the AppDataRecordRevision nodes in the graph.
+type AppDataRecordRevisionMutation struct {
+	config
+	op                   Op
+	typ                  string
+	id                   *string
+	record_id            *string
+	space_id             *string
+	model_id             *string
+	model_key            *string
+	revision             *int
+	addrevision          *int
+	operation            *string
+	actor_user_id        *string
+	actor_member_id      *string
+	actor_user_member_id *string
+	data                 *map[string]interface{}
+	metadata             *map[string]interface{}
+	created_at           *time.Time
+	clearedFields        map[string]struct{}
+	done                 bool
+	oldValue             func(context.Context) (*AppDataRecordRevision, error)
+	predicates           []predicate.AppDataRecordRevision
+}
+
+var _ ent.Mutation = (*AppDataRecordRevisionMutation)(nil)
+
+// appdatarecordrevisionOption allows management of the mutation configuration using functional options.
+type appdatarecordrevisionOption func(*AppDataRecordRevisionMutation)
+
+// newAppDataRecordRevisionMutation creates new mutation for the AppDataRecordRevision entity.
+func newAppDataRecordRevisionMutation(c config, op Op, opts ...appdatarecordrevisionOption) *AppDataRecordRevisionMutation {
+	m := &AppDataRecordRevisionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeAppDataRecordRevision,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withAppDataRecordRevisionID sets the ID field of the mutation.
+func withAppDataRecordRevisionID(id string) appdatarecordrevisionOption {
+	return func(m *AppDataRecordRevisionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *AppDataRecordRevision
+		)
+		m.oldValue = func(ctx context.Context) (*AppDataRecordRevision, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().AppDataRecordRevision.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withAppDataRecordRevision sets the old AppDataRecordRevision of the mutation.
+func withAppDataRecordRevision(node *AppDataRecordRevision) appdatarecordrevisionOption {
+	return func(m *AppDataRecordRevisionMutation) {
+		m.oldValue = func(context.Context) (*AppDataRecordRevision, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m AppDataRecordRevisionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m AppDataRecordRevisionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of AppDataRecordRevision entities.
+func (m *AppDataRecordRevisionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *AppDataRecordRevisionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *AppDataRecordRevisionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().AppDataRecordRevision.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetRecordID sets the "record_id" field.
+func (m *AppDataRecordRevisionMutation) SetRecordID(s string) {
+	m.record_id = &s
+}
+
+// RecordID returns the value of the "record_id" field in the mutation.
+func (m *AppDataRecordRevisionMutation) RecordID() (r string, exists bool) {
+	v := m.record_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRecordID returns the old "record_id" field's value of the AppDataRecordRevision entity.
+// If the AppDataRecordRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordRevisionMutation) OldRecordID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRecordID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRecordID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRecordID: %w", err)
+	}
+	return oldValue.RecordID, nil
+}
+
+// ResetRecordID resets all changes to the "record_id" field.
+func (m *AppDataRecordRevisionMutation) ResetRecordID() {
+	m.record_id = nil
+}
+
+// SetSpaceID sets the "space_id" field.
+func (m *AppDataRecordRevisionMutation) SetSpaceID(s string) {
+	m.space_id = &s
+}
+
+// SpaceID returns the value of the "space_id" field in the mutation.
+func (m *AppDataRecordRevisionMutation) SpaceID() (r string, exists bool) {
+	v := m.space_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSpaceID returns the old "space_id" field's value of the AppDataRecordRevision entity.
+// If the AppDataRecordRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordRevisionMutation) OldSpaceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSpaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSpaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSpaceID: %w", err)
+	}
+	return oldValue.SpaceID, nil
+}
+
+// ResetSpaceID resets all changes to the "space_id" field.
+func (m *AppDataRecordRevisionMutation) ResetSpaceID() {
+	m.space_id = nil
+}
+
+// SetModelID sets the "model_id" field.
+func (m *AppDataRecordRevisionMutation) SetModelID(s string) {
+	m.model_id = &s
+}
+
+// ModelID returns the value of the "model_id" field in the mutation.
+func (m *AppDataRecordRevisionMutation) ModelID() (r string, exists bool) {
+	v := m.model_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldModelID returns the old "model_id" field's value of the AppDataRecordRevision entity.
+// If the AppDataRecordRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordRevisionMutation) OldModelID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldModelID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldModelID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldModelID: %w", err)
+	}
+	return oldValue.ModelID, nil
+}
+
+// ResetModelID resets all changes to the "model_id" field.
+func (m *AppDataRecordRevisionMutation) ResetModelID() {
+	m.model_id = nil
+}
+
+// SetModelKey sets the "model_key" field.
+func (m *AppDataRecordRevisionMutation) SetModelKey(s string) {
+	m.model_key = &s
+}
+
+// ModelKey returns the value of the "model_key" field in the mutation.
+func (m *AppDataRecordRevisionMutation) ModelKey() (r string, exists bool) {
+	v := m.model_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldModelKey returns the old "model_key" field's value of the AppDataRecordRevision entity.
+// If the AppDataRecordRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordRevisionMutation) OldModelKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldModelKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldModelKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldModelKey: %w", err)
+	}
+	return oldValue.ModelKey, nil
+}
+
+// ResetModelKey resets all changes to the "model_key" field.
+func (m *AppDataRecordRevisionMutation) ResetModelKey() {
+	m.model_key = nil
+}
+
+// SetRevision sets the "revision" field.
+func (m *AppDataRecordRevisionMutation) SetRevision(i int) {
+	m.revision = &i
+	m.addrevision = nil
+}
+
+// Revision returns the value of the "revision" field in the mutation.
+func (m *AppDataRecordRevisionMutation) Revision() (r int, exists bool) {
+	v := m.revision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRevision returns the old "revision" field's value of the AppDataRecordRevision entity.
+// If the AppDataRecordRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordRevisionMutation) OldRevision(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRevision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRevision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRevision: %w", err)
+	}
+	return oldValue.Revision, nil
+}
+
+// AddRevision adds i to the "revision" field.
+func (m *AppDataRecordRevisionMutation) AddRevision(i int) {
+	if m.addrevision != nil {
+		*m.addrevision += i
+	} else {
+		m.addrevision = &i
+	}
+}
+
+// AddedRevision returns the value that was added to the "revision" field in this mutation.
+func (m *AppDataRecordRevisionMutation) AddedRevision() (r int, exists bool) {
+	v := m.addrevision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRevision resets all changes to the "revision" field.
+func (m *AppDataRecordRevisionMutation) ResetRevision() {
+	m.revision = nil
+	m.addrevision = nil
+}
+
+// SetOperation sets the "operation" field.
+func (m *AppDataRecordRevisionMutation) SetOperation(s string) {
+	m.operation = &s
+}
+
+// Operation returns the value of the "operation" field in the mutation.
+func (m *AppDataRecordRevisionMutation) Operation() (r string, exists bool) {
+	v := m.operation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOperation returns the old "operation" field's value of the AppDataRecordRevision entity.
+// If the AppDataRecordRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordRevisionMutation) OldOperation(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOperation is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOperation requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOperation: %w", err)
+	}
+	return oldValue.Operation, nil
+}
+
+// ResetOperation resets all changes to the "operation" field.
+func (m *AppDataRecordRevisionMutation) ResetOperation() {
+	m.operation = nil
+}
+
+// SetActorUserID sets the "actor_user_id" field.
+func (m *AppDataRecordRevisionMutation) SetActorUserID(s string) {
+	m.actor_user_id = &s
+}
+
+// ActorUserID returns the value of the "actor_user_id" field in the mutation.
+func (m *AppDataRecordRevisionMutation) ActorUserID() (r string, exists bool) {
+	v := m.actor_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorUserID returns the old "actor_user_id" field's value of the AppDataRecordRevision entity.
+// If the AppDataRecordRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordRevisionMutation) OldActorUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorUserID: %w", err)
+	}
+	return oldValue.ActorUserID, nil
+}
+
+// ClearActorUserID clears the value of the "actor_user_id" field.
+func (m *AppDataRecordRevisionMutation) ClearActorUserID() {
+	m.actor_user_id = nil
+	m.clearedFields[appdatarecordrevision.FieldActorUserID] = struct{}{}
+}
+
+// ActorUserIDCleared returns if the "actor_user_id" field was cleared in this mutation.
+func (m *AppDataRecordRevisionMutation) ActorUserIDCleared() bool {
+	_, ok := m.clearedFields[appdatarecordrevision.FieldActorUserID]
+	return ok
+}
+
+// ResetActorUserID resets all changes to the "actor_user_id" field.
+func (m *AppDataRecordRevisionMutation) ResetActorUserID() {
+	m.actor_user_id = nil
+	delete(m.clearedFields, appdatarecordrevision.FieldActorUserID)
+}
+
+// SetActorMemberID sets the "actor_member_id" field.
+func (m *AppDataRecordRevisionMutation) SetActorMemberID(s string) {
+	m.actor_member_id = &s
+}
+
+// ActorMemberID returns the value of the "actor_member_id" field in the mutation.
+func (m *AppDataRecordRevisionMutation) ActorMemberID() (r string, exists bool) {
+	v := m.actor_member_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorMemberID returns the old "actor_member_id" field's value of the AppDataRecordRevision entity.
+// If the AppDataRecordRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordRevisionMutation) OldActorMemberID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorMemberID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorMemberID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorMemberID: %w", err)
+	}
+	return oldValue.ActorMemberID, nil
+}
+
+// ClearActorMemberID clears the value of the "actor_member_id" field.
+func (m *AppDataRecordRevisionMutation) ClearActorMemberID() {
+	m.actor_member_id = nil
+	m.clearedFields[appdatarecordrevision.FieldActorMemberID] = struct{}{}
+}
+
+// ActorMemberIDCleared returns if the "actor_member_id" field was cleared in this mutation.
+func (m *AppDataRecordRevisionMutation) ActorMemberIDCleared() bool {
+	_, ok := m.clearedFields[appdatarecordrevision.FieldActorMemberID]
+	return ok
+}
+
+// ResetActorMemberID resets all changes to the "actor_member_id" field.
+func (m *AppDataRecordRevisionMutation) ResetActorMemberID() {
+	m.actor_member_id = nil
+	delete(m.clearedFields, appdatarecordrevision.FieldActorMemberID)
+}
+
+// SetActorUserMemberID sets the "actor_user_member_id" field.
+func (m *AppDataRecordRevisionMutation) SetActorUserMemberID(s string) {
+	m.actor_user_member_id = &s
+}
+
+// ActorUserMemberID returns the value of the "actor_user_member_id" field in the mutation.
+func (m *AppDataRecordRevisionMutation) ActorUserMemberID() (r string, exists bool) {
+	v := m.actor_user_member_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorUserMemberID returns the old "actor_user_member_id" field's value of the AppDataRecordRevision entity.
+// If the AppDataRecordRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordRevisionMutation) OldActorUserMemberID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorUserMemberID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorUserMemberID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorUserMemberID: %w", err)
+	}
+	return oldValue.ActorUserMemberID, nil
+}
+
+// ClearActorUserMemberID clears the value of the "actor_user_member_id" field.
+func (m *AppDataRecordRevisionMutation) ClearActorUserMemberID() {
+	m.actor_user_member_id = nil
+	m.clearedFields[appdatarecordrevision.FieldActorUserMemberID] = struct{}{}
+}
+
+// ActorUserMemberIDCleared returns if the "actor_user_member_id" field was cleared in this mutation.
+func (m *AppDataRecordRevisionMutation) ActorUserMemberIDCleared() bool {
+	_, ok := m.clearedFields[appdatarecordrevision.FieldActorUserMemberID]
+	return ok
+}
+
+// ResetActorUserMemberID resets all changes to the "actor_user_member_id" field.
+func (m *AppDataRecordRevisionMutation) ResetActorUserMemberID() {
+	m.actor_user_member_id = nil
+	delete(m.clearedFields, appdatarecordrevision.FieldActorUserMemberID)
+}
+
+// SetData sets the "data" field.
+func (m *AppDataRecordRevisionMutation) SetData(value map[string]interface{}) {
+	m.data = &value
+}
+
+// Data returns the value of the "data" field in the mutation.
+func (m *AppDataRecordRevisionMutation) Data() (r map[string]interface{}, exists bool) {
+	v := m.data
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldData returns the old "data" field's value of the AppDataRecordRevision entity.
+// If the AppDataRecordRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordRevisionMutation) OldData(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldData is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldData requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldData: %w", err)
+	}
+	return oldValue.Data, nil
+}
+
+// ResetData resets all changes to the "data" field.
+func (m *AppDataRecordRevisionMutation) ResetData() {
+	m.data = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *AppDataRecordRevisionMutation) SetMetadata(value map[string]interface{}) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *AppDataRecordRevisionMutation) Metadata() (r map[string]interface{}, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the AppDataRecordRevision entity.
+// If the AppDataRecordRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordRevisionMutation) OldMetadata(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *AppDataRecordRevisionMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[appdatarecordrevision.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *AppDataRecordRevisionMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[appdatarecordrevision.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *AppDataRecordRevisionMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, appdatarecordrevision.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *AppDataRecordRevisionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *AppDataRecordRevisionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the AppDataRecordRevision entity.
+// If the AppDataRecordRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataRecordRevisionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *AppDataRecordRevisionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the AppDataRecordRevisionMutation builder.
+func (m *AppDataRecordRevisionMutation) Where(ps ...predicate.AppDataRecordRevision) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the AppDataRecordRevisionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *AppDataRecordRevisionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.AppDataRecordRevision, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *AppDataRecordRevisionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *AppDataRecordRevisionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (AppDataRecordRevision).
+func (m *AppDataRecordRevisionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *AppDataRecordRevisionMutation) Fields() []string {
+	fields := make([]string, 0, 12)
+	if m.record_id != nil {
+		fields = append(fields, appdatarecordrevision.FieldRecordID)
+	}
+	if m.space_id != nil {
+		fields = append(fields, appdatarecordrevision.FieldSpaceID)
+	}
+	if m.model_id != nil {
+		fields = append(fields, appdatarecordrevision.FieldModelID)
+	}
+	if m.model_key != nil {
+		fields = append(fields, appdatarecordrevision.FieldModelKey)
+	}
+	if m.revision != nil {
+		fields = append(fields, appdatarecordrevision.FieldRevision)
+	}
+	if m.operation != nil {
+		fields = append(fields, appdatarecordrevision.FieldOperation)
+	}
+	if m.actor_user_id != nil {
+		fields = append(fields, appdatarecordrevision.FieldActorUserID)
+	}
+	if m.actor_member_id != nil {
+		fields = append(fields, appdatarecordrevision.FieldActorMemberID)
+	}
+	if m.actor_user_member_id != nil {
+		fields = append(fields, appdatarecordrevision.FieldActorUserMemberID)
+	}
+	if m.data != nil {
+		fields = append(fields, appdatarecordrevision.FieldData)
+	}
+	if m.metadata != nil {
+		fields = append(fields, appdatarecordrevision.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, appdatarecordrevision.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *AppDataRecordRevisionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case appdatarecordrevision.FieldRecordID:
+		return m.RecordID()
+	case appdatarecordrevision.FieldSpaceID:
+		return m.SpaceID()
+	case appdatarecordrevision.FieldModelID:
+		return m.ModelID()
+	case appdatarecordrevision.FieldModelKey:
+		return m.ModelKey()
+	case appdatarecordrevision.FieldRevision:
+		return m.Revision()
+	case appdatarecordrevision.FieldOperation:
+		return m.Operation()
+	case appdatarecordrevision.FieldActorUserID:
+		return m.ActorUserID()
+	case appdatarecordrevision.FieldActorMemberID:
+		return m.ActorMemberID()
+	case appdatarecordrevision.FieldActorUserMemberID:
+		return m.ActorUserMemberID()
+	case appdatarecordrevision.FieldData:
+		return m.Data()
+	case appdatarecordrevision.FieldMetadata:
+		return m.Metadata()
+	case appdatarecordrevision.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *AppDataRecordRevisionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case appdatarecordrevision.FieldRecordID:
+		return m.OldRecordID(ctx)
+	case appdatarecordrevision.FieldSpaceID:
+		return m.OldSpaceID(ctx)
+	case appdatarecordrevision.FieldModelID:
+		return m.OldModelID(ctx)
+	case appdatarecordrevision.FieldModelKey:
+		return m.OldModelKey(ctx)
+	case appdatarecordrevision.FieldRevision:
+		return m.OldRevision(ctx)
+	case appdatarecordrevision.FieldOperation:
+		return m.OldOperation(ctx)
+	case appdatarecordrevision.FieldActorUserID:
+		return m.OldActorUserID(ctx)
+	case appdatarecordrevision.FieldActorMemberID:
+		return m.OldActorMemberID(ctx)
+	case appdatarecordrevision.FieldActorUserMemberID:
+		return m.OldActorUserMemberID(ctx)
+	case appdatarecordrevision.FieldData:
+		return m.OldData(ctx)
+	case appdatarecordrevision.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case appdatarecordrevision.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown AppDataRecordRevision field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppDataRecordRevisionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case appdatarecordrevision.FieldRecordID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRecordID(v)
+		return nil
+	case appdatarecordrevision.FieldSpaceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSpaceID(v)
+		return nil
+	case appdatarecordrevision.FieldModelID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetModelID(v)
+		return nil
+	case appdatarecordrevision.FieldModelKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetModelKey(v)
+		return nil
+	case appdatarecordrevision.FieldRevision:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRevision(v)
+		return nil
+	case appdatarecordrevision.FieldOperation:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOperation(v)
+		return nil
+	case appdatarecordrevision.FieldActorUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorUserID(v)
+		return nil
+	case appdatarecordrevision.FieldActorMemberID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorMemberID(v)
+		return nil
+	case appdatarecordrevision.FieldActorUserMemberID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorUserMemberID(v)
+		return nil
+	case appdatarecordrevision.FieldData:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetData(v)
+		return nil
+	case appdatarecordrevision.FieldMetadata:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case appdatarecordrevision.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AppDataRecordRevision field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *AppDataRecordRevisionMutation) AddedFields() []string {
+	var fields []string
+	if m.addrevision != nil {
+		fields = append(fields, appdatarecordrevision.FieldRevision)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *AppDataRecordRevisionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case appdatarecordrevision.FieldRevision:
+		return m.AddedRevision()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppDataRecordRevisionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case appdatarecordrevision.FieldRevision:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRevision(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AppDataRecordRevision numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *AppDataRecordRevisionMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(appdatarecordrevision.FieldActorUserID) {
+		fields = append(fields, appdatarecordrevision.FieldActorUserID)
+	}
+	if m.FieldCleared(appdatarecordrevision.FieldActorMemberID) {
+		fields = append(fields, appdatarecordrevision.FieldActorMemberID)
+	}
+	if m.FieldCleared(appdatarecordrevision.FieldActorUserMemberID) {
+		fields = append(fields, appdatarecordrevision.FieldActorUserMemberID)
+	}
+	if m.FieldCleared(appdatarecordrevision.FieldMetadata) {
+		fields = append(fields, appdatarecordrevision.FieldMetadata)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *AppDataRecordRevisionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *AppDataRecordRevisionMutation) ClearField(name string) error {
+	switch name {
+	case appdatarecordrevision.FieldActorUserID:
+		m.ClearActorUserID()
+		return nil
+	case appdatarecordrevision.FieldActorMemberID:
+		m.ClearActorMemberID()
+		return nil
+	case appdatarecordrevision.FieldActorUserMemberID:
+		m.ClearActorUserMemberID()
+		return nil
+	case appdatarecordrevision.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	}
+	return fmt.Errorf("unknown AppDataRecordRevision nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *AppDataRecordRevisionMutation) ResetField(name string) error {
+	switch name {
+	case appdatarecordrevision.FieldRecordID:
+		m.ResetRecordID()
+		return nil
+	case appdatarecordrevision.FieldSpaceID:
+		m.ResetSpaceID()
+		return nil
+	case appdatarecordrevision.FieldModelID:
+		m.ResetModelID()
+		return nil
+	case appdatarecordrevision.FieldModelKey:
+		m.ResetModelKey()
+		return nil
+	case appdatarecordrevision.FieldRevision:
+		m.ResetRevision()
+		return nil
+	case appdatarecordrevision.FieldOperation:
+		m.ResetOperation()
+		return nil
+	case appdatarecordrevision.FieldActorUserID:
+		m.ResetActorUserID()
+		return nil
+	case appdatarecordrevision.FieldActorMemberID:
+		m.ResetActorMemberID()
+		return nil
+	case appdatarecordrevision.FieldActorUserMemberID:
+		m.ResetActorUserMemberID()
+		return nil
+	case appdatarecordrevision.FieldData:
+		m.ResetData()
+		return nil
+	case appdatarecordrevision.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case appdatarecordrevision.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AppDataRecordRevision field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *AppDataRecordRevisionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *AppDataRecordRevisionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *AppDataRecordRevisionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *AppDataRecordRevisionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *AppDataRecordRevisionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *AppDataRecordRevisionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *AppDataRecordRevisionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown AppDataRecordRevision unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *AppDataRecordRevisionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown AppDataRecordRevision edge %s", name)
 }
 
 // AuditEventTypeMutation represents an operation that mutates the AuditEventType nodes in the graph.

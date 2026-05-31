@@ -33,6 +33,16 @@ func buildInlineAuthorizationContext(ctx context.Context, store contractauthz.St
 	if err != nil {
 		return contractauthz.AuthorizationContext{}, err
 	}
+	if len(candidates) == 0 && len(input.InlineGrants) == 0 && !input.InlineContext {
+		candidates, err = store.LoadPermissionCandidates(ctx, contractauthz.CandidateQuery{
+			MemberID:     actorContext.MemberID,
+			ResourceType: input.ResourceType,
+			Action:       input.Action,
+		})
+		if err != nil {
+			return contractauthz.AuthorizationContext{}, fmt.Errorf("load permission candidates: %w", err)
+		}
+	}
 
 	return contractauthz.AuthorizationContext{
 		Actor:              actor,

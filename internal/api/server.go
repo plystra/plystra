@@ -81,6 +81,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/v1/roles/", s.handleRoleDetail)
 	mux.HandleFunc("/api/v1/resources", s.handleResources)
 	mux.HandleFunc("/api/v1/resources/", s.handleResourceDetail)
+	mux.HandleFunc("/api/v1/app-data/", s.handleAppDataResourceLookup)
 	mux.HandleFunc("/api/v1/data/tables", s.handleDataTables)
 	mux.HandleFunc("/api/v1/data/rows/", s.handleDataRows)
 	mux.HandleFunc("/api/v1/plugins/validate-manifest", s.handlePluginManifestValidation)

@@ -123,6 +123,31 @@ func TestEngineAllowsProposedTargetWithoutLoadingExistingResource(t *testing.T) 
 	}
 }
 
+func TestInlineResourceContextCanUseManagedGrants(t *testing.T) {
+	store := newMemoryStore()
+	engine := newTestEngine(store)
+	input := checkInput("user_alice", "um_alice_finance_reviewer", "invoice_draft_001")
+	input.Target = &authz.TargetSnapshot{
+		Resource: authz.ResourceSnapshot{
+			ID:            "invoice_draft_001",
+			Type:          "invoice",
+			SpaceID:       "space_acme",
+			GroupID:       "group_finance_apac",
+			OwnerMemberID: "member_invoice_creator",
+		},
+		Group: &authz.GroupSnapshot{ID: "group_finance_apac", SpaceID: "space_acme", Path: "finance.apac", Status: authz.StatusActive},
+	}
+
+	decision, err := engine.Check(context.Background(), input)
+	if err != nil {
+		t.Fatalf("Check() error = %v", err)
+	}
+	assertDecision(t, decision, authz.DecisionAllow, nil)
+	if len(decision.MatchedCandidates) != 1 {
+		t.Fatalf("matched candidates = %d, want managed grant", len(decision.MatchedCandidates))
+	}
+}
+
 func TestEngineDeniesWithoutMatchingPermission(t *testing.T) {
 	store := newMemoryStore()
 	engine := newTestEngine(store)

@@ -14,6 +14,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/plystra/plystra/ent/admingrant"
 	"github.com/plystra/plystra/ent/apikey"
+	"github.com/plystra/plystra/ent/appdatamodel"
+	"github.com/plystra/plystra/ent/appdatarecord"
+	"github.com/plystra/plystra/ent/appdatarecordrevision"
 	"github.com/plystra/plystra/ent/auditeventtype"
 	"github.com/plystra/plystra/ent/auditlog"
 	"github.com/plystra/plystra/ent/backgroundjob"
@@ -98,6 +101,9 @@ func checkColumn(t, c string) error {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			admingrant.Table:               admingrant.ValidColumn,
 			apikey.Table:                   apikey.ValidColumn,
+			appdatamodel.Table:             appdatamodel.ValidColumn,
+			appdatarecord.Table:            appdatarecord.ValidColumn,
+			appdatarecordrevision.Table:    appdatarecordrevision.ValidColumn,
 			auditeventtype.Table:           auditeventtype.ValidColumn,
 			auditlog.Table:                 auditlog.ValidColumn,
 			backgroundjob.Table:            backgroundjob.ValidColumn,

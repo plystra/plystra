@@ -183,6 +183,41 @@ func Catalog() []Manifest {
 				{Role: "support", Resource: "auth_challenge", Action: "read", Scope: "space"},
 			},
 		},
+		{
+			ID:                   "saas-crm-alpha",
+			Name:                 "SaaS CRM Alpha",
+			Description:          "Backend OS Alpha reference application with plugin-owned CRM business data, Plystra-governed identity, authorization, resource bindings, audit, backup, and health checks.",
+			Version:              "0.0.1",
+			RequiresCore:         ">=0.0.1 <0.1.0",
+			RequiredPlugins:      []string{"plystra.saas_crm"},
+			RequiredCapabilities: []CapabilityRequirement{{ID: "crm.customer", MinLevel: "standard", Version: ">=0.0.1 <0.1.0"}, {ID: "crm.pipeline", MinLevel: "standard", Version: ">=0.0.1 <0.1.0"}, {ID: "project.task", MinLevel: "standard", Version: ">=0.0.1 <0.1.0"}},
+			DeploymentProfile:    alphaProfile,
+			Limitations: []string{
+				"CRM business data is stored only in the official CRM plugin-owned PostgreSQL tables",
+				"Core resources are Resource Bindings for authorization context and inspection, not a business data store",
+				"plugin sidecar lifecycle is Docker Compose based in Backend OS Alpha",
+			},
+			Spaces: []Space{{Key: "default", Name: "Plystra Demo SaaS"}},
+			Groups: []Group{
+				{Key: "sales", Name: "Sales"},
+				{Key: "success", Name: "Customer Success"},
+				{Key: "ops", Name: "Operations"},
+			},
+			Roles: []Role{{Key: "owner"}, {Key: "operator"}, {Key: "auditor"}},
+			Permissions: []Permission{
+				{Role: "operator", Resource: "crm_account", Action: "read", Scope: "space"},
+				{Role: "operator", Resource: "crm_account", Action: "create", Scope: "space"},
+				{Role: "operator", Resource: "crm_account", Action: "update", Scope: "space"},
+				{Role: "operator", Resource: "crm_deal", Action: "read", Scope: "space"},
+				{Role: "operator", Resource: "crm_deal", Action: "create", Scope: "space"},
+				{Role: "operator", Resource: "crm_deal", Action: "update", Scope: "space"},
+				{Role: "operator", Resource: "crm_task", Action: "read", Scope: "space"},
+				{Role: "operator", Resource: "crm_task", Action: "create", Scope: "space"},
+				{Role: "operator", Resource: "crm_task", Action: "update", Scope: "space"},
+				{Role: "operator", Resource: "crm_task", Action: "complete", Scope: "space"},
+				{Role: "auditor", Resource: "audit_log", Action: "read", Scope: "space"},
+			},
+		},
 	}
 }
 

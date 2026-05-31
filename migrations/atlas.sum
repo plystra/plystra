@@ -1,4 +1,4 @@
-h1:XSazIayzcgqOJcKzkGni664LuOI+YtJb7gCZjZT8pYI=
+h1:4c5LvS4YSZHuWAMnN3/6fhaaXjFT5tq4NnLSlHXtV50=
 001_finance_demo.sql h1:6yv3CJVVhS9V3T9oB0dXmay0Y9tLgD46s7WQEn4dgz4=
 002_resource_registry.sql h1:SIovsOobXzfbuq0nUqzNgqt51zHRkhSDu3g247VkQa4=
 003_plugin_api_preview.sql h1:hz7SfVSTZ6EbNoyKV0F+C6vAYvsmpTBdfQe0PgntORk=
@@ -17,3 +17,7 @@ h1:XSazIayzcgqOJcKzkGni664LuOI+YtJb7gCZjZT8pYI=
 016_demo_passwords_argon2id.sql h1:2wdHxmHoATMDoXZRVse7n93shsdc829XRzIh9LsHzMI=
 017_remove_demo_super_admin_grant.sql h1:hxxlbqaFGWspKs+8K3vyNS5Ao0Lu834CnsJTyEQ0WGA=
 018_reset_release_versions_to_0_0_1.sql h1:U9pkjvLJV1EbOTLyOCtcIH44lsIZRXBXG+ti3C/J8Wc=
+019_backend_os_alpha_remove_core_demo_business_data.sql h1:azRW1pdfGVO+QgbmCvUCDL7SXWMhqcY9UhS/Vt3q/AU=
+020_backend_os_alpha_app_data_store.sql h1:darA+E4f++NsZKHMRRfQ87bgCp3hK1e1uURAm1Oe7QM=
+021_backend_os_alpha_app_data_trigger_fix.sql h1:EMVO0qG2ifjHOeYI/lpabq2+sWsdQDqXmPIboKTueng=
+022_backend_os_alpha_app_data_ent_alignment.sql h1:/ax1U2CABcFZdyIH+fxCGPUfAhM/J4pBhl/eYtdpazU=

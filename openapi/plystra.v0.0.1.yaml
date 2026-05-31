@@ -59,6 +59,64 @@ components:
                 status:
                     type: string
             type: object
+        ApiAppDataModelMutationRequest:
+            properties:
+                actor:
+                    $ref: '#/components/schemas/AuthzActorContext'
+                description:
+                    nullable: true
+                    type: string
+                display_name:
+                    type: string
+                id:
+                    type: string
+                key:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                schema:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                source:
+                    nullable: true
+                    type: string
+                status:
+                    nullable: true
+                    type: string
+            type: object
+        ApiAppDataRecordMutationRequest:
+            properties:
+                actor:
+                    $ref: '#/components/schemas/AuthzActorContext'
+                data:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                display_name:
+                    nullable: true
+                    type: string
+                group_id:
+                    nullable: true
+                    type: string
+                id:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                owner_member_id:
+                    nullable: true
+                    type: string
+                status:
+                    nullable: true
+                    type: string
+                visibility:
+                    nullable: true
+                    type: string
+            type: object
         ApiAuthLoginRequest:
             properties:
                 email:
@@ -396,6 +454,139 @@ components:
                 user_id:
                     type: string
             type: object
+        ApiOpenAPIAppDataModel:
+            properties:
+                created_at:
+                    format: date-time
+                    type: string
+                deleted_at:
+                    format: date-time
+                    nullable: true
+                    type: string
+                description:
+                    type: string
+                display_name:
+                    type: string
+                id:
+                    type: string
+                key:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                permissions:
+                    items:
+                        $ref: '#/components/schemas/ApiOpenAPIAppDataPermissionSummary'
+                    nullable: true
+                    type: array
+                schema:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                source:
+                    type: string
+                space_id:
+                    type: string
+                status:
+                    type: string
+                updated_at:
+                    format: date-time
+                    type: string
+            type: object
+        ApiOpenAPIAppDataPermissionSummary:
+            properties:
+                action:
+                    type: string
+                id:
+                    type: string
+                resource:
+                    type: string
+                scope:
+                    type: string
+                status:
+                    type: string
+            type: object
+        ApiOpenAPIAppDataRecord:
+            properties:
+                created_at:
+                    format: date-time
+                    type: string
+                data:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                deleted_at:
+                    format: date-time
+                    nullable: true
+                    type: string
+                display_name:
+                    type: string
+                group_id:
+                    type: string
+                id:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                model_id:
+                    type: string
+                model_key:
+                    type: string
+                owner_member_id:
+                    type: string
+                space_id:
+                    type: string
+                status:
+                    type: string
+                updated_at:
+                    format: date-time
+                    type: string
+                visibility:
+                    type: string
+            type: object
+        ApiOpenAPIAppDataRecordResponse:
+            properties:
+                authorization:
+                    $ref: '#/components/schemas/ApiOpenAPIAuthzCheckResponse'
+                record:
+                    $ref: '#/components/schemas/ApiOpenAPIAppDataRecord'
+            type: object
+        ApiOpenAPIAppDataRevision:
+            properties:
+                actor_member_id:
+                    type: string
+                actor_user_id:
+                    type: string
+                actor_user_member_id:
+                    type: string
+                created_at:
+                    format: date-time
+                    type: string
+                data:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                id:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                model_id:
+                    type: string
+                model_key:
+                    type: string
+                operation:
+                    type: string
+                record_id:
+                    type: string
+                revision:
+                    type: integer
+                space_id:
+                    type: string
+            type: object
         ApiOpenAPIAuditEventType:
             properties:
                 created_at:
@@ -514,6 +705,22 @@ components:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIAdminMeResponse'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
+        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel:
+            properties:
+                data:
+                    $ref: '#/components/schemas/ApiOpenAPIAppDataModel'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
+        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse:
+            properties:
+                data:
+                    $ref: '#/components/schemas/ApiOpenAPIAppDataRecordResponse'
                 request_id:
                     example: req_01hzyj6b6q8
                     type: string
@@ -843,6 +1050,45 @@ components:
                 data:
                     items:
                         $ref: '#/components/schemas/ApiOpenAPIAdminGrant'
+                    nullable: true
+                    type: array
+                pagination:
+                    $ref: '#/components/schemas/ApiOpenAPIPagination'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
+        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel:
+            properties:
+                data:
+                    items:
+                        $ref: '#/components/schemas/ApiOpenAPIAppDataModel'
+                    nullable: true
+                    type: array
+                pagination:
+                    $ref: '#/components/schemas/ApiOpenAPIPagination'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
+        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecord:
+            properties:
+                data:
+                    items:
+                        $ref: '#/components/schemas/ApiOpenAPIAppDataRecord'
+                    nullable: true
+                    type: array
+                pagination:
+                    $ref: '#/components/schemas/ApiOpenAPIPagination'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
+        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRevision:
+            properties:
+                data:
+                    items:
+                        $ref: '#/components/schemas/ApiOpenAPIAppDataRevision'
                     nullable: true
                     type: array
                 pagination:
@@ -2716,6 +2962,38 @@ paths:
             summary: Revoke an API key
             tags:
                 - API Keys
+    /api/v1/app-data/{model_key}/{record_id}:
+        get:
+            operationId: lookupAppDataRecord
+            parameters:
+                - in: path
+                  name: model_key
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: record_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+            summary: Lookup an app data record by model key and ID
+            tags:
+                - App Data
     /api/v1/audit/logs:
         get:
             operationId: listAuditLogs
@@ -4462,6 +4740,464 @@ paths:
             summary: Get audit log detail in a space
             tags:
                 - Audit
+    /api/v1/spaces/{space_id}/data:
+        get:
+            operationId: getAppDataSpaceInfo
+            parameters:
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeMapStringInterface'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Get app data endpoints for a space
+            tags:
+                - App Data
+    /api/v1/spaces/{space_id}/data/models:
+        get:
+            operationId: listAppDataModels
+            parameters:
+                - in: query
+                  name: status
+                  schema:
+                    type: string
+                - in: query
+                  name: limit
+                  schema:
+                    maximum: 200
+                    minimum: 1
+                    type: integer
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: List app data models
+            tags:
+                - App Data
+        post:
+            operationId: createAppDataModel
+            parameters:
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiAppDataModelMutationRequest'
+                required: true
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel'
+                    description: Created
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Create an app data model
+            tags:
+                - App Data
+    /api/v1/spaces/{space_id}/data/models/{model_key}:
+        get:
+            operationId: getAppDataModel
+            parameters:
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: model_key
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Get an app data model
+            tags:
+                - App Data
+        patch:
+            operationId: updateAppDataModel
+            parameters:
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: model_key
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiAppDataModelMutationRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Update an app data model
+            tags:
+                - App Data
+    /api/v1/spaces/{space_id}/data/models/{model_key}/records:
+        get:
+            operationId: listAppDataRecords
+            parameters:
+                - in: query
+                  name: status
+                  schema:
+                    type: string
+                - in: query
+                  name: group_id
+                  schema:
+                    type: string
+                - in: query
+                  name: owner_member_id
+                  schema:
+                    type: string
+                - in: query
+                  name: limit
+                  schema:
+                    maximum: 200
+                    minimum: 1
+                    type: integer
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: model_key
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecord'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+            summary: List app data records
+            tags:
+                - App Data
+        post:
+            operationId: createAppDataRecord
+            parameters:
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: model_key
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiAppDataRecordMutationRequest'
+                required: true
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse'
+                    description: Created
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+            summary: Create an app data record
+            tags:
+                - App Data
+    /api/v1/spaces/{space_id}/data/models/{model_key}/records/{record_id}:
+        delete:
+            operationId: deleteAppDataRecord
+            parameters:
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: model_key
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: record_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+            summary: Soft-delete an app data record
+            tags:
+                - App Data
+        get:
+            operationId: getAppDataRecord
+            parameters:
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: model_key
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: record_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+            summary: Get an app data record
+            tags:
+                - App Data
+        patch:
+            operationId: updateAppDataRecord
+            parameters:
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: model_key
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: record_id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiAppDataRecordMutationRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+            summary: Update an app data record
+            tags:
+                - App Data
+    /api/v1/spaces/{space_id}/data/models/{model_key}/records/{record_id}/archive:
+        post:
+            operationId: archiveAppDataRecord
+            parameters:
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: model_key
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: record_id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiAppDataRecordMutationRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+            summary: Archive an app data record
+            tags:
+                - App Data
+    /api/v1/spaces/{space_id}/data/models/{model_key}/records/{record_id}/revisions:
+        get:
+            operationId: listAppDataRecordRevisions
+            parameters:
+                - in: query
+                  name: limit
+                  schema:
+                    maximum: 200
+                    minimum: 1
+                    type: integer
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: model_key
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: record_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRevision'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+            summary: List app data record revisions
+            tags:
+                - App Data
     /api/v1/spaces/{space_id}/disable:
         post:
             operationId: disableSpace
@@ -5232,6 +5968,138 @@ paths:
             summary: Restore a space
             tags:
                 - Spaces
+    /api/v1/spaces/{space_id}/role-permissions:
+        get:
+            operationId: listSpaceRolePermissions
+            parameters:
+                - in: query
+                  name: limit
+                  schema:
+                    maximum: 200
+                    minimum: 1
+                    type: integer
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: List role-permission bindings in a space
+            tags:
+                - Permissions
+        post:
+            operationId: createSpaceRolePermission
+            parameters:
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiRolePermissionMutationRequest'
+                required: true
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission'
+                    description: Created
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Create a role-permission binding in a space
+            tags:
+                - Permissions
+    /api/v1/spaces/{space_id}/role-permissions/{role_permission_id}:
+        delete:
+            operationId: deleteSpaceRolePermission
+            parameters:
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: role_permission_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Revoke a role-permission binding in a space
+            tags:
+                - Permissions
+        get:
+            operationId: getSpaceRolePermission
+            parameters:
+                - in: path
+                  name: space_id
+                  required: true
+                  schema:
+                    type: string
+                - in: path
+                  name: role_permission_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Get a role-permission binding in a space
+            tags:
+                - Permissions
     /api/v1/spaces/{space_id}/roles:
         get:
             operationId: listRoles
@@ -6005,6 +6873,8 @@ tags:
       name: Resource Types
     - description: Protected resource records.
       name: Resources
+    - description: Generic space-scoped business data models and records governed by Plystra authorization.
+      name: App Data
     - description: Feature-flagged preview data API; disabled by default.
       name: Data Console
     - description: Append-only audit log query endpoints.
@@ -6042,6 +6912,7 @@ x-tagGroups:
       tags:
         - Resource Types
         - Resources
+        - App Data
         - Data Console
     - name: Audit
       tags:

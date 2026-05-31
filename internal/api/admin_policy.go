@@ -8,6 +8,7 @@ import (
 
 	coreent "github.com/plystra/plystra/ent"
 	entadmingrant "github.com/plystra/plystra/ent/admingrant"
+	"github.com/plystra/plystra/ent/appdatarecord"
 	entauditlog "github.com/plystra/plystra/ent/auditlog"
 	entgroup "github.com/plystra/plystra/ent/group"
 	entmember "github.com/plystra/plystra/ent/member"
@@ -171,13 +172,22 @@ func spaceRouteRequirement(method string, parts []string, readOrManage string) a
 		return adminRequirement{PermissionKey: "members:" + readOrManage, SpaceID: spaceID}
 	case "user-members":
 		return adminRequirement{PermissionKey: "user_members:" + readOrManage, SpaceID: spaceID}
-	case "roles", "member-roles", "member-role-grants":
+	case "roles", "role-permissions", "member-roles", "member-role-grants":
 		return adminRequirement{PermissionKey: "roles:" + readOrManage, SpaceID: spaceID}
 	case "resources":
 		req := adminRequirement{PermissionKey: "resources:" + readOrManage, SpaceID: spaceID}
 		if len(parts) >= 6 && method != "POST" {
 			req.EntityKind = "resource"
 			req.EntityID = parts[5]
+		}
+		return req
+	case "data":
+		req := adminRequirement{PermissionKey: "data:" + readOrManage, SpaceID: spaceID}
+		if len(parts) >= 8 && parts[4] == "data" && parts[5] == "models" && parts[7] == "records" {
+			if len(parts) >= 9 && method != "POST" {
+				req.EntityKind = "app_data_record"
+				req.EntityID = parts[8]
+			}
 		}
 		return req
 	case "audit-logs":
@@ -355,6 +365,16 @@ func (s *Server) resolveAdminRequirementScope(ctx context.Context, req adminRequ
 		req.SpaceID = row.SpaceID
 	case "resource":
 		row, err := s.ent.Resource.Query().Where(entresource.ID(req.EntityID), entresource.DeletedAtIsNil()).Only(ctx)
+		if coreent.IsNotFound(err) {
+			return req, nil
+		}
+		if err != nil {
+			return req, err
+		}
+		req.SpaceID = row.SpaceID
+		req.GroupID = derefString(row.GroupID)
+	case "app_data_record":
+		row, err := s.ent.AppDataRecord.Query().Where(appdatarecord.ID(req.EntityID), appdatarecord.DeletedAtIsNil()).Only(ctx)
 		if coreent.IsNotFound(err) {
 			return req, nil
 		}

@@ -16,6 +16,12 @@ type Tx struct {
 	AdminGrant *AdminGrantClient
 	// ApiKey is the client for interacting with the ApiKey builders.
 	ApiKey *ApiKeyClient
+	// AppDataModel is the client for interacting with the AppDataModel builders.
+	AppDataModel *AppDataModelClient
+	// AppDataRecord is the client for interacting with the AppDataRecord builders.
+	AppDataRecord *AppDataRecordClient
+	// AppDataRecordRevision is the client for interacting with the AppDataRecordRevision builders.
+	AppDataRecordRevision *AppDataRecordRevisionClient
 	// AuditEventType is the client for interacting with the AuditEventType builders.
 	AuditEventType *AuditEventTypeClient
 	// AuditLog is the client for interacting with the AuditLog builders.
@@ -193,6 +199,9 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.AdminGrant = NewAdminGrantClient(tx.config)
 	tx.ApiKey = NewApiKeyClient(tx.config)
+	tx.AppDataModel = NewAppDataModelClient(tx.config)
+	tx.AppDataRecord = NewAppDataRecordClient(tx.config)
+	tx.AppDataRecordRevision = NewAppDataRecordRevisionClient(tx.config)
 	tx.AuditEventType = NewAuditEventTypeClient(tx.config)
 	tx.AuditLog = NewAuditLogClient(tx.config)
 	tx.BackgroundJob = NewBackgroundJobClient(tx.config)

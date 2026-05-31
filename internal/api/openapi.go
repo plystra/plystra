@@ -345,6 +345,68 @@ type openAPIRolePermission struct {
 	DeletedAt    *time.Time     `json:"deleted_at,omitempty"`
 }
 
+type openAPIAppDataPermissionSummary struct {
+	ID       string `json:"id"`
+	Resource string `json:"resource"`
+	Action   string `json:"action"`
+	Scope    string `json:"scope"`
+	Status   string `json:"status"`
+}
+
+type openAPIAppDataModel struct {
+	ID          string                            `json:"id"`
+	SpaceID     string                            `json:"space_id"`
+	Key         string                            `json:"key"`
+	DisplayName string                            `json:"display_name"`
+	Description string                            `json:"description,omitempty"`
+	Source      string                            `json:"source"`
+	Status      string                            `json:"status"`
+	Schema      map[string]any                    `json:"schema"`
+	Metadata    map[string]any                    `json:"metadata"`
+	Permissions []openAPIAppDataPermissionSummary `json:"permissions"`
+	CreatedAt   string                            `json:"created_at" format:"date-time"`
+	UpdatedAt   string                            `json:"updated_at" format:"date-time"`
+	DeletedAt   *time.Time                        `json:"deleted_at,omitempty"`
+}
+
+type openAPIAppDataRecord struct {
+	ID            string         `json:"id"`
+	SpaceID       string         `json:"space_id"`
+	ModelID       string         `json:"model_id"`
+	ModelKey      string         `json:"model_key"`
+	GroupID       string         `json:"group_id,omitempty"`
+	OwnerMemberID string         `json:"owner_member_id,omitempty"`
+	DisplayName   string         `json:"display_name,omitempty"`
+	Visibility    string         `json:"visibility"`
+	Status        string         `json:"status"`
+	Data          map[string]any `json:"data"`
+	Metadata      map[string]any `json:"metadata"`
+	CreatedAt     string         `json:"created_at" format:"date-time"`
+	UpdatedAt     string         `json:"updated_at" format:"date-time"`
+	DeletedAt     *time.Time     `json:"deleted_at,omitempty"`
+}
+
+type openAPIAppDataRecordResponse struct {
+	Record        openAPIAppDataRecord      `json:"record"`
+	Authorization openAPIAuthzCheckResponse `json:"authorization"`
+}
+
+type openAPIAppDataRevision struct {
+	ID                string         `json:"id"`
+	RecordID          string         `json:"record_id"`
+	SpaceID           string         `json:"space_id"`
+	ModelID           string         `json:"model_id"`
+	ModelKey          string         `json:"model_key"`
+	Revision          int            `json:"revision"`
+	Operation         string         `json:"operation"`
+	ActorUserID       string         `json:"actor_user_id,omitempty"`
+	ActorMemberID     string         `json:"actor_member_id,omitempty"`
+	ActorUserMemberID string         `json:"actor_user_member_id,omitempty"`
+	Data              map[string]any `json:"data"`
+	Metadata          map[string]any `json:"metadata"`
+	CreatedAt         string         `json:"created_at" format:"date-time"`
+}
+
 type openAPIResourceType struct {
 	ID          string         `json:"id"`
 	Key         string         `json:"key"`
@@ -551,7 +613,7 @@ func GenerateOpenAPI(version string) (*openapi3.Spec, error) {
 		{Name: "Administration", Tags: []string{"Admin", "API Keys"}},
 		{Name: "Authorization", Tags: []string{"Authorization", "Permissions", "Roles"}},
 		{Name: "Identity", Tags: []string{"Users", "Spaces", "Groups", "Members", "User Members"}},
-		{Name: "Resources", Tags: []string{"Resource Types", "Resources", "Data Console"}},
+		{Name: "Resources", Tags: []string{"Resource Types", "Resources", "App Data", "Data Console"}},
 		{Name: "Audit", Tags: []string{"Audit"}},
 		{Name: "Extensions", Tags: []string{"Plugins", "Templates"}},
 	})
@@ -686,6 +748,7 @@ func openAPITags() []openapi3.Tag {
 		{"Permissions", "Permission definitions and role-permission bindings."},
 		{"Resource Types", "Resource registry declarations, actions, and mappings."},
 		{"Resources", "Protected resource records."},
+		{"App Data", "Generic space-scoped business data models and records governed by Plystra authorization."},
 		{"Data Console", "Feature-flagged preview data API; disabled by default."},
 		{"Audit", "Append-only audit log query endpoints."},
 		{"Plugins", "Preview plugin metadata, lifecycle flags, settings, and generated metadata; not a stable plugin runtime."},
@@ -895,6 +958,21 @@ func openAPIRoutes() []openAPIRoute {
 		{Method: http.MethodDelete, Path: "/api/v1/role-permissions/{role_permission_id}", Tag: "Permissions", ID: "deleteRolePermission", Summary: "Revoke a role-permission binding", Params: new(struct {
 			RolePermissionID string `path:"role_permission_id"`
 		}), Body: new(rolePermissionMutationRequest), Response: new(openAPIEnvelope[openAPIRolePermission]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/spaces/{space_id}/role-permissions", Tag: "Permissions", ID: "listSpaceRolePermissions", Summary: "List role-permission bindings in a space", Params: new(struct {
+			SpaceID string `path:"space_id"`
+			Limit   int    `query:"limit" minimum:"1" maximum:"200"`
+		}), Response: new(openAPIListEnvelope[openAPIRolePermission]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/spaces/{space_id}/role-permissions", Tag: "Permissions", ID: "createSpaceRolePermission", Summary: "Create a role-permission binding in a space", Params: new(struct {
+			SpaceID string `path:"space_id"`
+		}), Body: new(rolePermissionMutationRequest), Response: new(openAPIEnvelope[openAPIRolePermission]), Status: http.StatusCreated, Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/spaces/{space_id}/role-permissions/{role_permission_id}", Tag: "Permissions", ID: "getSpaceRolePermission", Summary: "Get a role-permission binding in a space", Params: new(struct {
+			SpaceID          string `path:"space_id"`
+			RolePermissionID string `path:"role_permission_id"`
+		}), Response: new(openAPIEnvelope[openAPIRolePermission]), Security: openAPIAdmin},
+		{Method: http.MethodDelete, Path: "/api/v1/spaces/{space_id}/role-permissions/{role_permission_id}", Tag: "Permissions", ID: "deleteSpaceRolePermission", Summary: "Revoke a role-permission binding in a space", Params: new(struct {
+			SpaceID          string `path:"space_id"`
+			RolePermissionID string `path:"role_permission_id"`
+		}), Body: new(rolePermissionMutationRequest), Response: new(openAPIEnvelope[openAPIRolePermission]), Security: openAPIAdmin},
 
 		{Method: http.MethodGet, Path: "/api/v1/resource-types", Tag: "Resource Types", ID: "listResourceTypes", Summary: "List resource types", Params: new(openAPILimitQuery), Response: new(openAPIListEnvelope[openAPIResourceType]), Security: openAPIAdmin},
 		{Method: http.MethodPost, Path: "/api/v1/resource-types", Tag: "Resource Types", ID: "upsertResourceType", Summary: "Register or update a resource type", Body: new(resourceTypeMutationRequest), Response: new(openAPIEnvelope[openAPIResourceType]), Status: http.StatusCreated, Security: openAPIAdmin},
@@ -940,6 +1018,68 @@ func openAPIRoutes() []openAPIRoute {
 			SpaceID    string `path:"space_id"`
 			ResourceID string `path:"resource_id"`
 		}), Body: new(resourceMutationRequest), Response: new(openAPIEnvelope[openAPIResource]), Security: openAPIAdmin},
+
+		{Method: http.MethodGet, Path: "/api/v1/spaces/{space_id}/data", Tag: "App Data", ID: "getAppDataSpaceInfo", Summary: "Get app data endpoints for a space", Params: new(struct {
+			SpaceID string `path:"space_id"`
+		}), Response: new(openAPIEnvelope[map[string]any]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/spaces/{space_id}/data/models", Tag: "App Data", ID: "listAppDataModels", Summary: "List app data models", Params: new(struct {
+			SpaceID string `path:"space_id"`
+			Status  string `query:"status"`
+			Limit   int    `query:"limit" minimum:"1" maximum:"200"`
+		}), Response: new(openAPIListEnvelope[openAPIAppDataModel]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/spaces/{space_id}/data/models", Tag: "App Data", ID: "createAppDataModel", Summary: "Create an app data model", Params: new(struct {
+			SpaceID string `path:"space_id"`
+		}), Body: new(appDataModelMutationRequest), Response: new(openAPIEnvelope[openAPIAppDataModel]), Status: http.StatusCreated, Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/spaces/{space_id}/data/models/{model_key}", Tag: "App Data", ID: "getAppDataModel", Summary: "Get an app data model", Params: new(struct {
+			SpaceID  string `path:"space_id"`
+			ModelKey string `path:"model_key"`
+		}), Response: new(openAPIEnvelope[openAPIAppDataModel]), Security: openAPIAdmin},
+		{Method: http.MethodPatch, Path: "/api/v1/spaces/{space_id}/data/models/{model_key}", Tag: "App Data", ID: "updateAppDataModel", Summary: "Update an app data model", Params: new(struct {
+			SpaceID  string `path:"space_id"`
+			ModelKey string `path:"model_key"`
+		}), Body: new(appDataModelMutationRequest), Response: new(openAPIEnvelope[openAPIAppDataModel]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/spaces/{space_id}/data/models/{model_key}/records", Tag: "App Data", ID: "listAppDataRecords", Summary: "List app data records", Params: new(struct {
+			SpaceID       string `path:"space_id"`
+			ModelKey      string `path:"model_key"`
+			Status        string `query:"status"`
+			GroupID       string `query:"group_id"`
+			OwnerMemberID string `query:"owner_member_id"`
+			Limit         int    `query:"limit" minimum:"1" maximum:"200"`
+		}), Response: new(openAPIListEnvelope[openAPIAppDataRecord]), Security: openAPISession},
+		{Method: http.MethodPost, Path: "/api/v1/spaces/{space_id}/data/models/{model_key}/records", Tag: "App Data", ID: "createAppDataRecord", Summary: "Create an app data record", Params: new(struct {
+			SpaceID  string `path:"space_id"`
+			ModelKey string `path:"model_key"`
+		}), Body: new(appDataRecordMutationRequest), Response: new(openAPIEnvelope[openAPIAppDataRecordResponse]), Status: http.StatusCreated, Security: openAPISession},
+		{Method: http.MethodGet, Path: "/api/v1/spaces/{space_id}/data/models/{model_key}/records/{record_id}", Tag: "App Data", ID: "getAppDataRecord", Summary: "Get an app data record", Params: new(struct {
+			SpaceID  string `path:"space_id"`
+			ModelKey string `path:"model_key"`
+			RecordID string `path:"record_id"`
+		}), Response: new(openAPIEnvelope[openAPIAppDataRecordResponse]), Security: openAPISession},
+		{Method: http.MethodPatch, Path: "/api/v1/spaces/{space_id}/data/models/{model_key}/records/{record_id}", Tag: "App Data", ID: "updateAppDataRecord", Summary: "Update an app data record", Params: new(struct {
+			SpaceID  string `path:"space_id"`
+			ModelKey string `path:"model_key"`
+			RecordID string `path:"record_id"`
+		}), Body: new(appDataRecordMutationRequest), Response: new(openAPIEnvelope[openAPIAppDataRecordResponse]), Security: openAPISession},
+		{Method: http.MethodDelete, Path: "/api/v1/spaces/{space_id}/data/models/{model_key}/records/{record_id}", Tag: "App Data", ID: "deleteAppDataRecord", Summary: "Soft-delete an app data record", Params: new(struct {
+			SpaceID  string `path:"space_id"`
+			ModelKey string `path:"model_key"`
+			RecordID string `path:"record_id"`
+		}), Body: new(appDataRecordMutationRequest), Response: new(openAPIEnvelope[openAPIAppDataRecordResponse]), Security: openAPISession},
+		{Method: http.MethodPost, Path: "/api/v1/spaces/{space_id}/data/models/{model_key}/records/{record_id}/archive", Tag: "App Data", ID: "archiveAppDataRecord", Summary: "Archive an app data record", Params: new(struct {
+			SpaceID  string `path:"space_id"`
+			ModelKey string `path:"model_key"`
+			RecordID string `path:"record_id"`
+		}), Body: new(appDataRecordMutationRequest), Response: new(openAPIEnvelope[openAPIAppDataRecordResponse]), Security: openAPISession},
+		{Method: http.MethodGet, Path: "/api/v1/spaces/{space_id}/data/models/{model_key}/records/{record_id}/revisions", Tag: "App Data", ID: "listAppDataRecordRevisions", Summary: "List app data record revisions", Params: new(struct {
+			SpaceID  string `path:"space_id"`
+			ModelKey string `path:"model_key"`
+			RecordID string `path:"record_id"`
+			Limit    int    `query:"limit" minimum:"1" maximum:"200"`
+		}), Response: new(openAPIListEnvelope[openAPIAppDataRevision]), Security: openAPISession},
+		{Method: http.MethodGet, Path: "/api/v1/app-data/{model_key}/{record_id}", Tag: "App Data", ID: "lookupAppDataRecord", Summary: "Lookup an app data record by model key and ID", Params: new(struct {
+			ModelKey string `path:"model_key"`
+			RecordID string `path:"record_id"`
+		}), Response: new(openAPIEnvelope[openAPIAppDataRecordResponse]), Security: openAPISession},
 
 		{Method: http.MethodGet, Path: "/api/v1/data/tables", Tag: "Data Console", ID: "listDataTables", Summary: "List data-console tables", Params: new(openAPILimitQuery), Response: new(openAPIListEnvelope[openAPIResourceMapping]), Security: openAPIAdmin},
 		{Method: http.MethodGet, Path: "/api/v1/data/rows/{resource_type}", Tag: "Data Console", ID: "listDataRows", Summary: "List data rows for a resource type", Params: new(struct {

@@ -86,6 +86,10 @@ func (req authzRequest) usesInlineContext() bool {
 	return req.Resource.hasInlineContext() || len(req.Grants) > 0 || actorUsesInlineMetadata(req.Actor)
 }
 
+func (req authzRequest) requiresPureInlineContext() bool {
+	return len(req.Grants) > 0 || actorUsesInlineMetadata(req.Actor)
+}
+
 func actorUsesInlineMetadata(actor authz.ActorContext) bool {
 	return actor.UserEmail != "" ||
 		actor.UserStatus != "" ||
@@ -126,7 +130,7 @@ func (s *Server) handleAuthz(w http.ResponseWriter, r *http.Request, explain boo
 				writeError(w, r, http.StatusForbidden, "INLINE_CONTEXT_REQUIRES_API_KEY", "Inline actor, resource, or grant context requires a server-side API key.", nil)
 				return
 			}
-			input.InlineContext = true
+			input.InlineContext = req.requiresPureInlineContext()
 		}
 		if actorContextEmpty(input.Actor) {
 			if principal.CredentialType != "session" {

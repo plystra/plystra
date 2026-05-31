@@ -33,6 +33,42 @@ func (f ApiKeyFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ApiKeyMutation", m)
 }
 
+// The AppDataModelFunc type is an adapter to allow the use of ordinary
+// function as AppDataModel mutator.
+type AppDataModelFunc func(context.Context, *ent.AppDataModelMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AppDataModelFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AppDataModelMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AppDataModelMutation", m)
+}
+
+// The AppDataRecordFunc type is an adapter to allow the use of ordinary
+// function as AppDataRecord mutator.
+type AppDataRecordFunc func(context.Context, *ent.AppDataRecordMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AppDataRecordFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AppDataRecordMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AppDataRecordMutation", m)
+}
+
+// The AppDataRecordRevisionFunc type is an adapter to allow the use of ordinary
+// function as AppDataRecordRevision mutator.
+type AppDataRecordRevisionFunc func(context.Context, *ent.AppDataRecordRevisionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AppDataRecordRevisionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AppDataRecordRevisionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AppDataRecordRevisionMutation", m)
+}
+
 // The AuditEventTypeFunc type is an adapter to allow the use of ordinary
 // function as AuditEventType mutator.
 type AuditEventTypeFunc func(context.Context, *ent.AuditEventTypeMutation) (ent.Value, error)

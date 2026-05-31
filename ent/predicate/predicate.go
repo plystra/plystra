@@ -12,6 +12,15 @@ type AdminGrant func(*sql.Selector)
 // ApiKey is the predicate function for apikey builders.
 type ApiKey func(*sql.Selector)
 
+// AppDataModel is the predicate function for appdatamodel builders.
+type AppDataModel func(*sql.Selector)
+
+// AppDataRecord is the predicate function for appdatarecord builders.
+type AppDataRecord func(*sql.Selector)
+
+// AppDataRecordRevision is the predicate function for appdatarecordrevision builders.
+type AppDataRecordRevision func(*sql.Selector)
+
 // AuditEventType is the predicate function for auditeventtype builders.
 type AuditEventType func(*sql.Selector)
 

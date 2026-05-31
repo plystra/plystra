@@ -99,12 +99,16 @@ func (s *Server) handleSpaceSubroutes(w http.ResponseWriter, r *http.Request) {
 		s.handleSpaceUserMembers(w, r, spaceID, parts[2:])
 	case "roles":
 		s.handleSpaceRoles(w, r, spaceID, parts[2:])
+	case "role-permissions":
+		s.handleSpaceRolePermissions(w, r, spaceID, parts[2:])
 	case "member-role-grants":
 		s.handleSpaceMemberRoles(w, r, spaceID, parts[2:])
 	case "member-roles":
 		s.handleSpaceMemberRoles(w, r, spaceID, parts[2:])
 	case "resources":
 		s.handleSpaceResources(w, r, spaceID, parts[2:])
+	case "data":
+		s.handleSpaceAppData(w, r, spaceID, parts[2:])
 	case "audit-logs":
 		s.handleSpaceAuditLogs(w, r, spaceID, parts[2:])
 	default:
