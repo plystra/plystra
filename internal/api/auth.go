@@ -249,7 +249,7 @@ func (s *Server) handleAuthRegister(w http.ResponseWriter, r *http.Request) {
 
 func ensureDefaultRegistrationSpace(ctx context.Context, client *coreent.Client, spaceID, name, slug string) (*coreent.Space, error) {
 	space, err := client.Space.Query().
-		Where(entspace.ID(spaceID), entspace.DeletedAtIsNil()).
+		Where(entspace.ID(spaceID)).
 		Only(ctx)
 	if coreent.IsNotFound(err) {
 		create := client.Space.Create().
@@ -267,12 +267,19 @@ func ensureDefaultRegistrationSpace(ctx context.Context, client *coreent.Client,
 		return nil, err
 	}
 	update := client.Space.UpdateOneID(space.ID).
-		SetStatus("active")
+		SetStatus("active").
+		ClearDeletedAt()
 	if strings.TrimSpace(space.Name) == "" && strings.TrimSpace(name) != "" {
 		update.SetName(strings.TrimSpace(name))
 	}
 	if strings.TrimSpace(space.Type) == "" {
 		update.SetType("default")
+	}
+	if strings.TrimSpace(space.Type) == "custom" {
+		update.SetType("default")
+	}
+	if strings.TrimSpace(derefString(space.Slug)) == "" && strings.TrimSpace(slug) != "" {
+		update.SetSlug(strings.TrimSpace(slug))
 	}
 	if err := update.Exec(ctx); err != nil {
 		return nil, err

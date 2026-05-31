@@ -180,6 +180,39 @@ func TestAuthRegisterUsesOneDefaultSpaceForSimpleMode(t *testing.T) {
 	}
 }
 
+func TestAuthRegisterRestoresSoftDeletedDefaultSpace(t *testing.T) {
+	t.Setenv("PLYSTRA_AUTH_REGISTRATION_ENABLED", "true")
+	t.Setenv("PLYSTRA_AUTH_REGISTRATION_TOKEN", "ordinary-registration-token-at-least-32-chars")
+	server, handler := newRegisterTestServer(t)
+	seedRegisterTestSuperAdmin(t, context.Background(), server)
+	ctx := context.Background()
+	deletedAt := time.Now().UTC()
+	space, err := ensureDefaultRegistrationSpace(ctx, server.ent, defaultSpaceID, "register-test default space", "")
+	if err != nil {
+		t.Fatalf("seed default space: %v", err)
+	}
+	if err := server.ent.Space.UpdateOneID(space.ID).SetStatus("disabled").SetDeletedAt(deletedAt).Exec(ctx); err != nil {
+		t.Fatalf("soft-delete default space: %v", err)
+	}
+
+	rec := registerJSONRequest(handler, map[string]any{
+		"email":               uniqueRegisterEmail(t, "restore-default-space"),
+		"password":            "long-enough-password",
+		"member_display_name": "register-test restored default member",
+		"registration_token":  "ordinary-registration-token-at-least-32-chars",
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201, body=%s", rec.Code, rec.Body.String())
+	}
+	restored, err := server.ent.Space.Query().Where(entspace.ID(defaultSpaceID)).Only(ctx)
+	if err != nil {
+		t.Fatalf("load restored default space: %v", err)
+	}
+	if restored.DeletedAt != nil || restored.Status != "active" || restored.Type != "default" {
+		t.Fatalf("restored default space = status:%q type:%q deleted_at:%v, want active default nil", restored.Status, restored.Type, restored.DeletedAt)
+	}
+}
+
 func TestAuthRegisterPublicUserOnlyDoesNotCreateActorOrAdminState(t *testing.T) {
 	t.Setenv(publicUserRegistrationEnv, "true")
 	server, handler := newRegisterTestServer(t)
