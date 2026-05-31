@@ -12,7 +12,7 @@ import (
 
 func TestBootRegistersBuiltInSystemCapabilities(t *testing.T) {
 	store := &testSystemStore{}
-	app, err := Boot(context.Background(), Options{KernelVersion: "1.0.0-rc121", Capabilities: system.BuiltInCapabilities(store, store)})
+	app, err := Boot(context.Background(), Options{KernelVersion: "0.0.1", Capabilities: system.BuiltInCapabilities(store, store)})
 	if err != nil {
 		t.Fatalf("Boot() error = %v", err)
 	}

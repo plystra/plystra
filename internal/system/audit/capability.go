@@ -27,7 +27,7 @@ func (c *Capability) Manifest() kcap.Manifest {
 		ID:      ID,
 		Kind:    kcap.KindSystemCapability,
 		Name:    "Explainable Audit",
-		Version: "1.0.0-rc121",
+		Version: "0.0.1",
 		Runtime: kcap.Runtime{Type: kcap.RuntimeBuiltin, Protocol: kcap.ProtocolInProcess, Address: "builtin"},
 		Requires: kcap.Requires{
 			Kernel: ">=0.1.0",

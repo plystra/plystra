@@ -15,7 +15,7 @@ import (
 	"github.com/plystra/plystra/internal/templates"
 )
 
-const OpenAPIVersion = "1.0.0-rc121"
+const OpenAPIVersion = "0.0.1"
 
 type openAPIRoute struct {
 	Method      string
@@ -92,7 +92,7 @@ type openAPIReady struct {
 }
 
 type openAPIVersionResponse struct {
-	Version string `json:"version" example:"1.0.0-rc121"`
+	Version string `json:"version" example:"0.0.1"`
 }
 
 type openAPILoginResponse struct {
@@ -603,7 +603,7 @@ func WriteOpenAPIFiles(dir, version string) error {
 		return err
 	}
 	rawJSON = append(rawJSON, '\n')
-	if err := os.WriteFile(filepath.Join(dir, "plystra.v1.0.0.json"), rawJSON, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "plystra.v0.0.1.json"), rawJSON, 0o644); err != nil {
 		return err
 	}
 	var decoded any
@@ -614,7 +614,7 @@ func WriteOpenAPIFiles(dir, version string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(dir, "plystra.v1.0.0.yaml"), rawYAML, 0o644)
+	return os.WriteFile(filepath.Join(dir, "plystra.v0.0.1.yaml"), rawYAML, 0o644)
 }
 
 func jsonContent() oapi.ContentOption {

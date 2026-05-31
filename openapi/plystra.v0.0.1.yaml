@@ -1763,7 +1763,7 @@ components:
         ApiOpenAPIVersionResponse:
             properties:
                 version:
-                    example: 1.0.0-rc121
+                    example: 0.0.1
                     type: string
             type: object
         ApiPermissionMutationRequest:
@@ -2403,7 +2403,7 @@ components:
 info:
     description: Self-hosted Plystra Core API. Stable surfaces cover identity, authorization, resource registry, audit, admin control-plane, and scoped API keys; plugin, template, and Data Console routes are preview metadata surfaces.
     title: Plystra Core API
-    version: 1.0.0-rc121
+    version: 0.0.1
 openapi: 3.0.3
 paths:
     /api/v1/actor/context:

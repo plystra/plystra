@@ -38,7 +38,7 @@ func testManifest(id, namespace string, deps []string) Manifest {
 		ID:       id,
 		Kind:     KindSystemCapability,
 		Name:     id,
-		Version:  "1.0.0-rc121",
+		Version:  "0.0.1",
 		Runtime:  Runtime{Type: RuntimeBuiltin, Protocol: ProtocolInProcess, Address: "builtin"},
 		Requires: Requires{Kernel: ">=0.1.0", Capabilities: deps},
 		Provides: Provides{

@@ -3,7 +3,7 @@
   "info": {
     "title": "Plystra Core API",
     "description": "Self-hosted Plystra Core API. Stable surfaces cover identity, authorization, resource registry, audit, admin control-plane, and scoped API keys; plugin, template, and Data Console routes are preview metadata surfaces.",
-    "version": "1.0.0-rc121"
+    "version": "0.0.1"
   },
   "servers": [
     {
@@ -8778,7 +8778,7 @@
         "properties": {
           "version": {
             "type": "string",
-            "example": "1.0.0-rc121"
+            "example": "0.0.1"
           }
         }
       },

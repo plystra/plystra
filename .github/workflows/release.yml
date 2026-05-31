@@ -43,8 +43,8 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           grep -q "const defaultCoreVersion = \"${version}\"" cmd/plystrad/main.go
           grep -q "const migrateOperatorVersion = \"plystractl/${version}\"" cmd/plystractl/migrate_atlas.go
-          grep -q "version: ${version}" openapi/plystra.v1.0.0.yaml
-          grep -q "\"version\": \"${version}\"" openapi/plystra.v1.0.0.json
+          grep -q "version: ${version}" "openapi/plystra.v${version}.yaml"
+          grep -q "\"version\": \"${version}\"" "openapi/plystra.v${version}.json"
 
       - name: Download modules
         run: go mod download

@@ -9,7 +9,7 @@ import (
 )
 
 func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("..", "..", "openapi", "plystra.v1.0.0.json"))
+	raw, err := os.ReadFile(filepath.Join("..", "..", "openapi", "plystra.v0.0.1.json"))
 	if err != nil {
 		t.Fatalf("read OpenAPI: %v", err)
 	}
@@ -142,7 +142,7 @@ func TestOpenAPIArtifactIsGenerated(t *testing.T) {
 		t.Fatalf("marshal generated OpenAPI: %v", err)
 	}
 	generated = append(generated, '\n')
-	committed, err := os.ReadFile(filepath.Join("..", "..", "openapi", "plystra.v1.0.0.json"))
+	committed, err := os.ReadFile(filepath.Join("..", "..", "openapi", "plystra.v0.0.1.json"))
 	if err != nil {
 		t.Fatalf("read OpenAPI: %v", err)
 	}
