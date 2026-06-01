@@ -293,3 +293,44 @@ func TestOnlyHumanSessionCanBeInstanceSuperAdmin(t *testing.T) {
 		t.Fatalf("API key wildcard was treated as instance super admin")
 	}
 }
+
+func TestAppDataServicePrincipalRequiresScopedAPIKey(t *testing.T) {
+	ctx := context.Background()
+	server := &Server{}
+	spaceID := "space_acme"
+	principal := adminPrincipal{
+		CredentialType: "api_key",
+		APIKey: &coreent.ApiKey{
+			Level:          "space",
+			SpaceID:        optionalString(spaceID),
+			Status:         "active",
+			PermissionKeys: []string{"data:read", "data:manage"},
+		},
+	}
+
+	if !server.appDataServicePrincipalAllowed(ctx, principal, "read", spaceID) {
+		t.Fatalf("space data:read API key should allow app data service reads in its space")
+	}
+	if !server.appDataServicePrincipalAllowed(ctx, principal, "update", spaceID) {
+		t.Fatalf("space data:manage API key should allow app data service mutations in its space")
+	}
+	if server.appDataServicePrincipalAllowed(ctx, principal, "read", "space_other") {
+		t.Fatalf("space API key should not allow app data service reads outside its space")
+	}
+
+	readOnly := principal
+	readOnly.APIKey = &coreent.ApiKey{
+		Level:          "space",
+		SpaceID:        optionalString(spaceID),
+		Status:         "active",
+		PermissionKeys: []string{"data:read"},
+	}
+	if server.appDataServicePrincipalAllowed(ctx, readOnly, "update", spaceID) {
+		t.Fatalf("data:read API key should not allow app data service mutations")
+	}
+
+	sessionPrincipal := adminPrincipal{CredentialType: "session"}
+	if server.appDataServicePrincipalAllowed(ctx, sessionPrincipal, "read", spaceID) {
+		t.Fatalf("human session should use record authorization, not app data service authorization")
+	}
+}

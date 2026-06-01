@@ -372,11 +372,18 @@ func (s *Server) listAppDataRecords(w http.ResponseWriter, r *http.Request, mode
 		return
 	}
 	actor := appDataActorFromRequest(r, authz.ActorContext{SpaceID: model.SpaceID})
+	serviceAuthorized := s.appDataServiceAuthorized(r, "read", model.SpaceID)
 	rows := make([]map[string]any, 0, len(records))
 	for _, record := range records {
-		decision, ok := s.authorizeAppDataRecord(w, r, actor, "read", record)
-		if !ok {
-			return
+		var decision any
+		if serviceAuthorized {
+			decision = appDataServiceDecision(r, actor, "read", record)
+		} else {
+			checked, ok := s.authorizeAppDataRecord(w, r, actor, "read", record)
+			if !ok {
+				return
+			}
+			decision = checked
 		}
 		row := appDataRecordMap(record)
 		row["authorization"] = decision
@@ -416,9 +423,15 @@ func (s *Server) createAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Failed to build proposed target.", err.Error())
 		return
 	}
-	decision, ok := s.authorizeTarget(w, r, actor, resourceType, req.ID, "create", target)
-	if !ok {
-		return
+	var decision any
+	if s.appDataServiceAuthorized(r, "manage", model.SpaceID) {
+		decision = appDataServiceDecisionForTarget(r, actor, "create", req.ID, target)
+	} else {
+		checked, ok := s.authorizeTarget(w, r, actor, resourceType, req.ID, "create", target)
+		if !ok {
+			return
+		}
+		decision = checked
 	}
 	client, ok := s.requireEnt(w, r)
 	if !ok {
@@ -467,9 +480,16 @@ func (s *Server) getAppDataRecord(w http.ResponseWriter, r *http.Request, model 
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data record.", err.Error())
 		return
 	}
-	decision, ok := s.authorizeAppDataRecord(w, r, appDataActorFromRequest(r, authz.ActorContext{SpaceID: model.SpaceID}), "read", record)
-	if !ok {
-		return
+	actor := appDataActorFromRequest(r, authz.ActorContext{SpaceID: model.SpaceID})
+	var decision any
+	if s.appDataServiceAuthorized(r, "read", model.SpaceID) {
+		decision = appDataServiceDecision(r, actor, "read", record)
+	} else {
+		checked, ok := s.authorizeAppDataRecord(w, r, actor, "read", record)
+		if !ok {
+			return
+		}
+		decision = checked
 	}
 	writeData(w, r, http.StatusOK, map[string]any{
 		"record":        appDataRecordMap(record),
@@ -533,9 +553,15 @@ func (s *Server) updateAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 		proposed.Resource.Metadata = req.Metadata
 	}
 	resourceType := appDataModelResourceType(model.Key)
-	decision, ok := s.authorizeTarget(w, r, actor, resourceType, current.ID, "update", proposed)
-	if !ok {
-		return
+	var decision any
+	if s.appDataServiceAuthorized(r, "manage", model.SpaceID) {
+		decision = appDataServiceDecisionForTarget(r, actor, "update", current.ID, proposed)
+	} else {
+		checked, ok := s.authorizeTarget(w, r, actor, resourceType, current.ID, "update", proposed)
+		if !ok {
+			return
+		}
+		decision = checked
 	}
 	client, ok := s.requireEnt(w, r)
 	if !ok {
@@ -603,9 +629,15 @@ func (s *Server) updateAppDataRecordStatus(w http.ResponseWriter, r *http.Reques
 	if action == "archive" {
 		authAction = "archive"
 	}
-	decision, ok := s.authorizeAppDataRecord(w, r, actor, authAction, record)
-	if !ok {
-		return
+	var decision any
+	if s.appDataServiceAuthorized(r, "manage", model.SpaceID) {
+		decision = appDataServiceDecision(r, actor, authAction, record)
+	} else {
+		checked, ok := s.authorizeAppDataRecord(w, r, actor, authAction, record)
+		if !ok {
+			return
+		}
+		decision = checked
 	}
 	client, ok := s.requireEnt(w, r)
 	if !ok {
@@ -902,6 +934,65 @@ func (s *Server) authorizeAppDataRecord(w http.ResponseWriter, r *http.Request, 
 		actor.SpaceID = record.SpaceID
 	}
 	return s.authorizeTarget(w, r, actor, appDataModelResourceType(record.ModelKey), record.ID, action, target)
+}
+
+func (s *Server) appDataServiceAuthorized(r *http.Request, action, spaceID string) bool {
+	if r == nil {
+		return false
+	}
+	principal, ok := adminPrincipalFrom(r)
+	if !ok {
+		return false
+	}
+	return s.appDataServicePrincipalAllowed(r.Context(), principal, action, spaceID)
+}
+
+func (s *Server) appDataServicePrincipalAllowed(ctx context.Context, principal adminPrincipal, action, spaceID string) bool {
+	if principal.CredentialType != "api_key" {
+		return false
+	}
+	permission := "data:read"
+	if action != "read" {
+		permission = "data:manage"
+	}
+	allowed, err := s.adminPrincipalAllows(ctx, principal, adminRequirement{PermissionKey: permission, SpaceID: spaceID})
+	return err == nil && allowed
+}
+
+func appDataServiceDecision(r *http.Request, actor authz.ActorContext, action string, record *coreent.AppDataRecord) map[string]any {
+	return appDataServiceDecisionForTarget(r, actor, action, record.ID, authz.TargetSnapshot{
+		Resource: authz.ResourceSnapshot{
+			ID:            record.ID,
+			Type:          appDataModelResourceType(record.ModelKey),
+			SpaceID:       record.SpaceID,
+			GroupID:       derefString(record.GroupID),
+			OwnerMemberID: derefString(record.OwnerMemberID),
+			DisplayName:   derefString(record.DisplayName),
+			Visibility:    record.Visibility,
+			Status:        record.Status,
+			Metadata:      nonNilMap(record.Metadata),
+		},
+	})
+}
+
+func appDataServiceDecisionForTarget(r *http.Request, actor authz.ActorContext, action, resourceID string, target authz.TargetSnapshot) map[string]any {
+	return map[string]any{
+		"decision":     "allow",
+		"reason":       "server-side API key authorized for app data " + action,
+		"service_auth": true,
+		"actor": map[string]any{
+			"user_id":        actor.UserID,
+			"member_id":      actor.MemberID,
+			"user_member_id": actor.UserMemberID,
+			"space_id":       firstNonEmpty(actor.SpaceID, target.Resource.SpaceID),
+		},
+		"target": map[string]any{
+			"resource_id":   resourceID,
+			"resource_type": target.Resource.Type,
+			"space_id":      target.Resource.SpaceID,
+		},
+		"request_id": requestIDFrom(r),
+	}
 }
 
 func appDataModelResourceType(modelKey string) string {
