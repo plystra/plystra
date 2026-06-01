@@ -2,6 +2,9 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
@@ -357,5 +360,83 @@ func TestAppDataRecordQueryPredicatesValidateDataFields(t *testing.T) {
 	}
 	if _, err := appDataRecordQueryPredicates(url.Values{"search": []string{string(make([]byte, 129))}}); err == nil {
 		t.Fatalf("oversized search value was accepted")
+	}
+}
+
+func TestAppDataRecordListOptionsValidateSortOrderAndCursor(t *testing.T) {
+	req := httptest.NewRequest("GET", "/api/v1/spaces/space_acme/data/models/tasks/records?sort=created_at&order=asc&limit=75", nil)
+	opts, err := appDataRecordListOptionsFromRequest(req)
+	if err != nil {
+		t.Fatalf("valid list options rejected: %v", err)
+	}
+	if opts.Limit != 75 || opts.Sort != "created_at" || opts.Order != "asc" || opts.SortField == "" {
+		t.Fatalf("unexpected list options: %#v", opts)
+	}
+
+	invalidSortReq := httptest.NewRequest("GET", "/api/v1/spaces/space_acme/data/models/tasks/records?sort=data.name", nil)
+	if _, err := appDataRecordListOptionsFromRequest(invalidSortReq); err == nil {
+		t.Fatalf("unsafe sort field was accepted")
+	}
+
+	invalidOrderReq := httptest.NewRequest("GET", "/api/v1/spaces/space_acme/data/models/tasks/records?order=drop", nil)
+	if _, err := appDataRecordListOptionsFromRequest(invalidOrderReq); err == nil {
+		t.Fatalf("invalid order was accepted")
+	}
+
+	badCursorReq := httptest.NewRequest("GET", "/api/v1/spaces/space_acme/data/models/tasks/records?cursor=not-base64", nil)
+	if _, err := appDataRecordListOptionsFromRequest(badCursorReq); err == nil {
+		t.Fatalf("invalid cursor was accepted")
+	}
+}
+
+func TestAppDataRecordCursorRoundTripAndSortBinding(t *testing.T) {
+	createdAt := time.Date(2026, 6, 1, 12, 0, 0, 123, time.UTC)
+	record := &coreent.AppDataRecord{
+		ID:         "task_b",
+		Status:     "active",
+		Visibility: "private",
+		CreatedAt:  createdAt,
+		UpdatedAt:  createdAt.Add(time.Minute),
+	}
+	opts := appDataRecordListOptions{
+		Limit:     2,
+		Sort:      "updated_at",
+		SortField: appDataRecordSortColumns["updated_at"],
+		Order:     "desc",
+	}
+	cursor, err := encodeAppDataRecordCursor(opts, record)
+	if err != nil {
+		t.Fatalf("encode cursor: %v", err)
+	}
+	decoded, err := decodeAppDataRecordCursor(cursor)
+	if err != nil {
+		t.Fatalf("decode cursor: %v", err)
+	}
+	if decoded.Sort != "updated_at" || decoded.Order != "desc" || decoded.Tiebreak != "task_b" || decoded.ValueKind != "time" {
+		t.Fatalf("unexpected decoded cursor: %#v", decoded)
+	}
+
+	req := httptest.NewRequest("GET", "/api/v1/spaces/space_acme/data/models/tasks/records?cursor="+url.QueryEscape(cursor), nil)
+	if _, err := appDataRecordListOptionsFromRequest(req); err != nil {
+		t.Fatalf("matching cursor rejected: %v", err)
+	}
+	mismatchedReq := httptest.NewRequest("GET", "/api/v1/spaces/space_acme/data/models/tasks/records?sort=created_at&cursor="+url.QueryEscape(cursor), nil)
+	if _, err := appDataRecordListOptionsFromRequest(mismatchedReq); err == nil {
+		t.Fatalf("cursor was accepted for a different sort")
+	}
+
+	badPayload, err := json.Marshal(appDataRecordCursor{
+		Version:   1,
+		Sort:      "updated_at",
+		Order:     "desc",
+		Value:     "not-a-time",
+		Tiebreak:  "task_a",
+		ValueKind: "string",
+	})
+	if err != nil {
+		t.Fatalf("marshal bad cursor: %v", err)
+	}
+	if _, err := decodeAppDataRecordCursor(base64.RawURLEncoding.EncodeToString(badPayload)); err == nil {
+		t.Fatalf("cursor with mismatched sort value kind was accepted")
 	}
 }

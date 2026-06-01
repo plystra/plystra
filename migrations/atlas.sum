@@ -1,4 +1,4 @@
-h1:4c5LvS4YSZHuWAMnN3/6fhaaXjFT5tq4NnLSlHXtV50=
+h1:AXlVpE061y4VTp72Iad8DiMa5lmlevmJcenDVtSfWMY=
 001_finance_demo.sql h1:6yv3CJVVhS9V3T9oB0dXmay0Y9tLgD46s7WQEn4dgz4=
 002_resource_registry.sql h1:SIovsOobXzfbuq0nUqzNgqt51zHRkhSDu3g247VkQa4=
 003_plugin_api_preview.sql h1:hz7SfVSTZ6EbNoyKV0F+C6vAYvsmpTBdfQe0PgntORk=
@@ -21,3 +21,4 @@ h1:4c5LvS4YSZHuWAMnN3/6fhaaXjFT5tq4NnLSlHXtV50=
 020_backend_os_alpha_app_data_store.sql h1:darA+E4f++NsZKHMRRfQ87bgCp3hK1e1uURAm1Oe7QM=
 021_backend_os_alpha_app_data_trigger_fix.sql h1:EMVO0qG2ifjHOeYI/lpabq2+sWsdQDqXmPIboKTueng=
 022_backend_os_alpha_app_data_ent_alignment.sql h1:/ax1U2CABcFZdyIH+fxCGPUfAhM/J4pBhl/eYtdpazU=
+023_backend_os_alpha_app_data_query_indexes.sql h1:6Xs2L3tAoq0aSD8smvV9FL3RGUFXgShFeqQmRSSUzag=

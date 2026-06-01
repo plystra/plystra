@@ -1044,6 +1044,11 @@ func openAPIRoutes() []openAPIRoute {
 			Status        string `query:"status"`
 			GroupID       string `query:"group_id"`
 			OwnerMemberID string `query:"owner_member_id"`
+			Visibility    string `query:"visibility"`
+			Search        string `query:"search" maxLength:"128"`
+			Sort          string `query:"sort" enum:"id,created_at,updated_at,status,visibility"`
+			Order         string `query:"order" enum:"asc,desc"`
+			Cursor        string `query:"cursor"`
 			Limit         int    `query:"limit" minimum:"1" maximum:"200"`
 		}), Response: new(openAPIListEnvelope[openAPIAppDataRecord]), Security: openAPISession},
 		{Method: http.MethodPost, Path: "/api/v1/spaces/{space_id}/data/models/{model_key}/records", Tag: "App Data", ID: "createAppDataRecord", Summary: "Create an app data record", Params: new(struct {

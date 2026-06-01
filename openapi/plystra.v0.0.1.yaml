@@ -4927,6 +4927,36 @@ paths:
                   schema:
                     type: string
                 - in: query
+                  name: visibility
+                  schema:
+                    type: string
+                - in: query
+                  name: search
+                  schema:
+                    maxLength: 128
+                    type: string
+                - in: query
+                  name: sort
+                  schema:
+                    enum:
+                        - id
+                        - created_at
+                        - updated_at
+                        - status
+                        - visibility
+                    type: string
+                - in: query
+                  name: order
+                  schema:
+                    enum:
+                        - asc
+                        - desc
+                    type: string
+                - in: query
+                  name: cursor
+                  schema:
+                    type: string
+                - in: query
                   name: limit
                   schema:
                     maximum: 200

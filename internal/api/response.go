@@ -21,13 +21,17 @@ func writeData(w http.ResponseWriter, r *http.Request, status int, data any) {
 }
 
 func writeList(w http.ResponseWriter, r *http.Request, status int, data any, limit int) {
+	writeListPage(w, r, status, data, limit, nil, false)
+}
+
+func writeListPage(w http.ResponseWriter, r *http.Request, status int, data any, limit int, cursor *string, hasMore bool) {
 	requestID := requestIDFrom(r)
 	writeJSON(w, status, map[string]any{
 		"data": data,
 		"pagination": map[string]any{
 			"limit":    limit,
-			"cursor":   nil,
-			"has_more": false,
+			"cursor":   cursor,
+			"has_more": hasMore,
 		},
 		"request_id": requestID,
 	})

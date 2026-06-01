@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -57,6 +59,31 @@ var appDataSearchDataFields = []string{
 	"developer_id",
 	"project_id",
 	"task_id",
+}
+
+var appDataRecordSortColumns = map[string]string{
+	"id":         entappdatarecord.FieldID,
+	"created_at": entappdatarecord.FieldCreatedAt,
+	"updated_at": entappdatarecord.FieldUpdatedAt,
+	"status":     entappdatarecord.FieldStatus,
+	"visibility": entappdatarecord.FieldVisibility,
+}
+
+type appDataRecordListOptions struct {
+	Limit     int
+	Sort      string
+	SortField string
+	Order     string
+	Cursor    *appDataRecordCursor
+}
+
+type appDataRecordCursor struct {
+	Version   int    `json:"v"`
+	Sort      string `json:"sort"`
+	Order     string `json:"order"`
+	Value     string `json:"value"`
+	Tiebreak  string `json:"id"`
+	ValueKind string `json:"kind"`
 }
 
 type appDataModelMutationRequest struct {
@@ -388,6 +415,11 @@ func (s *Server) listAppDataRecords(w http.ResponseWriter, r *http.Request, mode
 	if !ok {
 		return
 	}
+	listOptions, err := appDataRecordListOptionsFromRequest(r)
+	if err != nil {
+		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", err.Error(), nil)
+		return
+	}
 	q := client.AppDataRecord.Query().Where(entappdatarecord.SpaceID(model.SpaceID), entappdatarecord.ModelID(model.ID), entappdatarecord.DeletedAtIsNil())
 	if status := strings.TrimSpace(r.URL.Query().Get("status")); status != "" {
 		q = q.Where(entappdatarecord.Status(status))
@@ -409,10 +441,18 @@ func (s *Server) listAppDataRecords(w http.ResponseWriter, r *http.Request, mode
 	if len(predicates) > 0 {
 		q = q.Where(predicates...)
 	}
-	records, err := q.Order(entappdatarecord.ByUpdatedAt()).Limit(limitFrom(r, 50)).All(r.Context())
+	if listOptions.Cursor != nil {
+		q = q.Where(appDataRecordCursorPredicate(listOptions))
+	}
+	q = q.Order(appDataRecordOrderOptions(listOptions)...)
+	records, err := q.Limit(listOptions.Limit + 1).All(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list app data records.", err.Error())
 		return
+	}
+	hasMore := len(records) > listOptions.Limit
+	if hasMore {
+		records = records[:listOptions.Limit]
 	}
 	actor := appDataActorFromRequest(r, authz.ActorContext{SpaceID: model.SpaceID})
 	serviceAuthorized := s.appDataServiceAuthorized(r, "read", model.SpaceID)
@@ -432,7 +472,16 @@ func (s *Server) listAppDataRecords(w http.ResponseWriter, r *http.Request, mode
 		row["authorization"] = decision
 		rows = append(rows, row)
 	}
-	writeList(w, r, http.StatusOK, rows, limitFrom(r, 50))
+	var nextCursor *string
+	if hasMore && len(records) > 0 {
+		cursor, err := encodeAppDataRecordCursor(listOptions, records[len(records)-1])
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to build app data pagination cursor.", err.Error())
+			return
+		}
+		nextCursor = &cursor
+	}
+	writeListPage(w, r, http.StatusOK, rows, listOptions.Limit, nextCursor, hasMore)
 }
 
 func (s *Server) createAppDataRecord(w http.ResponseWriter, r *http.Request, model *coreent.AppDataModel) {
@@ -977,6 +1026,184 @@ func (s *Server) authorizeAppDataRecord(w http.ResponseWriter, r *http.Request, 
 		actor.SpaceID = record.SpaceID
 	}
 	return s.authorizeTarget(w, r, actor, appDataModelResourceType(record.ModelKey), record.ID, action, target)
+}
+
+func appDataRecordListOptionsFromRequest(r *http.Request) (appDataRecordListOptions, error) {
+	opts := appDataRecordListOptions{
+		Limit: limitFrom(r, 50),
+		Sort:  "updated_at",
+		Order: "desc",
+	}
+	if sortKey := strings.TrimSpace(r.URL.Query().Get("sort")); sortKey != "" {
+		opts.Sort = sortKey
+	}
+	sortField, ok := appDataRecordSortColumns[opts.Sort]
+	if !ok {
+		return opts, fmt.Errorf("sort must be one of %s", strings.Join(appDataRecordAllowedSorts(), ", "))
+	}
+	opts.SortField = sortField
+	if order := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("order"))); order != "" {
+		opts.Order = order
+	}
+	if opts.Order != "asc" && opts.Order != "desc" {
+		return opts, errors.New("order must be asc or desc")
+	}
+	if rawCursor := strings.TrimSpace(r.URL.Query().Get("cursor")); rawCursor != "" {
+		cursor, err := decodeAppDataRecordCursor(rawCursor)
+		if err != nil {
+			return opts, err
+		}
+		if cursor.Sort != opts.Sort || cursor.Order != opts.Order {
+			return opts, errors.New("cursor does not match requested sort and order")
+		}
+		opts.Cursor = cursor
+	}
+	return opts, nil
+}
+
+func appDataRecordAllowedSorts() []string {
+	keys := make([]string, 0, len(appDataRecordSortColumns))
+	for key := range appDataRecordSortColumns {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func appDataRecordOrderOptions(opts appDataRecordListOptions) []entappdatarecord.OrderOption {
+	orderOpts := []sql.OrderTermOption{sql.OrderDesc()}
+	if opts.Order == "asc" {
+		orderOpts = []sql.OrderTermOption{sql.OrderAsc()}
+	}
+	tiebreaker := entappdatarecord.ByID(orderOpts...)
+	switch opts.Sort {
+	case "created_at":
+		return []entappdatarecord.OrderOption{entappdatarecord.ByCreatedAt(orderOpts...), tiebreaker}
+	case "id":
+		return []entappdatarecord.OrderOption{tiebreaker}
+	case "status":
+		return []entappdatarecord.OrderOption{entappdatarecord.ByStatus(orderOpts...), tiebreaker}
+	case "visibility":
+		return []entappdatarecord.OrderOption{entappdatarecord.ByVisibility(orderOpts...), tiebreaker}
+	default:
+		return []entappdatarecord.OrderOption{entappdatarecord.ByUpdatedAt(orderOpts...), tiebreaker}
+	}
+}
+
+func appDataRecordCursorPredicate(opts appDataRecordListOptions) predicate.AppDataRecord {
+	return predicate.AppDataRecord(func(selector *sql.Selector) {
+		if opts.Cursor == nil {
+			return
+		}
+		sortColumn := selector.C(opts.SortField)
+		idColumn := selector.C(entappdatarecord.FieldID)
+		sortValuePredicate, sortEqualPredicate := appDataRecordCursorValuePredicates(opts)
+		idPredicate := sql.LT(idColumn, opts.Cursor.Tiebreak)
+		if opts.Order == "asc" {
+			idPredicate = sql.GT(idColumn, opts.Cursor.Tiebreak)
+		}
+		selector.Where(sql.Or(
+			sortValuePredicate(sortColumn),
+			sql.And(sortEqualPredicate(sortColumn), idPredicate),
+		))
+	})
+}
+
+func appDataRecordCursorValuePredicates(opts appDataRecordListOptions) (func(string) *sql.Predicate, func(string) *sql.Predicate) {
+	if opts.Cursor.ValueKind == "time" {
+		value, _ := time.Parse(time.RFC3339Nano, opts.Cursor.Value)
+		if opts.Order == "asc" {
+			return func(column string) *sql.Predicate { return sql.GT(column, value) }, func(column string) *sql.Predicate { return sql.EQ(column, value) }
+		}
+		return func(column string) *sql.Predicate { return sql.LT(column, value) }, func(column string) *sql.Predicate { return sql.EQ(column, value) }
+	}
+	if opts.Order == "asc" {
+		return func(column string) *sql.Predicate { return sql.GT(column, opts.Cursor.Value) }, func(column string) *sql.Predicate { return sql.EQ(column, opts.Cursor.Value) }
+	}
+	return func(column string) *sql.Predicate { return sql.LT(column, opts.Cursor.Value) }, func(column string) *sql.Predicate { return sql.EQ(column, opts.Cursor.Value) }
+}
+
+func encodeAppDataRecordCursor(opts appDataRecordListOptions, record *coreent.AppDataRecord) (string, error) {
+	value, valueKind, err := appDataRecordCursorValue(opts.Sort, record)
+	if err != nil {
+		return "", err
+	}
+	payload, err := json.Marshal(appDataRecordCursor{
+		Version:   1,
+		Sort:      opts.Sort,
+		Order:     opts.Order,
+		Value:     value,
+		Tiebreak:  record.ID,
+		ValueKind: valueKind,
+	})
+	if err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(payload), nil
+}
+
+func decodeAppDataRecordCursor(raw string) (*appDataRecordCursor, error) {
+	payload, err := base64.RawURLEncoding.DecodeString(raw)
+	if err != nil {
+		return nil, errors.New("cursor is invalid")
+	}
+	if len(payload) > 512 {
+		return nil, errors.New("cursor is invalid")
+	}
+	var cursor appDataRecordCursor
+	if err := json.Unmarshal(payload, &cursor); err != nil {
+		return nil, errors.New("cursor is invalid")
+	}
+	if cursor.Version != 1 || cursor.Tiebreak == "" || cursor.Value == "" {
+		return nil, errors.New("cursor is invalid")
+	}
+	if _, ok := appDataRecordSortColumns[cursor.Sort]; !ok {
+		return nil, errors.New("cursor is invalid")
+	}
+	if cursor.Order != "asc" && cursor.Order != "desc" {
+		return nil, errors.New("cursor is invalid")
+	}
+	if cursor.ValueKind != "time" && cursor.ValueKind != "string" {
+		return nil, errors.New("cursor is invalid")
+	}
+	if cursor.ValueKind != appDataRecordCursorValueKind(cursor.Sort) {
+		return nil, errors.New("cursor is invalid")
+	}
+	if cursor.ValueKind == "time" {
+		if _, err := time.Parse(time.RFC3339Nano, cursor.Value); err != nil {
+			return nil, errors.New("cursor is invalid")
+		}
+	}
+	if len(cursor.Tiebreak) > 256 || len(cursor.Value) > 256 {
+		return nil, errors.New("cursor is invalid")
+	}
+	return &cursor, nil
+}
+
+func appDataRecordCursorValueKind(sortKey string) string {
+	switch sortKey {
+	case "created_at", "updated_at":
+		return "time"
+	default:
+		return "string"
+	}
+}
+
+func appDataRecordCursorValue(sortKey string, record *coreent.AppDataRecord) (string, string, error) {
+	switch sortKey {
+	case "created_at":
+		return record.CreatedAt.UTC().Format(time.RFC3339Nano), "time", nil
+	case "updated_at":
+		return record.UpdatedAt.UTC().Format(time.RFC3339Nano), "time", nil
+	case "status":
+		return record.Status, "string", nil
+	case "visibility":
+		return record.Visibility, "string", nil
+	case "id":
+		return record.ID, "string", nil
+	default:
+		return "", "", fmt.Errorf("sort %q is not supported", sortKey)
+	}
 }
 
 func appDataRecordQueryPredicates(query map[string][]string) ([]predicate.AppDataRecord, error) {
