@@ -7,14 +7,19 @@ import (
 	"net/http"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqljson"
 	coreent "github.com/plystra/plystra/ent"
 	entappdatamodel "github.com/plystra/plystra/ent/appdatamodel"
 	entappdatarecord "github.com/plystra/plystra/ent/appdatarecord"
 	entappdatarecordrevision "github.com/plystra/plystra/ent/appdatarecordrevision"
 	entpermission "github.com/plystra/plystra/ent/permission"
+	"github.com/plystra/plystra/ent/predicate"
 	entresourceaction "github.com/plystra/plystra/ent/resourceaction"
 	entresourcemapping "github.com/plystra/plystra/ent/resourcemapping"
 	entresourcetype "github.com/plystra/plystra/ent/resourcetype"
@@ -26,6 +31,33 @@ import (
 const appDataRecordBaseResourceType = "app_data_record"
 
 var appDataModelKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+var appDataDataFieldPattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]{0,63}$`)
+
+var appDataReservedListQueryKeys = map[string]bool{
+	"limit":           true,
+	"cursor":          true,
+	"status":          true,
+	"group_id":        true,
+	"owner_member_id": true,
+	"visibility":      true,
+	"search":          true,
+	"sort":            true,
+	"order":           true,
+}
+
+var appDataSearchDataFields = []string{
+	"name",
+	"title",
+	"full_name",
+	"display_name",
+	"email",
+	"description",
+	"status",
+	"current_status",
+	"developer_id",
+	"project_id",
+	"task_id",
+}
 
 type appDataModelMutationRequest struct {
 	Actor       authz.ActorContext `json:"actor"`
@@ -365,6 +397,17 @@ func (s *Server) listAppDataRecords(w http.ResponseWriter, r *http.Request, mode
 	}
 	if ownerMemberID := strings.TrimSpace(r.URL.Query().Get("owner_member_id")); ownerMemberID != "" {
 		q = q.Where(entappdatarecord.OwnerMemberID(ownerMemberID))
+	}
+	if visibility := strings.TrimSpace(r.URL.Query().Get("visibility")); visibility != "" {
+		q = q.Where(entappdatarecord.Visibility(visibility))
+	}
+	predicates, err := appDataRecordQueryPredicates(r.URL.Query())
+	if err != nil {
+		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", err.Error(), nil)
+		return
+	}
+	if len(predicates) > 0 {
+		q = q.Where(predicates...)
 	}
 	records, err := q.Order(entappdatarecord.ByUpdatedAt()).Limit(limitFrom(r, 50)).All(r.Context())
 	if err != nil {
@@ -934,6 +977,128 @@ func (s *Server) authorizeAppDataRecord(w http.ResponseWriter, r *http.Request, 
 		actor.SpaceID = record.SpaceID
 	}
 	return s.authorizeTarget(w, r, actor, appDataModelResourceType(record.ModelKey), record.ID, action, target)
+}
+
+func appDataRecordQueryPredicates(query map[string][]string) ([]predicate.AppDataRecord, error) {
+	predicates := []predicate.AppDataRecord{}
+	for key, values := range query {
+		key = strings.TrimSpace(key)
+		if key == "" || appDataReservedListQueryKeys[key] {
+			continue
+		}
+		field := strings.TrimPrefix(key, "data.")
+		if !validAppDataDataField(field) {
+			return nil, fmt.Errorf("data filter field %q is invalid", key)
+		}
+		expected := compactQueryValues(values)
+		if len(expected) == 0 {
+			continue
+		}
+		predicates = append(predicates, appDataJSONFieldFilterPredicate(field, expected))
+	}
+	if search := strings.TrimSpace(firstQueryValue(query, "search")); search != "" {
+		if len(search) > 128 {
+			return nil, errors.New("search must be 128 characters or fewer")
+		}
+		predicates = append(predicates, appDataSearchPredicate(search))
+	}
+	return predicates, nil
+}
+
+func appDataJSONFieldFilterPredicate(field string, expected []string) predicate.AppDataRecord {
+	return predicate.AppDataRecord(func(selector *sql.Selector) {
+		ors := make([]*sql.Predicate, 0, len(expected)*2)
+		for _, value := range expected {
+			ors = append(ors,
+				sqljson.ValueEQ(entappdatarecord.FieldData, value, sqljson.Path(field)),
+				sqljson.ValueContains(entappdatarecord.FieldData, value, sqljson.Path(field)),
+			)
+			if parsed, ok := parseQueryScalar(value); ok {
+				ors = append(ors,
+					sqljson.ValueEQ(entappdatarecord.FieldData, parsed, sqljson.Path(field)),
+					sqljson.ValueContains(entappdatarecord.FieldData, parsed, sqljson.Path(field)),
+				)
+			}
+		}
+		if len(ors) > 0 {
+			selector.Where(sql.Or(ors...))
+		}
+	})
+}
+
+func appDataSearchPredicate(search string) predicate.AppDataRecord {
+	return predicate.AppDataRecord(func(selector *sql.Selector) {
+		needle := strings.TrimSpace(search)
+		ors := []*sql.Predicate{
+			sql.ContainsFold(selector.C(entappdatarecord.FieldID), needle),
+			sql.ContainsFold(selector.C(entappdatarecord.FieldDisplayName), needle),
+			sql.ContainsFold(selector.C(entappdatarecord.FieldStatus), needle),
+		}
+		for _, field := range appDataSearchDataFields {
+			ors = append(ors, appDataJSONTextContainsFold(entappdatarecord.FieldData, field, needle))
+		}
+		selector.Where(sql.Or(ors...))
+	})
+}
+
+func appDataJSONTextContainsFold(column, field, needle string) *sql.Predicate {
+	return sql.P(func(builder *sql.Builder) {
+		switch builder.Dialect() {
+		case dialect.Postgres:
+			builder.WriteString("LOWER(")
+			builder.Join(sqljson.ValuePath(column, sqljson.Path(field), sqljson.Unquote(true)))
+			builder.WriteString(") LIKE LOWER(")
+			builder.Arg("%" + needle + "%")
+			builder.WriteByte(')')
+		default:
+			builder.WriteString("LOWER(")
+			builder.Join(sqljson.ValuePath(column, sqljson.Path(field), sqljson.Unquote(true)))
+			builder.WriteString(") LIKE LOWER(")
+			builder.Arg("%" + needle + "%")
+			builder.WriteByte(')')
+		}
+	})
+}
+
+func validAppDataDataField(field string) bool {
+	return appDataDataFieldPattern.MatchString(field)
+}
+
+func compactQueryValues(values []string) []string {
+	out := []string{}
+	for _, value := range values {
+		for _, part := range strings.Split(value, ",") {
+			if item := strings.TrimSpace(part); item != "" {
+				out = append(out, item)
+			}
+		}
+	}
+	return out
+}
+
+func firstQueryValue(query map[string][]string, key string) string {
+	values := query[key]
+	if len(values) == 0 {
+		return ""
+	}
+	return values[0]
+}
+
+func parseQueryScalar(value string) (any, bool) {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	switch normalized {
+	case "true":
+		return true, true
+	case "false":
+		return false, true
+	}
+	if parsed, err := strconv.ParseInt(normalized, 10, 64); err == nil {
+		return parsed, true
+	}
+	if parsed, err := strconv.ParseFloat(normalized, 64); err == nil {
+		return parsed, true
+	}
+	return nil, false
 }
 
 func (s *Server) appDataServiceAuthorized(r *http.Request, action, spaceID string) bool {

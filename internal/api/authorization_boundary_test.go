@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"net/url"
 	"testing"
 	"time"
 
@@ -332,5 +333,29 @@ func TestAppDataServicePrincipalRequiresScopedAPIKey(t *testing.T) {
 	sessionPrincipal := adminPrincipal{CredentialType: "session"}
 	if server.appDataServicePrincipalAllowed(ctx, sessionPrincipal, "read", spaceID) {
 		t.Fatalf("human session should use record authorization, not app data service authorization")
+	}
+}
+
+func TestAppDataRecordQueryPredicatesValidateDataFields(t *testing.T) {
+	predicates, err := appDataRecordQueryPredicates(url.Values{
+		"data.developer_id": []string{"dev_1"},
+		"current_status":    []string{"Available"},
+		"search":            []string{"react"},
+	})
+	if err != nil {
+		t.Fatalf("valid app data filters rejected: %v", err)
+	}
+	if len(predicates) != 3 {
+		t.Fatalf("predicate count = %d, want 3", len(predicates))
+	}
+
+	if _, err := appDataRecordQueryPredicates(url.Values{"data.bad-field": []string{"x"}}); err == nil {
+		t.Fatalf("invalid JSON data field was accepted")
+	}
+	if _, err := appDataRecordQueryPredicates(url.Values{"data.name) OR 1=1 --": []string{"x"}}); err == nil {
+		t.Fatalf("unsafe JSON data field was accepted")
+	}
+	if _, err := appDataRecordQueryPredicates(url.Values{"search": []string{string(make([]byte, 129))}}); err == nil {
+		t.Fatalf("oversized search value was accepted")
 	}
 }
