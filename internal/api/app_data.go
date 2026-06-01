@@ -31,6 +31,7 @@ import (
 )
 
 const appDataRecordBaseResourceType = "app_data_record"
+const maxAppDataBatchOperations = 25
 
 var appDataModelKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 var appDataDataFieldPattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]{0,63}$`)
@@ -110,6 +111,18 @@ type appDataRecordMutationRequest struct {
 	Metadata      map[string]any     `json:"metadata"`
 }
 
+type appDataRecordBatchRequest struct {
+	Actor      authz.ActorContext            `json:"actor"`
+	Operations []appDataRecordBatchOperation `json:"operations"`
+}
+
+type appDataRecordBatchOperation struct {
+	Operation string                       `json:"operation"`
+	ModelKey  string                       `json:"model_key"`
+	RecordID  string                       `json:"record_id"`
+	Request   appDataRecordMutationRequest `json:"request"`
+}
+
 func (s *Server) handleSpaceAppData(w http.ResponseWriter, r *http.Request, spaceID string, parts []string) {
 	if len(parts) == 0 {
 		if r.Method != http.MethodGet {
@@ -121,6 +134,18 @@ func (s *Server) handleSpaceAppData(w http.ResponseWriter, r *http.Request, spac
 			"record_resource": appDataRecordBaseResourceType,
 			"model_path":      "/api/v1/spaces/" + spaceID + "/data/models",
 		})
+		return
+	}
+	if parts[0] == "records" {
+		if len(parts) == 2 && parts[1] == "batch" {
+			if r.Method != http.MethodPost {
+				writeMethodNotAllowed(w, r)
+				return
+			}
+			s.batchAppDataRecords(w, r, spaceID)
+			return
+		}
+		http.NotFound(w, r)
 		return
 	}
 	if parts[0] != "models" {
@@ -482,6 +507,486 @@ func (s *Server) listAppDataRecords(w http.ResponseWriter, r *http.Request, mode
 		nextCursor = &cursor
 	}
 	writeListPage(w, r, http.StatusOK, rows, listOptions.Limit, nextCursor, hasMore)
+}
+
+func (s *Server) batchAppDataRecords(w http.ResponseWriter, r *http.Request, spaceID string) {
+	var req appDataRecordBatchRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	if len(req.Operations) == 0 {
+		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "operations is required.", nil)
+		return
+	}
+	if len(req.Operations) > maxAppDataBatchOperations {
+		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", fmt.Sprintf("operations cannot contain more than %d items.", maxAppDataBatchOperations), nil)
+		return
+	}
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	models := map[string]*coreent.AppDataModel{}
+	for i := range req.Operations {
+		normalized, err := normalizeAppDataBatchOperation(req.Operations[i])
+		if err != nil {
+			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Batch operation is invalid.", appDataBatchErrorDetails(i, req.Operations[i], err.Error()))
+			return
+		}
+		req.Operations[i] = normalized
+		if _, exists := models[normalized.ModelKey]; exists {
+			continue
+		}
+		model, err := s.loadAppDataModelByKey(r.Context(), spaceID, normalized.ModelKey)
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeError(w, r, http.StatusNotFound, "APP_DATA_MODEL_NOT_FOUND", "App data model was not found.", appDataBatchErrorDetails(i, normalized, "model was not found"))
+			return
+		}
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data model.", err.Error())
+			return
+		}
+		if err := s.ensureAppDataModelResourceRegistration(r.Context(), model); err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to register app data authorization resource.", err.Error())
+			return
+		}
+		if err := s.ensureAppDataModelPermissions(r.Context(), model); err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to register app data permissions.", err.Error())
+			return
+		}
+		models[normalized.ModelKey] = model
+	}
+
+	actor := appDataActorFromRequest(r, req.Actor)
+	if actor.SpaceID == "" {
+		actor.SpaceID = spaceID
+	}
+	if actor.SpaceID != spaceID {
+		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "actor.space_id must match the path space_id.", nil)
+		return
+	}
+
+	tx, err := client.Tx(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to start app data transaction.", err.Error())
+		return
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+
+	txClient := tx.Client()
+	serviceAuthorized := s.appDataServiceAuthorized(r, "manage", spaceID)
+	results := make([]map[string]any, 0, len(req.Operations))
+	for i, op := range req.Operations {
+		result, batchErr := s.applyAppDataBatchOperation(r.Context(), r, txClient, models[op.ModelKey], actor, op, i, serviceAuthorized)
+		if batchErr != nil {
+			writeError(w, r, batchErr.Status, batchErr.Code, batchErr.Message, batchErr.Details)
+			return
+		}
+		results = append(results, result)
+	}
+	if err := tx.Commit(); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to commit app data transaction.", err.Error())
+		return
+	}
+	committed = true
+	writeData(w, r, http.StatusOK, map[string]any{
+		"operation_count": len(results),
+		"results":         results,
+	})
+}
+
+func (s *Server) applyAppDataBatchOperation(ctx context.Context, r *http.Request, client *coreent.Client, model *coreent.AppDataModel, actor authz.ActorContext, op appDataRecordBatchOperation, index int, serviceAuthorized bool) (map[string]any, *appDataBatchError) {
+	switch op.Operation {
+	case "create":
+		return s.applyAppDataBatchCreate(ctx, r, client, model, actor, op, index, serviceAuthorized)
+	case "update":
+		return s.applyAppDataBatchUpdate(ctx, r, client, model, actor, op, index, serviceAuthorized)
+	case "archive":
+		return s.applyAppDataBatchStatus(ctx, r, client, model, actor, op, index, serviceAuthorized, "archived", "archive")
+	case "delete":
+		return s.applyAppDataBatchStatus(ctx, r, client, model, actor, op, index, serviceAuthorized, "deleted", "delete")
+	default:
+		return nil, newAppDataBatchError(index, op, http.StatusBadRequest, "VALIDATION_FAILED", "Batch operation is invalid.", "operation is unsupported")
+	}
+}
+
+func (s *Server) applyAppDataBatchCreate(ctx context.Context, r *http.Request, client *coreent.Client, model *coreent.AppDataModel, actor authz.ActorContext, op appDataRecordBatchOperation, index int, serviceAuthorized bool) (map[string]any, *appDataBatchError) {
+	req := op.Request
+	if req.ID == "" {
+		req.ID = newEntityID(model.Key)
+	}
+	groupID := derefString(req.GroupID)
+	ownerMemberID := derefString(req.OwnerMemberID)
+	if ownerMemberID == "" {
+		ownerMemberID = actor.MemberID
+	}
+	if err := s.validateResourceRefs(ctx, model.SpaceID, groupID, ownerMemberID); err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusBadRequest, "VALIDATION_FAILED", "Record references are invalid.", err.Error())
+	}
+	resourceType := appDataModelResourceType(model.Key)
+	visibility := firstNonEmpty(derefString(req.Visibility), "private")
+	status := firstNonEmpty(derefString(req.Status), "active")
+	target, err := s.proposedResourceTarget(ctx, resourceType, req.ID, model.SpaceID, groupID, ownerMemberID, derefString(req.DisplayName), visibility, status, req.Metadata)
+	if err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusBadRequest, "VALIDATION_FAILED", "Failed to build proposed target.", err.Error())
+	}
+	var decision any
+	if serviceAuthorized {
+		decision = appDataServiceDecisionForTarget(r, actor, "create", req.ID, target)
+	} else {
+		checked, batchErr := s.authorizeAppDataBatchTarget(ctx, r, actor, resourceType, req.ID, "create", target, index, op)
+		if batchErr != nil {
+			return nil, batchErr
+		}
+		decision = checked
+	}
+	if _, err := client.AppDataRecord.Create().
+		SetID(req.ID).
+		SetSpaceID(model.SpaceID).
+		SetModelID(model.ID).
+		SetModelKey(model.Key).
+		SetNillableGroupID(optionalString(groupID)).
+		SetNillableOwnerMemberID(optionalString(ownerMemberID)).
+		SetNillableDisplayName(optionalString(derefString(req.DisplayName))).
+		SetVisibility(visibility).
+		SetStatus(status).
+		SetData(nonNilMap(req.Data)).
+		SetMetadata(nonNilMap(req.Metadata)).
+		Save(ctx); err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusConflict, "APP_DATA_RECORD_CREATE_FAILED", "Failed to create app data record.", err.Error())
+	}
+	record, err := loadAppDataRecordByIDFromClient(ctx, client, model.SpaceID, model.Key, req.ID)
+	if err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load created app data record.", err.Error())
+	}
+	if err := writeAppDataRecordRevisionWithClient(ctx, client, r, actor, record, "create"); err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to write app data revision.", err.Error())
+	}
+	if err := s.recordMutationAuditWithClient(ctx, client, r, actor, model.SpaceID, "app_data.record.created", resourceType, record.ID, appDataAuditDetails("record_create", model.Key, record.ID, record.Data, record.Metadata)); err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to write app data audit log.", err.Error())
+	}
+	return appDataBatchResult(index, op.Operation, model.Key, record, decision), nil
+}
+
+func (s *Server) applyAppDataBatchUpdate(ctx context.Context, r *http.Request, client *coreent.Client, model *coreent.AppDataModel, actor authz.ActorContext, op appDataRecordBatchOperation, index int, serviceAuthorized bool) (map[string]any, *appDataBatchError) {
+	req := op.Request
+	current, err := loadAppDataRecordByIDFromClient(ctx, client, model.SpaceID, model.Key, op.RecordID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, newAppDataBatchError(index, op, http.StatusNotFound, "APP_DATA_RECORD_NOT_FOUND", "App data record was not found.", "record was not found")
+	}
+	if err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data record.", err.Error())
+	}
+	proposed, err := s.appDataRecordTarget(ctx, current)
+	if err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to build app data authorization target.", err.Error())
+	}
+	if req.GroupID != nil {
+		proposed.Resource.GroupID = *req.GroupID
+		group, err := s.loadGroupSnapshot(ctx, model.SpaceID, *req.GroupID)
+		if err != nil {
+			return nil, newAppDataBatchError(index, op, http.StatusBadRequest, "VALIDATION_FAILED", "group_id is invalid for the record space.", err.Error())
+		}
+		proposed.Group = group
+	}
+	if req.OwnerMemberID != nil {
+		if err := s.validateMemberInSpace(ctx, model.SpaceID, *req.OwnerMemberID); err != nil {
+			return nil, newAppDataBatchError(index, op, http.StatusBadRequest, "VALIDATION_FAILED", "owner_member_id is invalid for the record space.", err.Error())
+		}
+		proposed.Resource.OwnerMemberID = *req.OwnerMemberID
+	}
+	if req.DisplayName != nil {
+		proposed.Resource.DisplayName = *req.DisplayName
+	}
+	if req.Visibility != nil {
+		proposed.Resource.Visibility = *req.Visibility
+	}
+	if req.Status != nil {
+		proposed.Resource.Status = *req.Status
+	}
+	if req.Metadata != nil {
+		proposed.Resource.Metadata = req.Metadata
+	}
+	resourceType := appDataModelResourceType(model.Key)
+	var decision any
+	if serviceAuthorized {
+		decision = appDataServiceDecisionForTarget(r, actor, "update", current.ID, proposed)
+	} else {
+		checked, batchErr := s.authorizeAppDataBatchTarget(ctx, r, actor, resourceType, current.ID, "update", proposed, index, op)
+		if batchErr != nil {
+			return nil, batchErr
+		}
+		decision = checked
+	}
+	data := current.Data
+	if req.Data != nil {
+		data = req.Data
+	}
+	update := client.AppDataRecord.UpdateOneID(current.ID).
+		SetVisibility(firstNonEmpty(proposed.Resource.Visibility, "private")).
+		SetStatus(firstNonEmpty(proposed.Resource.Status, "active")).
+		SetData(nonNilMap(data)).
+		SetMetadata(nonNilMap(proposed.Resource.Metadata))
+	setOptionalRecordString(update.SetGroupID, update.ClearGroupID, proposed.Resource.GroupID)
+	setOptionalRecordString(update.SetOwnerMemberID, update.ClearOwnerMemberID, proposed.Resource.OwnerMemberID)
+	setOptionalRecordString(update.SetDisplayName, update.ClearDisplayName, proposed.Resource.DisplayName)
+	if err := update.Exec(ctx); err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusConflict, "APP_DATA_RECORD_UPDATE_FAILED", "Failed to update app data record.", err.Error())
+	}
+	record, err := loadAppDataRecordByIDFromClient(ctx, client, model.SpaceID, model.Key, current.ID)
+	if err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load updated app data record.", err.Error())
+	}
+	if err := writeAppDataRecordRevisionWithClient(ctx, client, r, actor, record, "update"); err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to write app data revision.", err.Error())
+	}
+	if err := s.recordMutationAuditWithClient(ctx, client, r, actor, model.SpaceID, "app_data.record.updated", resourceType, record.ID, appDataAuditDetails("record_update", model.Key, record.ID, record.Data, record.Metadata)); err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to write app data audit log.", err.Error())
+	}
+	return appDataBatchResult(index, op.Operation, model.Key, record, decision), nil
+}
+
+func (s *Server) applyAppDataBatchStatus(ctx context.Context, r *http.Request, client *coreent.Client, model *coreent.AppDataModel, actor authz.ActorContext, op appDataRecordBatchOperation, index int, serviceAuthorized bool, status, action string) (map[string]any, *appDataBatchError) {
+	record, err := loadAppDataRecordByIDFromClient(ctx, client, model.SpaceID, model.Key, op.RecordID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, newAppDataBatchError(index, op, http.StatusNotFound, "APP_DATA_RECORD_NOT_FOUND", "App data record was not found.", "record was not found")
+	}
+	if err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data record.", err.Error())
+	}
+	resourceType := appDataModelResourceType(model.Key)
+	var decision any
+	if serviceAuthorized {
+		decision = appDataServiceDecision(r, actor, action, record)
+	} else {
+		target, err := s.appDataRecordTarget(ctx, record)
+		if err != nil {
+			return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to build app data authorization target.", err.Error())
+		}
+		checked, batchErr := s.authorizeAppDataBatchTarget(ctx, r, actor, resourceType, record.ID, action, target, index, op)
+		if batchErr != nil {
+			return nil, batchErr
+		}
+		decision = checked
+	}
+	update := client.AppDataRecord.UpdateOneID(record.ID).SetStatus(status)
+	if status == "deleted" {
+		update.SetDeletedAt(time.Now().UTC())
+	}
+	if err := update.Exec(ctx); err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusConflict, "APP_DATA_RECORD_STATUS_FAILED", "Failed to update app data record status.", err.Error())
+	}
+	updated, err := loadAppDataRecordForRevisionFromClient(ctx, client, record.ID)
+	if err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load updated app data record.", err.Error())
+	}
+	if err := writeAppDataRecordRevisionWithClient(ctx, client, r, actor, updated, action); err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to write app data revision.", err.Error())
+	}
+	if err := s.recordMutationAuditWithClient(ctx, client, r, actor, model.SpaceID, "app_data.record."+action+"d", resourceType, updated.ID, appDataAuditDetails("record_"+action, model.Key, updated.ID, updated.Data, updated.Metadata)); err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to write app data audit log.", err.Error())
+	}
+	return appDataBatchResult(index, op.Operation, model.Key, updated, decision), nil
+}
+
+type appDataBatchError struct {
+	Status  int
+	Code    string
+	Message string
+	Details any
+}
+
+func newAppDataBatchError(index int, op appDataRecordBatchOperation, status int, code, message, reason string) *appDataBatchError {
+	return &appDataBatchError{
+		Status:  status,
+		Code:    code,
+		Message: message,
+		Details: appDataBatchErrorDetails(index, op, reason),
+	}
+}
+
+func appDataBatchErrorDetails(index int, op appDataRecordBatchOperation, reason string) map[string]any {
+	return map[string]any{
+		"operation_index": index,
+		"operation":       strings.ToLower(strings.TrimSpace(op.Operation)),
+		"model_key":       strings.ToLower(strings.TrimSpace(op.ModelKey)),
+		"record_id":       strings.TrimSpace(op.RecordID),
+		"reason":          reason,
+	}
+}
+
+func normalizeAppDataBatchOperation(op appDataRecordBatchOperation) (appDataRecordBatchOperation, error) {
+	op.Operation = strings.ToLower(strings.TrimSpace(op.Operation))
+	op.ModelKey = strings.ToLower(strings.TrimSpace(op.ModelKey))
+	op.RecordID = strings.TrimSpace(op.RecordID)
+	op.Request.ID = strings.TrimSpace(op.Request.ID)
+	if !validAppDataModelKey(op.ModelKey) {
+		return op, fmt.Errorf("model_key must match %s", appDataModelKeyPattern.String())
+	}
+	switch op.Operation {
+	case "create":
+		if op.RecordID != "" {
+			if op.Request.ID != "" && op.Request.ID != op.RecordID {
+				return op, errors.New("record_id must match request.id")
+			}
+			op.Request.ID = op.RecordID
+		}
+		if err := validateAppDataRecordMutation(op.Request, true); err != nil {
+			return op, err
+		}
+	case "update":
+		if op.RecordID == "" {
+			return op, errors.New("record_id is required")
+		}
+		if op.Request.ID != "" && op.Request.ID != op.RecordID {
+			return op, errors.New("request.id must match record_id")
+		}
+		if err := validateAppDataRecordMutation(op.Request, false); err != nil {
+			return op, err
+		}
+	case "archive", "delete":
+		if op.RecordID == "" {
+			return op, errors.New("record_id is required")
+		}
+		if op.Request.ID != "" && op.Request.ID != op.RecordID {
+			return op, errors.New("request.id must match record_id")
+		}
+	default:
+		return op, errors.New("operation must be create, update, archive, or delete")
+	}
+	return op, nil
+}
+
+func (s *Server) authorizeAppDataBatchTarget(ctx context.Context, r *http.Request, actor authz.ActorContext, resourceType, resourceID, action string, target authz.TargetSnapshot, index int, op appDataRecordBatchOperation) (*authz.Decision, *appDataBatchError) {
+	decision, err := authz.Check(ctx, s.authzStore, authz.CheckInput{
+		Actor:        actor,
+		ResourceType: resourceType,
+		ResourceID:   resourceID,
+		Action:       action,
+		Target:       &target,
+		RequestID:    requestIDFrom(r),
+		IP:           remoteIPFrom(r),
+		UserAgent:    r.UserAgent(),
+	})
+	if err != nil {
+		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Authorization check failed.", err.Error())
+	}
+	if !decision.IsAllowed() {
+		return nil, &appDataBatchError{
+			Status:  http.StatusForbidden,
+			Code:    "AUTHORIZATION_DENIED",
+			Message: "Batch operation is not allowed.",
+			Details: decision,
+		}
+	}
+	return decision, nil
+}
+
+func loadAppDataRecordByIDFromClient(ctx context.Context, client *coreent.Client, spaceID, modelKey, recordID string) (*coreent.AppDataRecord, error) {
+	q := client.AppDataRecord.Query().
+		Where(entappdatarecord.ModelKey(modelKey), entappdatarecord.ID(recordID))
+	if spaceID != "" {
+		q = q.Where(entappdatarecord.SpaceID(spaceID), entappdatarecord.DeletedAtIsNil())
+	} else {
+		q = q.Where(entappdatarecord.DeletedAtIsNil())
+	}
+	row, err := q.Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	return row, err
+}
+
+func loadAppDataRecordForRevisionFromClient(ctx context.Context, client *coreent.Client, recordID string) (*coreent.AppDataRecord, error) {
+	row, err := client.AppDataRecord.Query().Where(entappdatarecord.ID(recordID)).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return nil, pgx.ErrNoRows
+	}
+	return row, err
+}
+
+func writeAppDataRecordRevisionWithClient(ctx context.Context, client *coreent.Client, r *http.Request, actor authz.ActorContext, record *coreent.AppDataRecord, operation string) error {
+	count, err := client.AppDataRecordRevision.Query().Where(entappdatarecordrevision.RecordID(record.ID)).Count(ctx)
+	if err != nil {
+		return err
+	}
+	revision := count + 1
+	_, err = client.AppDataRecordRevision.Create().
+		SetID(newEntityID("rev")).
+		SetRecordID(record.ID).
+		SetSpaceID(record.SpaceID).
+		SetModelID(record.ModelID).
+		SetModelKey(record.ModelKey).
+		SetRevision(revision).
+		SetOperation(operation).
+		SetNillableActorUserID(optionalString(actor.UserID)).
+		SetNillableActorMemberID(optionalString(actor.MemberID)).
+		SetNillableActorUserMemberID(optionalString(actor.UserMemberID)).
+		SetData(nonNilMap(record.Data)).
+		SetMetadata(map[string]any{
+			"request_id": requestIDFrom(r),
+			"status":     record.Status,
+			"visibility": record.Visibility,
+			"data_keys":  sortedMapKeys(record.Data),
+		}).
+		Save(ctx)
+	return err
+}
+
+func (s *Server) recordMutationAuditWithClient(ctx context.Context, client *coreent.Client, r *http.Request, actor authz.ActorContext, spaceID, action, resourceType, resourceID string, details any) error {
+	if spaceID == "" {
+		return nil
+	}
+	actor = auditActorFromRequest(r, actor, spaceID)
+	trace := map[string]any{
+		"trace_version": traceVersion(),
+		"decision":      authz.DecisionAllow,
+		"reason":        "Core management API mutation was accepted",
+		"request_id":    requestIDFrom(r),
+		"actor": map[string]any{
+			"user_id":        actor.UserID,
+			"member_id":      actor.MemberID,
+			"user_member_id": actor.UserMemberID,
+			"space_id":       firstNonEmpty(actor.SpaceID, spaceID),
+		},
+		"target": map[string]any{
+			"resource_type": resourceType,
+			"resource_id":   resourceID,
+		},
+		"details":    details,
+		"created_at": time.Now().UTC().Format(time.RFC3339),
+	}
+	_, err := client.AuditLog.Create().
+		SetID(newEntityID("audit")).
+		SetSpaceID(spaceID).
+		SetNillableActorUserID(optionalString(actor.UserID)).
+		SetNillableActorMemberID(optionalString(actor.MemberID)).
+		SetNillableActorUserMemberID(optionalString(actor.UserMemberID)).
+		SetAction(action).
+		SetResourceType(resourceType).
+		SetResourceID(resourceID).
+		SetDecision(string(authz.DecisionAllow)).
+		SetTrace(trace).
+		SetNillableRequestID(optionalString(requestIDFrom(r))).
+		SetNillableIPAddress(optionalString(remoteIPFrom(r))).
+		SetNillableUserAgent(optionalString(r.UserAgent())).
+		Save(ctx)
+	return err
+}
+
+func appDataBatchResult(index int, operation, modelKey string, record *coreent.AppDataRecord, decision any) map[string]any {
+	return map[string]any{
+		"operation_index": index,
+		"operation":       operation,
+		"model_key":       modelKey,
+		"record":          appDataRecordMap(record),
+		"authorization":   decision,
+	}
 }
 
 func (s *Server) createAppDataRecord(w http.ResponseWriter, r *http.Request, model *coreent.AppDataModel) {

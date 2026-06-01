@@ -56,6 +56,7 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 		"/api/v1/resources",
 		"/api/v1/spaces/{space_id}/resources",
 		"/api/v1/spaces/{space_id}/data/models",
+		"/api/v1/spaces/{space_id}/data/records/batch",
 		"/api/v1/spaces/{space_id}/data/models/{model_key}/records",
 		"/api/v1/app-data/{model_key}/{record_id}",
 		"/api/v1/audit/logs",
@@ -113,6 +114,7 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 		"POST /api/v1/resource-types":                           "/api/v1/resource-types",
 		"POST /api/v1/plugins/install":                          "/api/v1/plugins/install",
 		"POST /api/v1/templates/{template_id}/install":          "/api/v1/templates/{template_id}/install",
+		"POST /api/v1/spaces/{space_id}/data/records/batch":     "/api/v1/spaces/{space_id}/data/records/batch",
 		"PATCH /api/v1/data/rows/{resource_type}/{resource_id}": "/api/v1/data/rows/{resource_type}/{resource_id}",
 	}
 	for label, path := range requestBodyPaths {

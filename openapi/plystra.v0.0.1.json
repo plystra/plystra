@@ -4513,6 +4513,63 @@
         ]
       }
     },
+    "/api/v1/spaces/{space_id}/data/records/batch": {
+      "post": {
+        "tags": [
+          "App Data"
+        ],
+        "summary": "Apply app data record operations transactionally",
+        "description": "Creates, updates, archives, or soft-deletes up to 25 App Data records across models in the same Space. All record mutations, revisions, and mutation audit rows commit atomically or roll back together.",
+        "operationId": "batchAppDataRecords",
+        "parameters": [
+          {
+            "name": "space_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiAppDataRecordBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordBatchResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/spaces/{space_id}/disable": {
       "post": {
         "tags": [
@@ -7485,6 +7542,38 @@
           }
         }
       },
+      "ApiAppDataRecordBatchOperation": {
+        "type": "object",
+        "properties": {
+          "model_key": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "record_id": {
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ApiAppDataRecordMutationRequest"
+          }
+        }
+      },
+      "ApiAppDataRecordBatchRequest": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/AuthzActorContext"
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiAppDataRecordBatchOperation"
+            },
+            "nullable": true
+          }
+        }
+      },
       "ApiAppDataRecordMutationRequest": {
         "type": "object",
         "properties": {
@@ -8137,6 +8226,41 @@
           }
         }
       },
+      "ApiOpenAPIAppDataRecordBatchResponse": {
+        "type": "object",
+        "properties": {
+          "operation_count": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiOpenAPIAppDataRecordBatchResult"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "ApiOpenAPIAppDataRecordBatchResult": {
+        "type": "object",
+        "properties": {
+          "authorization": {
+            "$ref": "#/components/schemas/ApiOpenAPIAuthzCheckResponse"
+          },
+          "model_key": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "operation_index": {
+            "type": "integer"
+          },
+          "record": {
+            "$ref": "#/components/schemas/ApiOpenAPIAppDataRecord"
+          }
+        }
+      },
       "ApiOpenAPIAppDataRecordResponse": {
         "type": "object",
         "properties": {
@@ -8382,6 +8506,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/ApiOpenAPIAppDataModel"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req_01hzyj6b6q8"
+          }
+        }
+      },
+      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordBatchResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ApiOpenAPIAppDataRecordBatchResponse"
           },
           "request_id": {
             "type": "string",

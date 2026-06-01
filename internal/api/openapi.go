@@ -391,6 +391,19 @@ type openAPIAppDataRecordResponse struct {
 	Authorization openAPIAuthzCheckResponse `json:"authorization"`
 }
 
+type openAPIAppDataRecordBatchResult struct {
+	OperationIndex int                       `json:"operation_index"`
+	Operation      string                    `json:"operation"`
+	ModelKey       string                    `json:"model_key"`
+	Record         openAPIAppDataRecord      `json:"record"`
+	Authorization  openAPIAuthzCheckResponse `json:"authorization"`
+}
+
+type openAPIAppDataRecordBatchResponse struct {
+	OperationCount int                               `json:"operation_count"`
+	Results        []openAPIAppDataRecordBatchResult `json:"results"`
+}
+
 type openAPIAppDataRevision struct {
 	ID                string         `json:"id"`
 	RecordID          string         `json:"record_id"`
@@ -1041,6 +1054,9 @@ func openAPIRoutes() []openAPIRoute {
 			SpaceID  string `path:"space_id"`
 			ModelKey string `path:"model_key"`
 		}), Body: new(appDataModelMutationRequest), Response: new(openAPIEnvelope[openAPIAppDataModel]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/spaces/{space_id}/data/records/batch", Tag: "App Data", ID: "batchAppDataRecords", Summary: "Apply app data record operations transactionally", Description: "Creates, updates, archives, or soft-deletes up to 25 App Data records across models in the same Space. All record mutations, revisions, and mutation audit rows commit atomically or roll back together.", Params: new(struct {
+			SpaceID string `path:"space_id"`
+		}), Body: new(appDataRecordBatchRequest), Response: new(openAPIEnvelope[openAPIAppDataRecordBatchResponse]), Security: openAPISession},
 		{Method: http.MethodGet, Path: "/api/v1/spaces/{space_id}/data/models/{model_key}/records", Tag: "App Data", ID: "listAppDataRecords", Summary: "List app data records", Params: new(struct {
 			SpaceID       string `path:"space_id"`
 			ModelKey      string `path:"model_key"`

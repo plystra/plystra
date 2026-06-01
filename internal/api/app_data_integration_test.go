@@ -210,6 +210,89 @@ func TestAppDataStoreIntegration(t *testing.T) {
 			t.Fatalf("sibling generic lookup status = %d, want 403, body=%s", denied.Code, denied.Body.String())
 		}
 	})
+
+	t.Run("batch records are transactional across operations", func(t *testing.T) {
+		firstID := "record_appdata_batch_first_" + fixture.Suffix
+		secondID := "record_appdata_batch_second_" + fixture.Suffix
+		rec := appDataJSONRequest(handler, http.MethodPost, "/api/v1/spaces/"+fixture.SpaceID+"/data/records/batch", ownerToken, map[string]any{
+			"actor": map[string]any{"space_id": fixture.SpaceID},
+			"operations": []any{
+				map[string]any{
+					"operation": "create",
+					"model_key": fixture.ModelKey,
+					"record_id": firstID,
+					"request": map[string]any{
+						"group_id":        fixture.AllowedGroupID,
+						"owner_member_id": fixture.OwnerMemberID,
+						"display_name":    "Batch First",
+						"visibility":      "group",
+						"data":            map[string]any{"name": "Batch First"},
+					},
+				},
+				map[string]any{
+					"operation": "update",
+					"model_key": fixture.ModelKey,
+					"record_id": "missing_appdata_batch_" + fixture.Suffix,
+					"request":   map[string]any{"data": map[string]any{"name": "Missing"}},
+				},
+			},
+		})
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("failed batch status = %d, want 404, body=%s", rec.Code, rec.Body.String())
+		}
+		if exists, err := store.Client().AppDataRecord.Query().Where(entappdatarecord.ID(firstID)).Exist(ctx); err != nil || exists {
+			t.Fatalf("failed batch persisted first record exists=%t err=%v", exists, err)
+		}
+		if count, err := store.Client().AppDataRecordRevision.Query().Where(entappdatarecordrevision.RecordID(firstID)).Count(ctx); err != nil || count != 0 {
+			t.Fatalf("failed batch revision count=%d err=%v, want 0", count, err)
+		}
+
+		rec = appDataJSONRequest(handler, http.MethodPost, "/api/v1/spaces/"+fixture.SpaceID+"/data/records/batch", ownerToken, map[string]any{
+			"actor": map[string]any{"space_id": fixture.SpaceID},
+			"operations": []any{
+				map[string]any{
+					"operation": "create",
+					"model_key": fixture.ModelKey,
+					"record_id": firstID,
+					"request": map[string]any{
+						"group_id":        fixture.AllowedGroupID,
+						"owner_member_id": fixture.OwnerMemberID,
+						"display_name":    "Batch First",
+						"visibility":      "group",
+						"data":            map[string]any{"name": "Batch First"},
+					},
+				},
+				map[string]any{
+					"operation": "create",
+					"model_key": fixture.ModelKey,
+					"record_id": secondID,
+					"request": map[string]any{
+						"group_id":        fixture.AllowedGroupID,
+						"owner_member_id": fixture.OwnerMemberID,
+						"display_name":    "Batch Second",
+						"visibility":      "group",
+						"data":            map[string]any{"name": "Batch Second"},
+					},
+				},
+			},
+		})
+		if rec.Code != http.StatusOK {
+			t.Fatalf("successful batch status = %d, want 200, body=%s", rec.Code, rec.Body.String())
+		}
+		payload := decodeAppDataPayload(t, rec)
+		data := payload["data"].(map[string]any)
+		if int(data["operation_count"].(float64)) != 2 {
+			t.Fatalf("operation_count = %#v, want 2", data["operation_count"])
+		}
+		for _, id := range []string{firstID, secondID} {
+			if exists, err := store.Client().AppDataRecord.Query().Where(entappdatarecord.ID(id), entappdatarecord.DeletedAtIsNil()).Exist(ctx); err != nil || !exists {
+				t.Fatalf("successful batch record %s exists=%t err=%v", id, exists, err)
+			}
+			if count, err := store.Client().AppDataRecordRevision.Query().Where(entappdatarecordrevision.RecordID(id)).Count(ctx); err != nil || count != 1 {
+				t.Fatalf("successful batch revision count for %s=%d err=%v, want 1", id, count, err)
+			}
+		}
+	})
 }
 
 func appDataTestDatabaseURL() string {

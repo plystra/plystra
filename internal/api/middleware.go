@@ -188,6 +188,15 @@ func publicRoute(r *http.Request) bool {
 
 func appDataBusinessRoute(path string) bool {
 	parts := pathParts(path)
+	if len(parts) == 7 &&
+		parts[0] == "api" &&
+		parts[1] == "v1" &&
+		parts[2] == "spaces" &&
+		parts[4] == "data" &&
+		parts[5] == "records" &&
+		parts[6] == "batch" {
+		return true
+	}
 	if len(parts) >= 8 &&
 		parts[0] == "api" &&
 		parts[1] == "v1" &&
