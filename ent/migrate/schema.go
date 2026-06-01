@@ -3,6 +3,7 @@
 package migrate
 
 import (
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql/schema"
 	"entgo.io/ent/schema/field"
 )
@@ -207,6 +208,58 @@ var (
 				Name:    "appdatarecord_space_id_model_key_status",
 				Unique:  false,
 				Columns: []*schema.Column{AppDataRecordsColumns[1], AppDataRecordsColumns[3], AppDataRecordsColumns[8]},
+			},
+			{
+				Name:    "appdatarecord_space_model_updated_id",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataRecordsColumns[1], AppDataRecordsColumns[3], AppDataRecordsColumns[12], AppDataRecordsColumns[0]},
+				Annotation: &entsql.IndexAnnotation{
+					DescColumns: map[string]bool{
+						AppDataRecordsColumns[0].Name: true,
+
+						AppDataRecordsColumns[12].Name: true,
+					},
+					Where: "deleted_at IS NULL",
+				},
+			},
+			{
+				Name:    "appdatarecord_space_model_created_id",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataRecordsColumns[1], AppDataRecordsColumns[3], AppDataRecordsColumns[11], AppDataRecordsColumns[0]},
+				Annotation: &entsql.IndexAnnotation{
+					DescColumns: map[string]bool{
+						AppDataRecordsColumns[11].Name: true,
+
+						AppDataRecordsColumns[0].Name: true,
+					},
+					Where: "deleted_at IS NULL",
+				},
+			},
+			{
+				Name:    "appdatarecord_space_model_visibility_updated_id",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataRecordsColumns[1], AppDataRecordsColumns[3], AppDataRecordsColumns[7], AppDataRecordsColumns[12], AppDataRecordsColumns[0]},
+				Annotation: &entsql.IndexAnnotation{
+					DescColumns: map[string]bool{
+						AppDataRecordsColumns[0].Name: true,
+
+						AppDataRecordsColumns[12].Name: true,
+					},
+					Where: "deleted_at IS NULL",
+				},
+			},
+			{
+				Name:    "appdatarecord_space_model_status_updated_id",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataRecordsColumns[1], AppDataRecordsColumns[3], AppDataRecordsColumns[8], AppDataRecordsColumns[12], AppDataRecordsColumns[0]},
+				Annotation: &entsql.IndexAnnotation{
+					DescColumns: map[string]bool{
+						AppDataRecordsColumns[0].Name: true,
+
+						AppDataRecordsColumns[12].Name: true,
+					},
+					Where: "deleted_at IS NULL",
+				},
 			},
 			{
 				Name:    "appdatarecord_space_id_group_id",
