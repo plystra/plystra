@@ -924,8 +924,11 @@ func openAPIRoutes() []openAPIRoute {
 		}), Body: new(roleMutationRequest), Response: new(openAPIEnvelope[openAPIRole]), Security: openAPIAdmin},
 
 		{Method: http.MethodGet, Path: "/api/v1/spaces/{space_id}/member-roles", Tag: "Roles", ID: "listMemberRoles", Summary: "List member role grants", Params: new(struct {
-			SpaceID string `path:"space_id"`
-			Limit   int    `query:"limit" minimum:"1" maximum:"200"`
+			SpaceID  string `path:"space_id"`
+			Limit    int    `query:"limit" minimum:"1" maximum:"200"`
+			MemberID string `query:"member_id"`
+			RoleID   string `query:"role_id"`
+			Status   string `query:"status"`
 		}), Response: new(openAPIListEnvelope[openAPIMemberRole]), Security: openAPIAdmin},
 		{Method: http.MethodPost, Path: "/api/v1/spaces/{space_id}/member-roles", Tag: "Roles", ID: "createMemberRole", Summary: "Create a member role grant", Params: new(struct {
 			SpaceID string `path:"space_id"`

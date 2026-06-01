@@ -5477,6 +5477,18 @@ paths:
                     maximum: 200
                     minimum: 1
                     type: integer
+                - in: query
+                  name: member_id
+                  schema:
+                    type: string
+                - in: query
+                  name: role_id
+                  schema:
+                    type: string
+                - in: query
+                  name: status
+                  schema:
+                    type: string
                 - in: path
                   name: space_id
                   required: true

@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 
 	entgroup "github.com/plystra/plystra/ent/group"
 	entmemberrole "github.com/plystra/plystra/ent/memberrole"
+	"github.com/plystra/plystra/ent/predicate"
 	entrole "github.com/plystra/plystra/ent/role"
 
 	"github.com/jackc/pgx/v5"
@@ -298,8 +300,18 @@ func (s *Server) listMemberRoles(w http.ResponseWriter, r *http.Request, spaceID
 	if !ok {
 		return
 	}
+	predicates := []predicate.MemberRole{entmemberrole.SpaceID(spaceID), entmemberrole.DeletedAtIsNil()}
+	if memberID := strings.TrimSpace(r.URL.Query().Get("member_id")); memberID != "" {
+		predicates = append(predicates, entmemberrole.MemberID(memberID))
+	}
+	if roleID := strings.TrimSpace(r.URL.Query().Get("role_id")); roleID != "" {
+		predicates = append(predicates, entmemberrole.RoleID(roleID))
+	}
+	if status := strings.TrimSpace(r.URL.Query().Get("status")); status != "" {
+		predicates = append(predicates, entmemberrole.Status(status))
+	}
 	memberRoles, err := client.MemberRole.Query().
-		Where(entmemberrole.SpaceID(spaceID), entmemberrole.DeletedAtIsNil()).
+		Where(predicates...).
 		Limit(limit).
 		All(r.Context())
 	if err != nil {
