@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	entusermember "github.com/plystra/plystra/ent/usermember"
@@ -90,10 +91,22 @@ func (s *Server) handleSpaceUserMembers(w http.ResponseWriter, r *http.Request, 
 			if !ok {
 				return
 			}
-			userMembers, err := client.UserMember.Query().
-				Where(entusermember.SpaceID(spaceID), entusermember.DeletedAtIsNil()).
-				Limit(limit).
-				All(r.Context())
+			query := client.UserMember.Query().
+				Where(entusermember.SpaceID(spaceID), entusermember.DeletedAtIsNil())
+			values := r.URL.Query()
+			if userID := strings.TrimSpace(values.Get("user_id")); userID != "" {
+				query = query.Where(entusermember.UserID(userID))
+			}
+			if memberID := strings.TrimSpace(values.Get("member_id")); memberID != "" {
+				query = query.Where(entusermember.MemberID(memberID))
+			}
+			if status := strings.TrimSpace(values.Get("status")); status != "" {
+				query = query.Where(entusermember.Status(status))
+			}
+			if relationType := strings.TrimSpace(values.Get("relation_type")); relationType != "" {
+				query = query.Where(entusermember.RelationType(relationType))
+			}
+			userMembers, err := query.Limit(limit).All(r.Context())
 			if err != nil {
 				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list UserMembers.", err.Error())
 				return
