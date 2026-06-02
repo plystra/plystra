@@ -33,6 +33,7 @@ import (
 const appDataRecordBaseResourceType = "app_data_record"
 const maxAppDataBatchOperations = 25
 const appDataMutationPolicyServiceAppendOnly = "service_append_only"
+const appDataServiceKeyHeader = "X-Plystra-App-Data-Service-Key"
 
 var appDataModelKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 var appDataDataFieldPattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]{0,63}$`)
@@ -567,6 +568,17 @@ func (s *Server) batchAppDataRecords(w http.ResponseWriter, r *http.Request, spa
 		return
 	}
 
+	primaryServiceAuthorized := s.appDataServiceAuthorized(r, "manage", spaceID)
+	secondaryServiceAuthorized, secondaryErr := s.appDataSecondaryServiceAuthorized(r, spaceID)
+	if secondaryErr != nil {
+		writeError(w, r, secondaryErr.Status, secondaryErr.Code, secondaryErr.Message, secondaryErr.Details)
+		return
+	}
+	batchServiceAuth := appDataBatchServiceAuthorization{
+		PrimaryManage:             primaryServiceAuthorized,
+		SecondaryAppendOnlyCreate: secondaryServiceAuthorized,
+	}
+
 	tx, err := client.Tx(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to start app data transaction.", err.Error())
@@ -580,9 +592,9 @@ func (s *Server) batchAppDataRecords(w http.ResponseWriter, r *http.Request, spa
 	}()
 
 	txClient := tx.Client()
-	serviceAuthorized := s.appDataServiceAuthorized(r, "manage", spaceID)
 	results := make([]map[string]any, 0, len(req.Operations))
 	for i, op := range req.Operations {
+		serviceAuthorized := appDataBatchOperationServiceAuthorized(models[op.ModelKey], op, batchServiceAuth)
 		result, batchErr := s.applyAppDataBatchOperation(r.Context(), r, txClient, models[op.ModelKey], actor, op, i, serviceAuthorized)
 		if batchErr != nil {
 			writeError(w, r, batchErr.Status, batchErr.Code, batchErr.Message, batchErr.Details)
@@ -809,6 +821,20 @@ type appDataBatchError struct {
 	Code    string
 	Message string
 	Details any
+}
+
+type appDataBatchServiceAuthorization struct {
+	PrimaryManage             bool
+	SecondaryAppendOnlyCreate bool
+}
+
+func appDataBatchOperationServiceAuthorized(model *coreent.AppDataModel, op appDataRecordBatchOperation, auth appDataBatchServiceAuthorization) bool {
+	if auth.PrimaryManage {
+		return true
+	}
+	return auth.SecondaryAppendOnlyCreate &&
+		strings.ToLower(strings.TrimSpace(op.Operation)) == "create" &&
+		appDataModelMutationPolicy(model) == appDataMutationPolicyServiceAppendOnly
 }
 
 func newAppDataBatchError(index int, op appDataRecordBatchOperation, status int, code, message, reason string) *appDataBatchError {
@@ -1547,10 +1573,7 @@ func permissionStatusForModel(status string) string {
 }
 
 func appDataMutationPolicyViolation(model *coreent.AppDataModel, action string, serviceAuthorized bool) string {
-	if model == nil {
-		return ""
-	}
-	policy := strings.TrimSpace(stringFromMap(nonNilMap(model.Metadata), "mutation_policy"))
+	policy := appDataModelMutationPolicy(model)
 	if policy == "" {
 		return ""
 	}
@@ -1567,6 +1590,13 @@ func appDataMutationPolicyViolation(model *coreent.AppDataModel, action string, 
 	default:
 		return "model mutation_policy is not supported"
 	}
+}
+
+func appDataModelMutationPolicy(model *coreent.AppDataModel) string {
+	if model == nil {
+		return ""
+	}
+	return strings.TrimSpace(stringFromMap(nonNilMap(model.Metadata), "mutation_policy"))
 }
 
 func (s *Server) authorizeAppDataRecord(w http.ResponseWriter, r *http.Request, actor authz.ActorContext, action string, record *coreent.AppDataRecord) (*authz.Decision, bool) {
@@ -1902,6 +1932,50 @@ func (s *Server) appDataServicePrincipalAllowed(ctx context.Context, principal a
 	}
 	allowed, err := s.adminPrincipalAllows(ctx, principal, adminRequirement{PermissionKey: permission, SpaceID: spaceID})
 	return err == nil && allowed
+}
+
+func (s *Server) appDataSecondaryServiceAuthorized(r *http.Request, spaceID string) (bool, *appDataBatchError) {
+	token := strings.TrimSpace(r.Header.Get(appDataServiceKeyHeader))
+	if token == "" {
+		return false, nil
+	}
+	primary, ok := adminPrincipalFrom(r)
+	if !ok || primary.CredentialType != "session" {
+		return false, &appDataBatchError{
+			Status:  http.StatusForbidden,
+			Code:    "APP_DATA_SERVICE_KEY_NOT_ALLOWED",
+			Message: "App data secondary service key is only allowed with a user session primary credential.",
+			Details: map[string]any{"header": appDataServiceKeyHeader},
+		}
+	}
+	key, err := s.apiKeyFromToken(r.Context(), token)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, &appDataBatchError{
+			Status:  http.StatusUnauthorized,
+			Code:    "APP_DATA_SERVICE_KEY_INVALID",
+			Message: "App data secondary service key is invalid.",
+			Details: map[string]any{"header": appDataServiceKeyHeader},
+		}
+	}
+	if err != nil {
+		return false, &appDataBatchError{
+			Status:  http.StatusInternalServerError,
+			Code:    "INTERNAL_ERROR",
+			Message: "Failed to authenticate app data secondary service key.",
+			Details: err.Error(),
+		}
+	}
+	principal := adminPrincipal{CredentialType: "api_key", APIKey: key}
+	if !s.appDataServicePrincipalAllowed(r.Context(), principal, "manage", spaceID) {
+		return false, &appDataBatchError{
+			Status:  http.StatusForbidden,
+			Code:    "APP_DATA_SERVICE_KEY_FORBIDDEN",
+			Message: "App data secondary service key does not have data management permission for this space.",
+			Details: map[string]any{"permission": "data:manage", "space_id": spaceID},
+		}
+	}
+	_ = s.ent.ApiKey.UpdateOneID(key.ID).SetLastUsedAt(time.Now().UTC()).Exec(r.Context())
+	return true, nil
 }
 
 func appDataServiceDecision(r *http.Request, actor authz.ActorContext, action string, record *coreent.AppDataRecord) map[string]any {
