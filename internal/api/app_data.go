@@ -32,6 +32,7 @@ import (
 
 const appDataRecordBaseResourceType = "app_data_record"
 const maxAppDataBatchOperations = 25
+const appDataMutationPolicyServiceAppendOnly = "service_append_only"
 
 var appDataModelKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 var appDataDataFieldPattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]{0,63}$`)
@@ -616,6 +617,9 @@ func (s *Server) applyAppDataBatchOperation(ctx context.Context, r *http.Request
 }
 
 func (s *Server) applyAppDataBatchCreate(ctx context.Context, r *http.Request, client *coreent.Client, model *coreent.AppDataModel, actor authz.ActorContext, op appDataRecordBatchOperation, index int, serviceAuthorized bool) (map[string]any, *appDataBatchError) {
+	if policyErr := appDataMutationPolicyViolation(model, "create", serviceAuthorized); policyErr != "" {
+		return nil, newAppDataBatchError(index, op, http.StatusForbidden, "APP_DATA_MODEL_MUTATION_POLICY_DENIED", "App data model mutation policy denied this operation.", policyErr)
+	}
 	req := op.Request
 	if req.ID == "" {
 		req.ID = newEntityID(model.Key)
@@ -674,6 +678,9 @@ func (s *Server) applyAppDataBatchCreate(ctx context.Context, r *http.Request, c
 }
 
 func (s *Server) applyAppDataBatchUpdate(ctx context.Context, r *http.Request, client *coreent.Client, model *coreent.AppDataModel, actor authz.ActorContext, op appDataRecordBatchOperation, index int, serviceAuthorized bool) (map[string]any, *appDataBatchError) {
+	if policyErr := appDataMutationPolicyViolation(model, "update", serviceAuthorized); policyErr != "" {
+		return nil, newAppDataBatchError(index, op, http.StatusForbidden, "APP_DATA_MODEL_MUTATION_POLICY_DENIED", "App data model mutation policy denied this operation.", policyErr)
+	}
 	req := op.Request
 	current, err := loadAppDataRecordByIDFromClient(ctx, client, model.SpaceID, model.Key, op.RecordID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -752,6 +759,9 @@ func (s *Server) applyAppDataBatchUpdate(ctx context.Context, r *http.Request, c
 }
 
 func (s *Server) applyAppDataBatchStatus(ctx context.Context, r *http.Request, client *coreent.Client, model *coreent.AppDataModel, actor authz.ActorContext, op appDataRecordBatchOperation, index int, serviceAuthorized bool, status, action string) (map[string]any, *appDataBatchError) {
+	if policyErr := appDataMutationPolicyViolation(model, action, serviceAuthorized); policyErr != "" {
+		return nil, newAppDataBatchError(index, op, http.StatusForbidden, "APP_DATA_MODEL_MUTATION_POLICY_DENIED", "App data model mutation policy denied this operation.", policyErr)
+	}
 	record, err := loadAppDataRecordByIDFromClient(ctx, client, model.SpaceID, model.Key, op.RecordID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, newAppDataBatchError(index, op, http.StatusNotFound, "APP_DATA_RECORD_NOT_FOUND", "App data record was not found.", "record was not found")
@@ -994,6 +1004,11 @@ func (s *Server) createAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 	if !decodeJSON(w, r, &req) {
 		return
 	}
+	serviceAuthorized := s.appDataServiceAuthorized(r, "manage", model.SpaceID)
+	if policyErr := appDataMutationPolicyViolation(model, "create", serviceAuthorized); policyErr != "" {
+		writeError(w, r, http.StatusForbidden, "APP_DATA_MODEL_MUTATION_POLICY_DENIED", "App data model mutation policy denied this operation.", policyErr)
+		return
+	}
 	if err := validateAppDataRecordMutation(req, true); err != nil {
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", err.Error(), nil)
 		return
@@ -1021,7 +1036,7 @@ func (s *Server) createAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 		return
 	}
 	var decision any
-	if s.appDataServiceAuthorized(r, "manage", model.SpaceID) {
+	if serviceAuthorized {
 		decision = appDataServiceDecisionForTarget(r, actor, "create", req.ID, target)
 	} else {
 		checked, ok := s.authorizeTarget(w, r, actor, resourceType, req.ID, "create", target)
@@ -1099,6 +1114,11 @@ func (s *Server) updateAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 	if !decodeJSON(w, r, &req) {
 		return
 	}
+	serviceAuthorized := s.appDataServiceAuthorized(r, "manage", model.SpaceID)
+	if policyErr := appDataMutationPolicyViolation(model, "update", serviceAuthorized); policyErr != "" {
+		writeError(w, r, http.StatusForbidden, "APP_DATA_MODEL_MUTATION_POLICY_DENIED", "App data model mutation policy denied this operation.", policyErr)
+		return
+	}
 	if err := validateAppDataRecordMutation(req, false); err != nil {
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", err.Error(), nil)
 		return
@@ -1151,7 +1171,7 @@ func (s *Server) updateAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 	}
 	resourceType := appDataModelResourceType(model.Key)
 	var decision any
-	if s.appDataServiceAuthorized(r, "manage", model.SpaceID) {
+	if serviceAuthorized {
 		decision = appDataServiceDecisionForTarget(r, actor, "update", current.ID, proposed)
 	} else {
 		checked, ok := s.authorizeTarget(w, r, actor, resourceType, current.ID, "update", proposed)
@@ -1209,6 +1229,11 @@ func (s *Server) updateAppDataRecordStatus(w http.ResponseWriter, r *http.Reques
 	if !decodeOptionalJSON(w, r, &req) {
 		return
 	}
+	serviceAuthorized := s.appDataServiceAuthorized(r, "manage", model.SpaceID)
+	if policyErr := appDataMutationPolicyViolation(model, action, serviceAuthorized); policyErr != "" {
+		writeError(w, r, http.StatusForbidden, "APP_DATA_MODEL_MUTATION_POLICY_DENIED", "App data model mutation policy denied this operation.", policyErr)
+		return
+	}
 	record, err := s.loadAppDataRecordByID(r.Context(), model.SpaceID, model.Key, recordID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeError(w, r, http.StatusNotFound, "APP_DATA_RECORD_NOT_FOUND", "App data record was not found.", nil)
@@ -1227,7 +1252,7 @@ func (s *Server) updateAppDataRecordStatus(w http.ResponseWriter, r *http.Reques
 		authAction = "archive"
 	}
 	var decision any
-	if s.appDataServiceAuthorized(r, "manage", model.SpaceID) {
+	if serviceAuthorized {
 		decision = appDataServiceDecision(r, actor, authAction, record)
 	} else {
 		checked, ok := s.authorizeAppDataRecord(w, r, actor, authAction, record)
@@ -1518,6 +1543,29 @@ func permissionStatusForModel(status string) string {
 		return "active"
 	default:
 		return "disabled"
+	}
+}
+
+func appDataMutationPolicyViolation(model *coreent.AppDataModel, action string, serviceAuthorized bool) string {
+	if model == nil {
+		return ""
+	}
+	policy := strings.TrimSpace(stringFromMap(nonNilMap(model.Metadata), "mutation_policy"))
+	if policy == "" {
+		return ""
+	}
+	switch policy {
+	case appDataMutationPolicyServiceAppendOnly:
+		action = strings.ToLower(strings.TrimSpace(action))
+		if action != "create" {
+			return "model mutation_policy service_append_only only permits create operations"
+		}
+		if !serviceAuthorized {
+			return "model mutation_policy service_append_only requires a service API key with data:manage"
+		}
+		return ""
+	default:
+		return "model mutation_policy is not supported"
 	}
 }
 

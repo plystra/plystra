@@ -117,16 +117,11 @@ func backupManifest(ctx context.Context) (map[string]any, error) {
 		tables[table] = value
 	}
 	pluginTables := map[string]int64{}
-	for _, table := range []string{
-		"plugin_auth_challenges",
-		"plugin_auth_settings",
-		"plugin_email_smtp_settings",
-		"plugin_saas_crm_accounts",
-		"plugin_saas_crm_deals",
-		"plugin_saas_crm_tasks",
-		"plugin_saas_crm_settings",
-		"plugin_migration_state",
-	} {
+	discoveredPluginTables, err := discoverPluginOwnedTables(ctx, pool)
+	if err != nil {
+		return nil, fmt.Errorf("discover plugin-owned tables: %w", err)
+	}
+	for _, table := range discoveredPluginTables {
 		value, exists, err := countOptionalTable(ctx, pool, table)
 		if err != nil {
 			return nil, fmt.Errorf("read optional plugin table %s count: %w", table, err)
@@ -160,6 +155,49 @@ func backupManifest(ctx context.Context) (map[string]any, error) {
 }
 
 var tableNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+
+var corePluginSystemTables = map[string]bool{
+	"plugin_admin_menus":          true,
+	"plugin_migration_state":      true,
+	"plugin_settings_definitions": true,
+	"plugin_settings_values":      true,
+}
+
+func discoverPluginOwnedTables(ctx context.Context, pool *pgxpool.Pool) ([]string, error) {
+	rows, err := pool.Query(ctx, `
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = current_schema()
+  AND table_type = 'BASE TABLE'
+  AND table_name LIKE 'plugin\_%' ESCAPE '\'
+ORDER BY table_name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	tables := []string{}
+	for rows.Next() {
+		table := ""
+		if err := rows.Scan(&table); err != nil {
+			return nil, err
+		}
+		if pluginBackupTableAllowed(table) {
+			tables = append(tables, safeTableIdentifier(table))
+		}
+	}
+	return tables, rows.Err()
+}
+
+func pluginBackupTableAllowed(table string) bool {
+	if !tableNamePattern.MatchString(table) {
+		return false
+	}
+	if !strings.HasPrefix(table, "plugin_") {
+		return false
+	}
+	return !corePluginSystemTables[table]
+}
 
 func countRequiredTable(ctx context.Context, pool *pgxpool.Pool, table string) (int64, error) {
 	var value int64

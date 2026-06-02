@@ -94,9 +94,8 @@ func TestCreateTemplateAppGeneratesInspectableAlphaScaffold(t *testing.T) {
 func TestBackupManifestStaticTableNamesAreSafe(t *testing.T) {
 	for _, table := range []string{
 		"users",
-		"plugin_auth_challenges",
-		"plugin_auth_settings",
-		"plugin_email_smtp_settings",
+		"plugin_example_records",
+		"plugin_acme_events",
 	} {
 		if got := safeTableIdentifier(table); got != table {
 			t.Fatalf("safeTableIdentifier(%q) = %q", table, got)
@@ -105,6 +104,32 @@ func TestBackupManifestStaticTableNamesAreSafe(t *testing.T) {
 
 	assertPanics(t, func() { safeTableIdentifier("users;drop_table") })
 	assertPanics(t, func() { safeTableIdentifier("public.users") })
+}
+
+func TestPluginBackupTableAllowed(t *testing.T) {
+	for _, table := range []string{
+		"plugin_example_records",
+		"plugin_acme_events",
+		"plugin_acme_settings",
+	} {
+		if !pluginBackupTableAllowed(table) {
+			t.Fatalf("pluginBackupTableAllowed(%q) = false", table)
+		}
+	}
+	for _, table := range []string{
+		"plugins",
+		"plugin_admin_menus",
+		"plugin_migration_state",
+		"plugin_settings_definitions",
+		"plugin_settings_values",
+		"app_data_records",
+		"plugin.bad",
+		"plugin_records;drop",
+	} {
+		if pluginBackupTableAllowed(table) {
+			t.Fatalf("pluginBackupTableAllowed(%q) = true", table)
+		}
+	}
 }
 
 func TestCreateTemplateAppRefusesExistingOutputDirectory(t *testing.T) {
