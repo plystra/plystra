@@ -165,6 +165,8 @@ go run ./cmd/plystractl upgrade verify
 
 `/api/v1/ready` reports Core readiness, migration state, system capabilities, and plugin status counts. Production alpha still requires external PostgreSQL and versioned migrations; cloud hosting and marketplace behavior are outside this phase.
 
+Plugin manifests are governed contracts, not route-only metadata. Core validates declared resources, permissions, audit event types, routes, jobs, events, health checks, required secrets, external network access, settings, and capability profiles before storing a plugin manifest. Capability levels follow the product specification: `declared` for discovery-only profiles, `standard` for implemented contracts, and `certified` for providers that pass a conformance suite.
+
 ## Security
 
 Please do not report security issues in public GitHub issues. See [SECURITY.md](SECURITY.md) for reporting guidance and production security expectations.

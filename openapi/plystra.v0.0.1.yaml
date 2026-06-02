@@ -2460,6 +2460,37 @@ components:
                 version:
                     type: string
             type: object
+        PluginsEventDefinitions:
+            properties:
+                consumes:
+                    items:
+                        type: string
+                    nullable: true
+                    type: array
+                publishes:
+                    items:
+                        type: string
+                    nullable: true
+                    type: array
+            type: object
+        PluginsHealthCheckDefinition:
+            properties:
+                description:
+                    type: string
+                id:
+                    type: string
+                path:
+                    type: string
+            type: object
+        PluginsJobDefinition:
+            properties:
+                description:
+                    type: string
+                id:
+                    type: string
+                schedule:
+                    type: string
+            type: object
         PluginsManifest:
             properties:
                 admin_menu:
@@ -2479,8 +2510,25 @@ components:
                     type: array
                 description:
                     type: string
+                events:
+                    $ref: '#/components/schemas/PluginsEventDefinitions'
+                external_network:
+                    items:
+                        $ref: '#/components/schemas/PluginsNetworkDefinition'
+                    nullable: true
+                    type: array
+                health_checks:
+                    items:
+                        $ref: '#/components/schemas/PluginsHealthCheckDefinition'
+                    nullable: true
+                    type: array
                 id:
                     type: string
+                jobs:
+                    items:
+                        $ref: '#/components/schemas/PluginsJobDefinition'
+                    nullable: true
+                    type: array
                 manifest_version:
                     type: string
                 name:
@@ -2504,6 +2552,16 @@ components:
                         $ref: '#/components/schemas/PluginsResourceDefinition'
                     nullable: true
                     type: array
+                routes:
+                    items:
+                        $ref: '#/components/schemas/PluginsRouteDefinition'
+                    nullable: true
+                    type: array
+                secrets:
+                    items:
+                        $ref: '#/components/schemas/PluginsSecretDefinition'
+                    nullable: true
+                    type: array
                 settings:
                     items:
                         $ref: '#/components/schemas/PluginsSettingDefinition'
@@ -2514,6 +2572,17 @@ components:
                 status:
                     type: string
                 version:
+                    type: string
+            type: object
+        PluginsNetworkDefinition:
+            properties:
+                description:
+                    type: string
+                purpose:
+                    type: string
+                required:
+                    type: boolean
+                target:
                     type: string
             type: object
         PluginsPermissionDefinition:
@@ -2539,6 +2608,28 @@ components:
                     type: string
                 key:
                     type: string
+            type: object
+        PluginsRouteDefinition:
+            properties:
+                action:
+                    type: string
+                handler:
+                    type: string
+                method:
+                    type: string
+                path:
+                    type: string
+                resource_type:
+                    type: string
+            type: object
+        PluginsSecretDefinition:
+            properties:
+                description:
+                    type: string
+                key:
+                    type: string
+                required:
+                    type: boolean
             type: object
         PluginsSettingDefinition:
             properties:

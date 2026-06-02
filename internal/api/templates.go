@@ -467,18 +467,18 @@ func (s *Server) resolveTemplateCapabilities(ctx context.Context, tpl templates.
 
 func capabilityLevelSatisfies(actual, required string) bool {
 	if required == "" {
-		required = "experimental"
+		required = "declared"
 	}
 	return capabilityLevelRank(actual) >= capabilityLevelRank(required)
 }
 
 func capabilityLevelRank(level string) int {
 	switch level {
-	case "experimental":
+	case "declared":
 		return 1
 	case "standard":
 		return 2
-	case "enterprise":
+	case "certified":
 		return 3
 	default:
 		return 0

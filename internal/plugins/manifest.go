@@ -24,6 +24,12 @@ type Manifest struct {
 	Settings         []SettingDefinition     `json:"settings"`
 	Capabilities     []CapabilityDefinition  `json:"capabilities"`
 	Requires         []CapabilityRequirement `json:"requires_capabilities"`
+	Routes           []RouteDefinition       `json:"routes"`
+	Events           EventDefinitions        `json:"events"`
+	Jobs             []JobDefinition         `json:"jobs"`
+	HealthChecks     []HealthCheckDefinition `json:"health_checks"`
+	Secrets          []SecretDefinition      `json:"secrets"`
+	ExternalNetwork  []NetworkDefinition     `json:"external_network"`
 }
 
 type ResourceDefinition struct {
@@ -75,10 +81,50 @@ type CapabilityRequirement struct {
 	Optional bool   `json:"optional"`
 }
 
+type RouteDefinition struct {
+	Method       string `json:"method"`
+	Path         string `json:"path"`
+	ResourceType string `json:"resource_type"`
+	Action       string `json:"action"`
+	Handler      string `json:"handler"`
+}
+
+type EventDefinitions struct {
+	Publishes []string `json:"publishes"`
+	Consumes  []string `json:"consumes"`
+}
+
+type JobDefinition struct {
+	ID          string `json:"id"`
+	Schedule    string `json:"schedule"`
+	Description string `json:"description"`
+}
+
+type HealthCheckDefinition struct {
+	ID          string `json:"id"`
+	Path        string `json:"path"`
+	Description string `json:"description"`
+}
+
+type SecretDefinition struct {
+	Key         string `json:"key"`
+	Required    bool   `json:"required"`
+	Description string `json:"description"`
+}
+
+type NetworkDefinition struct {
+	Target      string `json:"target"`
+	Purpose     string `json:"purpose"`
+	Required    bool   `json:"required"`
+	Description string `json:"description"`
+}
+
 var pluginIDPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`)
 var semverLikePattern = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9_.-]+)?$`)
 var keyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 var capabilityIDPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`)
+var eventKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`)
+var secretKeyPattern = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
 
 func ValidateManifest(manifest Manifest) []string {
 	var errors []string
@@ -163,6 +209,101 @@ func ValidateManifest(manifest Manifest) []string {
 		}
 	}
 
+	for i, route := range manifest.Routes {
+		method := strings.ToUpper(strings.TrimSpace(route.Method))
+		if !validHTTPMethod(method) {
+			errors = append(errors, fmt.Sprintf("routes[%d].method must be GET, POST, PUT, PATCH, or DELETE", i))
+		}
+		if !validPluginPath(route.Path) {
+			errors = append(errors, fmt.Sprintf("routes[%d].path must be an absolute API path without query or fragment", i))
+		}
+		if strings.TrimSpace(route.ResourceType) != "" && !resourceKeys[route.ResourceType] {
+			errors = append(errors, fmt.Sprintf("routes[%d].resource_type references unknown resource %q", i, route.ResourceType))
+		}
+		if strings.TrimSpace(route.Action) != "" {
+			if strings.TrimSpace(route.ResourceType) == "" {
+				errors = append(errors, fmt.Sprintf("routes[%d].resource_type is required when action is declared", i))
+			} else if !resourceActions[route.ResourceType][route.Action] {
+				errors = append(errors, fmt.Sprintf("routes[%d].action references unknown resource/action %s:%s", i, route.ResourceType, route.Action))
+			}
+		}
+		if strings.TrimSpace(route.Handler) != "" && !keyPattern.MatchString(route.Handler) {
+			errors = append(errors, fmt.Sprintf("routes[%d].handler is invalid", i))
+		}
+	}
+
+	validateEventList := func(field string, values []string) {
+		seen := map[string]bool{}
+		for i, value := range values {
+			if !eventKeyPattern.MatchString(value) {
+				errors = append(errors, fmt.Sprintf("events.%s[%d] is invalid", field, i))
+			}
+			if seen[value] {
+				errors = append(errors, fmt.Sprintf("events.%s contains duplicate event %q", field, value))
+			}
+			seen[value] = true
+		}
+	}
+	validateEventList("publishes", manifest.Events.Publishes)
+	validateEventList("consumes", manifest.Events.Consumes)
+
+	jobIDs := map[string]bool{}
+	for i, job := range manifest.Jobs {
+		if !keyPattern.MatchString(job.ID) {
+			errors = append(errors, fmt.Sprintf("jobs[%d].id is invalid", i))
+		}
+		if jobIDs[job.ID] {
+			errors = append(errors, fmt.Sprintf("duplicate job id %q", job.ID))
+		}
+		jobIDs[job.ID] = true
+		if strings.TrimSpace(job.Schedule) == "" {
+			errors = append(errors, fmt.Sprintf("jobs[%d].schedule is required", i))
+		}
+	}
+
+	healthIDs := map[string]bool{}
+	for i, check := range manifest.HealthChecks {
+		if !keyPattern.MatchString(check.ID) {
+			errors = append(errors, fmt.Sprintf("health_checks[%d].id is invalid", i))
+		}
+		if healthIDs[check.ID] {
+			errors = append(errors, fmt.Sprintf("duplicate health check id %q", check.ID))
+		}
+		healthIDs[check.ID] = true
+		if !validPluginPath(check.Path) {
+			errors = append(errors, fmt.Sprintf("health_checks[%d].path must be an absolute API path without query or fragment", i))
+		}
+	}
+
+	secretKeys := map[string]bool{}
+	for i, secret := range manifest.Secrets {
+		if !secretKeyPattern.MatchString(secret.Key) {
+			errors = append(errors, fmt.Sprintf("secrets[%d].key must be an uppercase environment-style key", i))
+		}
+		if secretKeys[secret.Key] {
+			errors = append(errors, fmt.Sprintf("duplicate secret key %q", secret.Key))
+		}
+		secretKeys[secret.Key] = true
+	}
+
+	networkTargets := map[string]bool{}
+	for i, network := range manifest.ExternalNetwork {
+		target := strings.TrimSpace(network.Target)
+		if target == "" {
+			errors = append(errors, fmt.Sprintf("external_network[%d].target is required", i))
+		}
+		if strings.ContainsAny(target, "\r\n\t ") {
+			errors = append(errors, fmt.Sprintf("external_network[%d].target must not contain whitespace", i))
+		}
+		if strings.TrimSpace(network.Purpose) == "" {
+			errors = append(errors, fmt.Sprintf("external_network[%d].purpose is required", i))
+		}
+		if networkTargets[target] {
+			errors = append(errors, fmt.Sprintf("duplicate external network target %q", target))
+		}
+		networkTargets[target] = true
+	}
+
 	capabilityKeys := map[string]bool{}
 	for i, capability := range manifest.Capabilities {
 		if !capabilityIDPattern.MatchString(capability.ID) {
@@ -176,7 +317,7 @@ func ValidateManifest(manifest Manifest) []string {
 			errors = append(errors, fmt.Sprintf("capabilities[%d].version must be semantic version-like", i))
 		}
 		if !validCapabilityLevel(capability.Level) {
-			errors = append(errors, fmt.Sprintf("capabilities[%d].level must be one of experimental, standard, or enterprise", i))
+			errors = append(errors, fmt.Sprintf("capabilities[%d].level must be one of declared, standard, or certified", i))
 		}
 	}
 	for i, requirement := range manifest.Requires {
@@ -187,7 +328,7 @@ func ValidateManifest(manifest Manifest) []string {
 			errors = append(errors, fmt.Sprintf("requires_capabilities[%d].version is required", i))
 		}
 		if requirement.MinLevel != "" && !validCapabilityLevel(requirement.MinLevel) {
-			errors = append(errors, fmt.Sprintf("requires_capabilities[%d].min_level must be one of experimental, standard, or enterprise", i))
+			errors = append(errors, fmt.Sprintf("requires_capabilities[%d].min_level must be one of declared, standard, or certified", i))
 		}
 	}
 
@@ -219,11 +360,25 @@ func validScope(scope string) bool {
 
 func validCapabilityLevel(level string) bool {
 	switch level {
-	case "experimental", "standard", "enterprise":
+	case "declared", "standard", "certified":
 		return true
 	default:
 		return false
 	}
+}
+
+func validHTTPMethod(method string) bool {
+	switch method {
+	case "GET", "POST", "PUT", "PATCH", "DELETE":
+		return true
+	default:
+		return false
+	}
+}
+
+func validPluginPath(path string) bool {
+	path = strings.TrimSpace(path)
+	return strings.HasPrefix(path, "/") && !strings.ContainsAny(path, "?#\r\n")
 }
 
 func VersionSatisfies(version, constraint string) bool {

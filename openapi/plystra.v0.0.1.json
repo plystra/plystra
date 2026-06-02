@@ -10973,6 +10973,53 @@
           }
         }
       },
+      "PluginsEventDefinitions": {
+        "type": "object",
+        "properties": {
+          "consumes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "publishes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "PluginsHealthCheckDefinition": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      },
+      "PluginsJobDefinition": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "schedule": {
+            "type": "string"
+          }
+        }
+      },
       "PluginsManifest": {
         "type": "object",
         "properties": {
@@ -11000,8 +11047,32 @@
           "description": {
             "type": "string"
           },
+          "events": {
+            "$ref": "#/components/schemas/PluginsEventDefinitions"
+          },
+          "external_network": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginsNetworkDefinition"
+            },
+            "nullable": true
+          },
+          "health_checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginsHealthCheckDefinition"
+            },
+            "nullable": true
+          },
           "id": {
             "type": "string"
+          },
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginsJobDefinition"
+            },
+            "nullable": true
           },
           "manifest_version": {
             "type": "string"
@@ -11036,6 +11107,20 @@
             },
             "nullable": true
           },
+          "routes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginsRouteDefinition"
+            },
+            "nullable": true
+          },
+          "secrets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginsSecretDefinition"
+            },
+            "nullable": true
+          },
           "settings": {
             "type": "array",
             "items": {
@@ -11050,6 +11135,23 @@
             "type": "string"
           },
           "version": {
+            "type": "string"
+          }
+        }
+      },
+      "PluginsNetworkDefinition": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "target": {
             "type": "string"
           }
         }
@@ -11087,6 +11189,40 @@
           },
           "key": {
             "type": "string"
+          }
+        }
+      },
+      "PluginsRouteDefinition": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "handler": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "resource_type": {
+            "type": "string"
+          }
+        }
+      },
+      "PluginsSecretDefinition": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
           }
         }
       },
