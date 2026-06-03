@@ -122,6 +122,7 @@ type NetworkDefinition struct {
 var pluginIDPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`)
 var semverLikePattern = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9_.-]+)?$`)
 var keyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+var settingKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$`)
 var capabilityIDPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`)
 var eventKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`)
 var secretKeyPattern = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
@@ -136,6 +137,9 @@ func ValidateManifest(manifest Manifest) []string {
 	}
 	if !semverLikePattern.MatchString(manifest.Version) {
 		errors = append(errors, "version must be semantic version-like")
+	}
+	if strings.TrimSpace(manifest.Status) != "" && !validPluginStatus(manifest.Status) {
+		errors = append(errors, "status must be one of: discovered, validated, installed, migrated, enabled, disabled, upgrading, failed, or uninstalled")
 	}
 	if manifest.ManifestVersion == "" {
 		errors = append(errors, "manifest_version is required")
@@ -157,15 +161,24 @@ func ValidateManifest(manifest Manifest) []string {
 		if !keyPattern.MatchString(resource.Key) {
 			errors = append(errors, fmt.Sprintf("resources[%d].key is invalid", i))
 		}
+		if strings.TrimSpace(resource.DisplayName) == "" {
+			errors = append(errors, fmt.Sprintf("resources[%d].display_name is required", i))
+		}
 		if resourceKeys[resource.Key] {
 			errors = append(errors, fmt.Sprintf("duplicate resource key %q", resource.Key))
 		}
 		resourceKeys[resource.Key] = true
 		resourceActions[resource.Key] = map[string]bool{}
 		actionKeys := map[string]bool{}
+		if len(resource.Actions) == 0 {
+			errors = append(errors, fmt.Sprintf("resources[%d].actions must not be empty", i))
+		}
 		for j, action := range resource.Actions {
 			if !keyPattern.MatchString(action.Key) {
 				errors = append(errors, fmt.Sprintf("resources[%d].actions[%d].key is invalid", i, j))
+			}
+			if strings.TrimSpace(action.RiskLevel) != "" && !validRiskLevel(action.RiskLevel) {
+				errors = append(errors, fmt.Sprintf("resources[%d].actions[%d].risk_level must be one of low, normal, high, or critical", i, j))
 			}
 			if actionKeys[action.Key] {
 				errors = append(errors, fmt.Sprintf("duplicate action key %q for resource %q", action.Key, resource.Key))
@@ -178,6 +191,9 @@ func ValidateManifest(manifest Manifest) []string {
 	for i, permission := range manifest.Permissions {
 		if !resourceActions[permission.Resource][permission.Action] {
 			errors = append(errors, fmt.Sprintf("permissions[%d] references unknown resource/action %s:%s", i, permission.Resource, permission.Action))
+		}
+		if len(permission.Scopes) == 0 {
+			errors = append(errors, fmt.Sprintf("permissions[%d].scopes must not be empty", i))
 		}
 		for _, scope := range permission.Scopes {
 			if scope == "global" {
@@ -194,6 +210,12 @@ func ValidateManifest(manifest Manifest) []string {
 		if strings.TrimSpace(event.Key) == "" {
 			errors = append(errors, fmt.Sprintf("audit_events[%d].key is required", i))
 		}
+		if strings.TrimSpace(event.Key) != "" && !eventKeyPattern.MatchString(event.Key) {
+			errors = append(errors, fmt.Sprintf("audit_events[%d].key is invalid", i))
+		}
+		if strings.TrimSpace(event.RiskLevel) != "" && !validRiskLevel(event.RiskLevel) {
+			errors = append(errors, fmt.Sprintf("audit_events[%d].risk_level must be one of low, normal, high, or critical", i))
+		}
 		if auditKeys[event.Key] {
 			errors = append(errors, fmt.Sprintf("duplicate audit event key %q", event.Key))
 		}
@@ -206,6 +228,29 @@ func ValidateManifest(manifest Manifest) []string {
 		}
 		if !strings.HasPrefix(menu.Path, "/plugins/") {
 			errors = append(errors, fmt.Sprintf("admin_menu[%d].path must start with /plugins/", i))
+		}
+	}
+
+	settingKeys := map[string]bool{}
+	for i, setting := range manifest.Settings {
+		scope := firstNonEmpty(setting.Scope, "space")
+		if !settingKeyPattern.MatchString(setting.Key) {
+			errors = append(errors, fmt.Sprintf("settings[%d].key is invalid", i))
+		}
+		if sensitiveSettingKey(setting.Key) {
+			errors = append(errors, fmt.Sprintf("settings[%d].key must not look like a secret; declare secrets under secrets instead", i))
+		}
+		if settingKeys[scope+":"+setting.Key] {
+			errors = append(errors, fmt.Sprintf("duplicate setting %q for scope %q", setting.Key, scope))
+		}
+		settingKeys[scope+":"+setting.Key] = true
+		if strings.TrimSpace(setting.ValueType) == "" {
+			errors = append(errors, fmt.Sprintf("settings[%d].type is required", i))
+		} else if !validSettingType(setting.ValueType) {
+			errors = append(errors, fmt.Sprintf("settings[%d].type must be one of string, integer, number, boolean, string_array, array, object, or json", i))
+		}
+		if scope != "instance" && scope != "space" {
+			errors = append(errors, fmt.Sprintf("settings[%d].scope must be instance or space", i))
 		}
 	}
 
@@ -333,6 +378,52 @@ func ValidateManifest(manifest Manifest) []string {
 	}
 
 	return errors
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
+}
+
+func validPluginStatus(status string) bool {
+	switch strings.TrimSpace(status) {
+	case "discovered", "validated", "installed", "migrated", "enabled", "disabled", "upgrading", "failed", "uninstalled":
+		return true
+	default:
+		return false
+	}
+}
+
+func validRiskLevel(level string) bool {
+	switch strings.TrimSpace(level) {
+	case "low", "normal", "high", "critical":
+		return true
+	default:
+		return false
+	}
+}
+
+func validSettingType(valueType string) bool {
+	switch strings.TrimSpace(valueType) {
+	case "string", "integer", "number", "boolean", "string_array", "array", "object", "json":
+		return true
+	default:
+		return false
+	}
+}
+
+func sensitiveSettingKey(key string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(key))
+	for _, marker := range []string{"secret", "password", "token", "credential", "api_key", "private_key"} {
+		if strings.Contains(normalized, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 func ValidateManifestForCore(manifest Manifest, coreVersion string) []string {

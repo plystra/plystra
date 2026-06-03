@@ -1,6 +1,9 @@
 package plugins
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestValidateManifestAcceptsCapabilities(t *testing.T) {
 	manifest := Manifest{
@@ -91,6 +94,7 @@ func TestValidateManifestAcceptsPluginRuntimeDeclarations(t *testing.T) {
 	manifest := Manifest{
 		ID:               "plystra.email_smtp",
 		Name:             "SMTP Email",
+		Status:           "enabled",
 		Version:          "0.0.1",
 		ManifestVersion:  "1.0",
 		PluginAPIVersion: "1.0",
@@ -127,6 +131,66 @@ func TestValidateManifestAcceptsPluginRuntimeDeclarations(t *testing.T) {
 	}
 }
 
+func TestValidateManifestRejectsInvalidGovernedDeclarations(t *testing.T) {
+	manifest := Manifest{
+		ID:               "plystra.invoice",
+		Name:             "Invoice",
+		Status:           "active",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{
+			{Key: "invoice", DisplayName: "", Actions: nil},
+			{Key: "invoice_payment", DisplayName: "Invoice Payment", Actions: []ActionDefinition{{Key: "approve", RiskLevel: "root"}}},
+		},
+		Permissions: []PermissionDefinition{
+			{Resource: "invoice_payment", Action: "approve"},
+		},
+		AuditEvents: []AuditEventDefinition{{Key: "invoice paid", RiskLevel: "root"}},
+		Settings: []SettingDefinition{
+			{Key: "smtp_password", ValueType: "string", Scope: "space"},
+			{Key: "retention_days", ValueType: "duration", Scope: "tenant"},
+		},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	if len(errors) < 8 {
+		t.Fatalf("ValidateManifestForCore returned too few errors: %#v", errors)
+	}
+	assertContainsError(t, errors, "status must be one of")
+	assertContainsError(t, errors, "resources[0].display_name is required")
+	assertContainsError(t, errors, "resources[0].actions must not be empty")
+	assertContainsError(t, errors, "resources[1].actions[0].risk_level")
+	assertContainsError(t, errors, "permissions[0].scopes must not be empty")
+	assertContainsError(t, errors, "audit_events[0].key is invalid")
+	assertContainsError(t, errors, "settings[0].key must not look like a secret")
+	assertContainsError(t, errors, "settings[1].type must be one of")
+	assertContainsError(t, errors, "settings[1].scope must be instance or space")
+}
+
+func TestValidateManifestTreatsEmptySettingScopeAsSpace(t *testing.T) {
+	manifest := Manifest{
+		ID:               "plystra.invoice",
+		Name:             "Invoice",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "invoice",
+			DisplayName: "Invoice",
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "invoice", Action: "read", Scopes: []string{"space"}}},
+		Settings: []SettingDefinition{
+			{Key: "retention_days", ValueType: "integer"},
+			{Key: "retention_days", ValueType: "integer", Scope: "space"},
+		},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, `duplicate setting "retention_days" for scope "space"`)
+}
+
 func TestValidateManifestRejectsInvalidRuntimeDeclarations(t *testing.T) {
 	manifest := Manifest{
 		ID:               "plystra.email_smtp",
@@ -157,4 +221,14 @@ func TestValidateManifestRejectsInvalidRuntimeDeclarations(t *testing.T) {
 	if len(errors) < 8 {
 		t.Fatalf("ValidateManifestForCore returned too few errors: %#v", errors)
 	}
+}
+
+func assertContainsError(t *testing.T, errors []string, pattern string) {
+	t.Helper()
+	for _, err := range errors {
+		if strings.Contains(err, pattern) {
+			return
+		}
+	}
+	t.Fatalf("expected error containing %q in %#v", pattern, errors)
 }
