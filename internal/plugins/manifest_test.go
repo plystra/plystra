@@ -102,15 +102,24 @@ func TestValidateManifestAcceptsPluginRuntimeDeclarations(t *testing.T) {
 		Resources: []ResourceDefinition{{
 			Key:         "email_delivery",
 			DisplayName: "Email Delivery",
-			Actions:     []ActionDefinition{{Key: "create", RiskLevel: "high"}},
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}, {Key: "create", RiskLevel: "high"}},
 		}},
-		Permissions: []PermissionDefinition{{Resource: "email_delivery", Action: "create", Scopes: []string{"space"}}},
+		Permissions: []PermissionDefinition{
+			{Resource: "email_delivery", Action: "read", Scopes: []string{"space"}},
+			{Resource: "email_delivery", Action: "create", Scopes: []string{"space"}},
+		},
 		Routes: []RouteDefinition{{
 			Method:       "POST",
 			Path:         "/contract/v1/email/send",
 			ResourceType: "email_delivery",
 			Action:       "create",
 			Handler:      "send_email",
+		}, {
+			Method:       "HEAD",
+			Path:         "/contract/v1/email/send/{message_id}",
+			ResourceType: "email_delivery",
+			Action:       "read",
+			Handler:      "head_email",
 		}},
 		Events: EventDefinitions{
 			Publishes: []string{"email.sent", "email.failed"},

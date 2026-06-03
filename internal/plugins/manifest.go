@@ -257,7 +257,7 @@ func ValidateManifest(manifest Manifest) []string {
 	for i, route := range manifest.Routes {
 		method := strings.ToUpper(strings.TrimSpace(route.Method))
 		if !validHTTPMethod(method) {
-			errors = append(errors, fmt.Sprintf("routes[%d].method must be GET, POST, PUT, PATCH, or DELETE", i))
+			errors = append(errors, fmt.Sprintf("routes[%d].method must be GET, HEAD, POST, PUT, PATCH, or DELETE", i))
 		}
 		if !validPluginPath(route.Path) {
 			errors = append(errors, fmt.Sprintf("routes[%d].path must be an absolute API path without query or fragment", i))
@@ -460,7 +460,7 @@ func validCapabilityLevel(level string) bool {
 
 func validHTTPMethod(method string) bool {
 	switch method {
-	case "GET", "POST", "PUT", "PATCH", "DELETE":
+	case "GET", "HEAD", "POST", "PUT", "PATCH", "DELETE":
 		return true
 	default:
 		return false
