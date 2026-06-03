@@ -82,11 +82,21 @@ type CapabilityRequirement struct {
 }
 
 type RouteDefinition struct {
-	Method       string `json:"method"`
-	Path         string `json:"path"`
-	ResourceType string `json:"resource_type"`
-	Action       string `json:"action"`
-	Handler      string `json:"handler"`
+	Method        string                       `json:"method"`
+	Path          string                       `json:"path"`
+	ResourceType  string                       `json:"resource_type"`
+	Action        string                       `json:"action"`
+	Handler       string                       `json:"handler"`
+	Authorization RouteAuthorizationDefinition `json:"authorization,omitempty"`
+}
+
+type RouteAuthorizationDefinition struct {
+	Mode                string   `json:"mode,omitempty"`
+	ResourceParam       string   `json:"resource_param,omitempty"`
+	ResourceKeyStrategy string   `json:"resource_key_strategy,omitempty"`
+	Action              string   `json:"action,omitempty"`
+	AllowedResources    []string `json:"allowed_resources,omitempty"`
+	ExcludedResources   []string `json:"excluded_resources,omitempty"`
 }
 
 type EventDefinitions struct {
@@ -275,6 +285,7 @@ func ValidateManifest(manifest Manifest) []string {
 		if strings.TrimSpace(route.Handler) != "" && !keyPattern.MatchString(route.Handler) {
 			errors = append(errors, fmt.Sprintf("routes[%d].handler is invalid", i))
 		}
+		errors = append(errors, validateRouteAuthorization(i, route, resourceKeys, resourceActions)...)
 	}
 
 	validateEventList := func(field string, values []string) {
@@ -378,6 +389,102 @@ func ValidateManifest(manifest Manifest) []string {
 	}
 
 	return errors
+}
+
+func validateRouteAuthorization(i int, route RouteDefinition, resourceKeys map[string]bool, resourceActions map[string]map[string]bool) []string {
+	var errors []string
+	mode := strings.TrimSpace(route.Authorization.Mode)
+	if mode == "" {
+		return errors
+	}
+	switch mode {
+	case "none":
+		if strings.TrimSpace(route.ResourceType) != "" || strings.TrimSpace(route.Action) != "" {
+			errors = append(errors, fmt.Sprintf("routes[%d].authorization.mode none cannot be combined with resource_type or action", i))
+		}
+		if route.Authorization.ResourceParam != "" || route.Authorization.ResourceKeyStrategy != "" || route.Authorization.Action != "" || len(route.Authorization.AllowedResources) > 0 || len(route.Authorization.ExcludedResources) > 0 {
+			errors = append(errors, fmt.Sprintf("routes[%d].authorization.mode none must not declare dynamic authorization fields", i))
+		}
+	case "static":
+		if strings.TrimSpace(route.ResourceType) == "" || strings.TrimSpace(route.Action) == "" {
+			errors = append(errors, fmt.Sprintf("routes[%d].authorization.mode static requires route resource_type and action", i))
+		}
+		if route.Authorization.ResourceParam != "" || route.Authorization.ResourceKeyStrategy != "" || route.Authorization.Action != "" || len(route.Authorization.AllowedResources) > 0 || len(route.Authorization.ExcludedResources) > 0 {
+			errors = append(errors, fmt.Sprintf("routes[%d].authorization.mode static must not declare dynamic authorization fields", i))
+		}
+	case "dynamic_resource":
+		errors = append(errors, validateDynamicRouteAuthorization(i, route, resourceKeys, resourceActions)...)
+	default:
+		errors = append(errors, fmt.Sprintf("routes[%d].authorization.mode must be one of none, static, or dynamic_resource", i))
+	}
+	return errors
+}
+
+func validateDynamicRouteAuthorization(i int, route RouteDefinition, resourceKeys map[string]bool, resourceActions map[string]map[string]bool) []string {
+	var errors []string
+	if strings.TrimSpace(route.ResourceType) != "" || strings.TrimSpace(route.Action) != "" {
+		errors = append(errors, fmt.Sprintf("routes[%d].authorization.mode dynamic_resource cannot be combined with route resource_type or action", i))
+	}
+	resourceParam := strings.TrimSpace(route.Authorization.ResourceParam)
+	if resourceParam == "" || !keyPattern.MatchString(resourceParam) {
+		errors = append(errors, fmt.Sprintf("routes[%d].authorization.resource_param is required and must be a valid path parameter name", i))
+	} else if !routePathHasParam(route.Path, resourceParam) {
+		errors = append(errors, fmt.Sprintf("routes[%d].authorization.resource_param must reference a parameter in route path", i))
+	}
+	strategy := strings.TrimSpace(route.Authorization.ResourceKeyStrategy)
+	if strategy == "" {
+		errors = append(errors, fmt.Sprintf("routes[%d].authorization.resource_key_strategy is required", i))
+	} else if strategy != "declared_resource_key" && strategy != "plugin_defined_alias" {
+		errors = append(errors, fmt.Sprintf("routes[%d].authorization.resource_key_strategy must be declared_resource_key or plugin_defined_alias", i))
+	}
+	action := strings.TrimSpace(route.Authorization.Action)
+	if action == "" || !keyPattern.MatchString(action) {
+		errors = append(errors, fmt.Sprintf("routes[%d].authorization.action is required and must be a valid action key", i))
+	}
+	if len(route.Authorization.AllowedResources) > 0 && len(route.Authorization.ExcludedResources) > 0 {
+		errors = append(errors, fmt.Sprintf("routes[%d].authorization cannot declare both allowed_resources and excluded_resources", i))
+	}
+	targetResources := map[string]bool{}
+	if len(route.Authorization.AllowedResources) > 0 {
+		for _, resource := range route.Authorization.AllowedResources {
+			resource = strings.TrimSpace(resource)
+			if !resourceKeys[resource] {
+				errors = append(errors, fmt.Sprintf("routes[%d].authorization.allowed_resources references unknown resource %q", i, resource))
+				continue
+			}
+			targetResources[resource] = true
+		}
+	} else {
+		excluded := map[string]bool{}
+		for _, resource := range route.Authorization.ExcludedResources {
+			resource = strings.TrimSpace(resource)
+			if !resourceKeys[resource] {
+				errors = append(errors, fmt.Sprintf("routes[%d].authorization.excluded_resources references unknown resource %q", i, resource))
+				continue
+			}
+			excluded[resource] = true
+		}
+		for resource := range resourceKeys {
+			if !excluded[resource] {
+				targetResources[resource] = true
+			}
+		}
+	}
+	if len(targetResources) == 0 {
+		errors = append(errors, fmt.Sprintf("routes[%d].authorization must cover at least one resource", i))
+	}
+	if action != "" {
+		for resource := range targetResources {
+			if !resourceActions[resource][action] {
+				errors = append(errors, fmt.Sprintf("routes[%d].authorization action %q is not declared for resource %q", i, action, resource))
+			}
+		}
+	}
+	return errors
+}
+
+func routePathHasParam(path, param string) bool {
+	return strings.Contains(path, "{"+param+"}")
 }
 
 func firstNonEmpty(values ...string) string {

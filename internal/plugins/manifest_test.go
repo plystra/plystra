@@ -140,6 +140,98 @@ func TestValidateManifestAcceptsPluginRuntimeDeclarations(t *testing.T) {
 	}
 }
 
+func TestValidateManifestAcceptsDynamicRouteAuthorization(t *testing.T) {
+	manifest := Manifest{
+		ID:               "plystra.crud",
+		Name:             "CRUD",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "invoice",
+			DisplayName: "Invoice",
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}, {Key: "create", RiskLevel: "normal"}, {Key: "update", RiskLevel: "high"}},
+		}, {
+			Key:         "activity_log",
+			DisplayName: "Activity Log",
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}},
+		}},
+		Permissions: []PermissionDefinition{
+			{Resource: "invoice", Action: "read", Scopes: []string{"space"}},
+			{Resource: "invoice", Action: "create", Scopes: []string{"space"}},
+			{Resource: "invoice", Action: "update", Scopes: []string{"space"}},
+			{Resource: "activity_log", Action: "read", Scopes: []string{"space"}},
+		},
+		Routes: []RouteDefinition{{
+			Method:  "GET",
+			Path:    "/api/v1/crud/{resource}",
+			Handler: "generic_list",
+			Authorization: RouteAuthorizationDefinition{
+				Mode:                "dynamic_resource",
+				ResourceParam:       "resource",
+				ResourceKeyStrategy: "plugin_defined_alias",
+				Action:              "read",
+			},
+		}, {
+			Method:  "POST",
+			Path:    "/api/v1/crud/{resource}",
+			Handler: "generic_create",
+			Authorization: RouteAuthorizationDefinition{
+				Mode:                "dynamic_resource",
+				ResourceParam:       "resource",
+				ResourceKeyStrategy: "plugin_defined_alias",
+				Action:              "create",
+				ExcludedResources:   []string{"activity_log"},
+			},
+		}},
+	}
+	if errors := ValidateManifestForCore(manifest, "0.0.1"); len(errors) > 0 {
+		t.Fatalf("ValidateManifestForCore returned errors: %#v", errors)
+	}
+}
+
+func TestValidateManifestRejectsInvalidDynamicRouteAuthorization(t *testing.T) {
+	manifest := Manifest{
+		ID:               "plystra.crud",
+		Name:             "CRUD",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "invoice",
+			DisplayName: "Invoice",
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}},
+		}, {
+			Key:         "activity_log",
+			DisplayName: "Activity Log",
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}},
+		}},
+		Permissions: []PermissionDefinition{
+			{Resource: "invoice", Action: "read", Scopes: []string{"space"}},
+			{Resource: "activity_log", Action: "read", Scopes: []string{"space"}},
+		},
+		Routes: []RouteDefinition{{
+			Method:       "POST",
+			Path:         "/api/v1/crud/{resource}",
+			ResourceType: "invoice",
+			Action:       "read",
+			Handler:      "generic_create",
+			Authorization: RouteAuthorizationDefinition{
+				Mode:                "dynamic_resource",
+				ResourceParam:       "missing",
+				ResourceKeyStrategy: "plugin_defined_alias",
+				Action:              "create",
+			},
+		}},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, "dynamic_resource cannot be combined")
+	assertContainsError(t, errors, "resource_param must reference a parameter in route path")
+	assertContainsError(t, errors, `action "create" is not declared`)
+}
+
 func TestValidateManifestRejectsInvalidGovernedDeclarations(t *testing.T) {
 	manifest := Manifest{
 		ID:               "plystra.invoice",

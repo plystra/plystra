@@ -2609,10 +2609,31 @@ components:
                 key:
                     type: string
             type: object
+        PluginsRouteAuthorizationDefinition:
+            properties:
+                action:
+                    type: string
+                allowed_resources:
+                    items:
+                        type: string
+                    type: array
+                excluded_resources:
+                    items:
+                        type: string
+                    type: array
+                mode:
+                    type: string
+                resource_key_strategy:
+                    type: string
+                resource_param:
+                    type: string
+            type: object
         PluginsRouteDefinition:
             properties:
                 action:
                     type: string
+                authorization:
+                    $ref: '#/components/schemas/PluginsRouteAuthorizationDefinition'
                 handler:
                     type: string
                 method:

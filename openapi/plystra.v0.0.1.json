@@ -11192,11 +11192,43 @@
           }
         }
       },
+      "PluginsRouteAuthorizationDefinition": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "allowed_resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "excluded_resources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mode": {
+            "type": "string"
+          },
+          "resource_key_strategy": {
+            "type": "string"
+          },
+          "resource_param": {
+            "type": "string"
+          }
+        }
+      },
       "PluginsRouteDefinition": {
         "type": "object",
         "properties": {
           "action": {
             "type": "string"
+          },
+          "authorization": {
+            "$ref": "#/components/schemas/PluginsRouteAuthorizationDefinition"
           },
           "handler": {
             "type": "string"

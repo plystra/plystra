@@ -167,6 +167,8 @@ go run ./cmd/plystractl upgrade verify
 
 Plugin manifests are governed contracts, not route-only metadata. Core validates declared resources, permissions, audit event types, routes, jobs, events, health checks, required secrets, external network access, settings, and capability profiles before storing a plugin manifest. Capability levels follow the product specification: `declared` for discovery-only profiles, `standard` for implemented contracts, and `certified` for providers that pass a conformance suite.
 
+Routes may declare either static `resource_type`/`action` authorization or an `authorization.mode=dynamic_resource` resolver for generic CRUD-style routes. Dynamic route authorization must name the path parameter, resource-key strategy, action, and covered resources so Core can still validate the plugin governance surface without knowing plugin business semantics.
+
 ## Security
 
 Please do not report security issues in public GitHub issues. See [SECURITY.md](SECURITY.md) for reporting guidance and production security expectations.
