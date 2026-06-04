@@ -84,6 +84,18 @@ func TestGrantIsRevocable(t *testing.T) {
 	}
 }
 
+func TestAdminRequirementForCapabilityGrantLifecycle(t *testing.T) {
+	for _, path := range []string{"/api/v1/grants/revoke", "/api/v1/grants/reconcile"} {
+		req := adminRequirementFor(http.MethodPost, path, "spc_acme")
+		if req.PermissionKey != "capabilities:manage" {
+			t.Fatalf("%s permission = %q, want capabilities:manage", path, req.PermissionKey)
+		}
+		if req.SpaceID != "spc_acme" {
+			t.Fatalf("%s space = %q, want spc_acme", path, req.SpaceID)
+		}
+	}
+}
+
 func TestCapabilityGrantRevocationAndReconciliation(t *testing.T) {
 	databaseURL := capabilityGrantTestDatabaseURL()
 	if databaseURL == "" {
@@ -160,7 +172,7 @@ func TestCapabilityGrantRevocationAndReconciliation(t *testing.T) {
 		grantID := requireStringField(t, issued, "grant_id")
 		grantToken := requireStringField(t, issued, "grant")
 
-		rec := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/grants/revoke", fixture.APIKey, map[string]any{
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/revoke", fixture.SpaceID), fixture.APIKey, map[string]any{
 			"space_id": fixture.SpaceID,
 			"grant_id": grantID,
 		})
@@ -199,7 +211,7 @@ func TestCapabilityGrantRevocationAndReconciliation(t *testing.T) {
 	})
 
 	t.Run("returns 404 for an unknown grant_id", func(t *testing.T) {
-		rec := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/grants/revoke", fixture.APIKey, map[string]any{
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/revoke", fixture.SpaceID), fixture.APIKey, map[string]any{
 			"space_id": fixture.SpaceID,
 			"grant_id": "grt_does_not_exist_" + fixture.Suffix,
 		})
@@ -209,7 +221,7 @@ func TestCapabilityGrantRevocationAndReconciliation(t *testing.T) {
 	})
 
 	t.Run("rejects requests without a single selector", func(t *testing.T) {
-		rec := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/grants/revoke", fixture.APIKey, map[string]any{
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/revoke", fixture.SpaceID), fixture.APIKey, map[string]any{
 			"space_id": fixture.SpaceID,
 		})
 		if rec.Code != http.StatusBadRequest {
@@ -224,7 +236,7 @@ func TestCapabilityGrantRevocationAndReconciliation(t *testing.T) {
 			c.SetPrincipalMemberID("member_other_" + fixture.Suffix)
 		})
 
-		rec := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/grants/revoke", fixture.APIKey, map[string]any{
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/revoke", fixture.SpaceID), fixture.APIKey, map[string]any{
 			"space_id":  fixture.SpaceID,
 			"member_id": fixture.PrincipalMemberID,
 			"reason":    "offboarded",
@@ -253,7 +265,7 @@ func TestCapabilityGrantRevocationAndReconciliation(t *testing.T) {
 		grandchild := insertGrant(t, func(c *coreent.CapabilityGrantCreate) { c.SetParentGrantID(child.ID) })
 		sibling := insertGrant(t, nil)
 
-		rec := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/grants/revoke", fixture.APIKey, map[string]any{
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/revoke", fixture.SpaceID), fixture.APIKey, map[string]any{
 			"space_id":        fixture.SpaceID,
 			"parent_grant_id": root.ID,
 		})
@@ -278,7 +290,7 @@ func TestCapabilityGrantRevocationAndReconciliation(t *testing.T) {
 		stale := insertGrant(t, func(c *coreent.CapabilityGrantCreate) { c.SetBindingEpoch(1) })
 		current := insertGrant(t, func(c *coreent.CapabilityGrantCreate) { c.SetBindingEpoch(2) })
 
-		rec := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/grants/revoke", fixture.APIKey, map[string]any{
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/revoke", fixture.SpaceID), fixture.APIKey, map[string]any{
 			"space_id":           fixture.SpaceID,
 			"binding_epoch":      2,
 			"target_provider_id": fixture.ProviderPluginID,
@@ -311,7 +323,7 @@ func TestCapabilityGrantRevocationAndReconciliation(t *testing.T) {
 			c.SetStatus("active").SetOutcomeStatus("succeeded").SetExpiresAt(past)
 		})
 
-		rec := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/grants/reconcile", fixture.APIKey, map[string]any{
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/reconcile", fixture.SpaceID), fixture.APIKey, map[string]any{
 			"space_id": fixture.SpaceID,
 		})
 		if rec.Code != http.StatusOK {

@@ -59,7 +59,7 @@ func adminRequirementFor(method, path, querySpaceID string) adminRequirement {
 	if path == "/api/v1/capability-grants" {
 		return adminRequirement{PermissionKey: "capabilities:invoke", SpaceID: querySpaceID}
 	}
-	if path == "/api/v1/grants/introspect" || path == "/api/v1/capability-outcomes" {
+	if path == "/api/v1/grants/introspect" || path == "/api/v1/capability-outcomes" || path == "/api/v1/grants/revoke" || path == "/api/v1/grants/reconcile" {
 		return adminRequirement{PermissionKey: "capabilities:manage", SpaceID: querySpaceID}
 	}
 	if path == "/api/v1/authz/check" || path == "/api/v1/authz/explain" {
