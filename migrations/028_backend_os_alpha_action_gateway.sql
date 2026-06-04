@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS action_executions (
   status varchar NOT NULL DEFAULT 'invoking',
   handler_endpoint varchar NULL,
   idempotency_expires_at timestamptz NOT NULL,
-  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  metadata jsonb DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
