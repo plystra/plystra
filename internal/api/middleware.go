@@ -173,6 +173,8 @@ func publicRoute(r *http.Request) bool {
 		switch path {
 		case "/api/v1/health", "/api/v1/ready", "/api/v1/version", "/metrics":
 			return true
+		case "/api/v1/auth/me":
+			return true
 		}
 	}
 	if r.Method == http.MethodPost {

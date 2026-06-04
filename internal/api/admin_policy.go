@@ -56,6 +56,12 @@ func adminRequirementFor(method, path, querySpaceID string) adminRequirement {
 	if path == "/api/v1/capabilities" {
 		return adminRequirement{PermissionKey: "instance:read"}
 	}
+	if path == "/api/v1/capability-grants" {
+		return adminRequirement{PermissionKey: "capabilities:invoke", SpaceID: querySpaceID}
+	}
+	if path == "/api/v1/grants/introspect" || path == "/api/v1/capability-outcomes" {
+		return adminRequirement{PermissionKey: "capabilities:manage", SpaceID: querySpaceID}
+	}
 	if path == "/api/v1/authz/check" || path == "/api/v1/authz/explain" {
 		return adminRequirement{PermissionKey: "authz:check"}
 	}
@@ -318,6 +324,7 @@ func adminPermissionTokenValid(value string) bool {
 func adminPermissionMayResolveInHandler(permissionKey string) bool {
 	return strings.HasPrefix(permissionKey, "api_keys:") ||
 		strings.HasPrefix(permissionKey, "admin_grants:") ||
+		strings.HasPrefix(permissionKey, "capabilities:") ||
 		permissionKey == "authz:check"
 }
 

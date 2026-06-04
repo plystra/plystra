@@ -18,8 +18,15 @@ func TestValidateManifestAcceptsCapabilities(t *testing.T) {
 			DisplayName: "Email Delivery",
 			Actions:     []ActionDefinition{{Key: "create", RiskLevel: "high"}},
 		}},
-		Permissions:  []PermissionDefinition{{Resource: "email_delivery", Action: "create", Scopes: []string{"space"}}},
-		Capabilities: []CapabilityDefinition{{ID: "email.transactional", Version: "0.0.1", Level: "standard"}},
+		Permissions: []PermissionDefinition{{Resource: "email_delivery", Action: "create", Scopes: []string{"space"}}},
+		Capabilities: []CapabilityDefinition{{
+			ID:         "email.transactional",
+			Version:    "0.0.1",
+			Level:      "standard",
+			Audit:      CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane:  CapabilityDataPlaneDefinition{Allowed: []string{"direct_db"}},
+			Operations: []CapabilityOperationDefinition{standardSendEmailOperation()},
+		}},
 	}
 	if errors := ValidateManifestForCore(manifest, "0.0.1"); len(errors) > 0 {
 		t.Fatalf("ValidateManifestForCore returned errors: %#v", errors)
@@ -39,12 +46,189 @@ func TestValidateManifestAcceptsDeclaredCapability(t *testing.T) {
 			DisplayName: "Delivery Task",
 			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}},
 		}},
-		Permissions:  []PermissionDefinition{{Resource: "delivery_task", Action: "read", Scopes: []string{"space"}}},
-		Capabilities: []CapabilityDefinition{{ID: "delivery.operations", Version: "0.0.1", Level: "declared"}},
+		Permissions: []PermissionDefinition{{Resource: "delivery_task", Action: "read", Scopes: []string{"space"}}},
+		Capabilities: []CapabilityDefinition{{
+			ID:        "delivery.operations",
+			Version:   "0.0.1",
+			Level:     "declared",
+			Audit:     CapabilityAuditDefinition{Enforcement: "grant_only"},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"direct_db"}},
+		}},
 	}
 	if errors := ValidateManifestForCore(manifest, "0.0.1"); len(errors) > 0 {
 		t.Fatalf("ValidateManifestForCore returned errors: %#v", errors)
 	}
+}
+
+func TestValidateManifestAcceptsCoreDataAPICapability(t *testing.T) {
+	manifest := Manifest{
+		ID:               "plystra.delivery_ops",
+		Name:             "Delivery Ops",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "delivery_task",
+			DisplayName: "Delivery Task",
+			Actions:     []ActionDefinition{{Key: "create", RiskLevel: "normal"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "delivery_task", Action: "create", Scopes: []string{"space"}}},
+		Capabilities: []CapabilityDefinition{{
+			ID:        "delivery.operations",
+			Version:   "0.0.1",
+			Level:     "declared",
+			Audit:     CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"core_data_api"}},
+		}},
+	}
+	if errors := ValidateManifestForCore(manifest, "0.0.1"); len(errors) > 0 {
+		t.Fatalf("ValidateManifestForCore returned errors: %#v", errors)
+	}
+}
+
+func TestValidateManifestAcceptsAppModuleWithLocalCapability(t *testing.T) {
+	manifest := Manifest{
+		ID:               "app.delivery.operations",
+		Type:             "app_module",
+		Scope:            "app",
+		AppID:            "delivery",
+		Name:             "Delivery Operations",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "delivery_task",
+			DisplayName: "Delivery Task",
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "delivery_task", Action: "read", Scopes: []string{"space"}}},
+		LocalCapabilities: []CapabilityDefinition{{
+			ID:        "delivery.operations",
+			Version:   "0.0.1",
+			Level:     "declared",
+			Audit:     CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"core_data_api"}},
+		}},
+		Requires: []CapabilityRequirement{{ID: "email.transactional", Version: ">=0.0.1 <0.1.0", MinLevel: "standard", Optional: true}},
+	}
+	if errors := ValidateManifestForCore(manifest, "0.0.1"); len(errors) > 0 {
+		t.Fatalf("ValidateManifestForCore returned errors: %#v", errors)
+	}
+}
+
+func TestValidateManifestRejectsAppModulePublicCapability(t *testing.T) {
+	manifest := Manifest{
+		ID:               "app.delivery.operations",
+		Type:             "app_module",
+		Scope:            "app",
+		AppID:            "delivery",
+		Name:             "Delivery Operations",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "delivery_task",
+			DisplayName: "Delivery Task",
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "delivery_task", Action: "read", Scopes: []string{"space"}}},
+		Capabilities: []CapabilityDefinition{{
+			ID:        "delivery.operations",
+			Version:   "0.0.1",
+			Level:     "declared",
+			Audit:     CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"core_data_api"}},
+		}},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, "app_module manifests must declare app-private capabilities under local_capabilities")
+}
+
+func TestValidateManifestRejectsAppModuleOutsideAppNamespace(t *testing.T) {
+	manifest := Manifest{
+		ID:               "app.other.operations",
+		Type:             "app_module",
+		Scope:            "app",
+		AppID:            "delivery",
+		Name:             "Delivery Operations",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "delivery_task",
+			DisplayName: "Delivery Task",
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "delivery_task", Action: "read", Scopes: []string{"space"}}},
+		LocalCapabilities: []CapabilityDefinition{{
+			ID:        "delivery.operations",
+			Version:   "0.0.1",
+			Level:     "declared",
+			Audit:     CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"core_data_api"}},
+		}},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, "app_module id must be scoped under app.<app_id>.")
+}
+
+func TestValidateManifestRejectsLocalCapabilityOutsideAppNamespace(t *testing.T) {
+	manifest := Manifest{
+		ID:               "app.delivery.operations",
+		Type:             "app_module",
+		Scope:            "app",
+		AppID:            "delivery",
+		Name:             "Delivery Operations",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "delivery_task",
+			DisplayName: "Delivery Task",
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "delivery_task", Action: "read", Scopes: []string{"space"}}},
+		LocalCapabilities: []CapabilityDefinition{{
+			ID:        "other.operations",
+			Version:   "0.0.1",
+			Level:     "declared",
+			Audit:     CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"core_data_api"}},
+		}},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, `local_capabilities[0].id must be scoped under app_id prefix "delivery."`)
+}
+
+func TestValidateManifestRejectsLocalCapabilityOnPublicPlugin(t *testing.T) {
+	manifest := Manifest{
+		ID:               "plystra.delivery_ops",
+		Name:             "Delivery Ops",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "delivery_task",
+			DisplayName: "Delivery Task",
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "delivery_task", Action: "read", Scopes: []string{"space"}}},
+		LocalCapabilities: []CapabilityDefinition{{
+			ID:        "delivery.operations",
+			Version:   "0.0.1",
+			Level:     "declared",
+			Audit:     CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"core_data_api"}},
+		}},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, "local_capabilities are only valid for app_module manifests")
 }
 
 func TestValidateManifestRejectsInvalidCapabilityLevel(t *testing.T) {
@@ -60,8 +244,14 @@ func TestValidateManifestRejectsInvalidCapabilityLevel(t *testing.T) {
 			DisplayName: "Email Delivery",
 			Actions:     []ActionDefinition{{Key: "create", RiskLevel: "high"}},
 		}},
-		Permissions:  []PermissionDefinition{{Resource: "email_delivery", Action: "create", Scopes: []string{"space"}}},
-		Capabilities: []CapabilityDefinition{{ID: "email.transactional", Version: "0.0.1", Level: "root"}},
+		Permissions: []PermissionDefinition{{Resource: "email_delivery", Action: "create", Scopes: []string{"space"}}},
+		Capabilities: []CapabilityDefinition{{
+			ID:        "email.transactional",
+			Version:   "0.0.1",
+			Level:     "root",
+			Audit:     CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"direct_db"}},
+		}},
 	}
 	errors := ValidateManifestForCore(manifest, "0.0.1")
 	if len(errors) == 0 {
@@ -121,6 +311,17 @@ func TestValidateManifestAcceptsPluginRuntimeDeclarations(t *testing.T) {
 			Action:       "read",
 			Handler:      "head_email",
 		}},
+		Runtime: ProviderRuntimeDefinition{
+			Type:               "external",
+			Protocol:           "http_json",
+			Version:            "0.0.1",
+			EndpointSettingKey: "provider.endpoint",
+			SchemaCompatibility: &SchemaCompatibilityDefinition{
+				Min:       1,
+				Max:       1,
+				Preferred: 1,
+			},
+		},
 		Events: EventDefinitions{
 			Publishes: []string{"email.sent", "email.failed"},
 			Consumes:  []string{"member.created"},
@@ -129,11 +330,21 @@ func TestValidateManifestAcceptsPluginRuntimeDeclarations(t *testing.T) {
 		HealthChecks:    []HealthCheckDefinition{{ID: "ready", Path: "/ready"}},
 		Secrets:         []SecretDefinition{{Key: "SMTP_PASSWORD", Required: true}},
 		ExternalNetwork: []NetworkDefinition{{Target: "smtp.example.com:587", Purpose: "smtp_delivery", Required: true}},
-		Capabilities:    []CapabilityDefinition{{ID: "email.transactional", Version: "0.0.1", Level: "standard"}},
-		Requires:        []CapabilityRequirement{},
-		AuditEvents:     []AuditEventDefinition{{Key: "email.sent", RiskLevel: "normal"}},
-		AdminMenus:      []AdminMenuDefinition{{Label: "SMTP Email", Path: "/plugins/email-smtp"}},
-		Settings:        []SettingDefinition{{Key: "default_from", ValueType: "string", Scope: "space"}},
+		Capabilities: []CapabilityDefinition{{
+			ID:         "email.transactional",
+			Version:    "0.0.1",
+			Level:      "standard",
+			Audit:      CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane:  CapabilityDataPlaneDefinition{Allowed: []string{"direct_db"}},
+			Operations: []CapabilityOperationDefinition{standardSendEmailOperation()},
+		}},
+		Requires:    []CapabilityRequirement{},
+		AuditEvents: []AuditEventDefinition{{Key: "email.sent", RiskLevel: "normal"}},
+		AdminMenus:  []AdminMenuDefinition{{Label: "SMTP Email", Path: "/plugins/email-smtp"}},
+		Settings: []SettingDefinition{
+			{Key: "default_from", ValueType: "string", Scope: "space", Default: "noreply@example.com"},
+			{Key: "provider.endpoint", ValueType: "string", Scope: "instance", Default: "http://smtp-provider.internal"},
+		},
 	}
 	if errors := ValidateManifestForCore(manifest, "0.0.1"); len(errors) > 0 {
 		t.Fatalf("ValidateManifestForCore returned errors: %#v", errors)
@@ -317,10 +528,171 @@ func TestValidateManifestRejectsInvalidRuntimeDeclarations(t *testing.T) {
 		HealthChecks:    []HealthCheckDefinition{{ID: "ready", Path: "ready"}},
 		Secrets:         []SecretDefinition{{Key: "smtp_password", Required: true}},
 		ExternalNetwork: []NetworkDefinition{{Target: "smtp example", Purpose: ""}},
+		Runtime: ProviderRuntimeDefinition{
+			Type:               "sidecar",
+			Protocol:           "raw_tcp",
+			EndpointSettingKey: "missing.endpoint",
+			SchemaCompatibility: &SchemaCompatibilityDefinition{
+				Min:       3,
+				Max:       2,
+				Preferred: 4,
+			},
+		},
 	}
 	errors := ValidateManifestForCore(manifest, "0.0.1")
 	if len(errors) < 8 {
 		t.Fatalf("ValidateManifestForCore returned too few errors: %#v", errors)
+	}
+	assertContainsError(t, errors, "runtime.type")
+	assertContainsError(t, errors, "runtime.protocol")
+	assertContainsError(t, errors, "runtime.endpoint_setting_key references unknown instance setting")
+	assertContainsError(t, errors, "runtime.schema_compatibility")
+}
+
+func TestValidateManifestRejectsInvalidSettingDefault(t *testing.T) {
+	manifest := Manifest{
+		ID:               "plystra.invoice",
+		Name:             "Invoice",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "invoice",
+			DisplayName: "Invoice",
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "invoice", Action: "read", Scopes: []string{"space"}}},
+		Settings:    []SettingDefinition{{Key: "public_api_enabled", ValueType: "boolean", Scope: "instance", Default: "true"}},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, "settings[0].default must be a boolean")
+}
+
+func TestValidateManifestRejectsCapabilityWithoutGovernance(t *testing.T) {
+	manifest := Manifest{
+		ID:               "plystra.invoice",
+		Name:             "Invoice",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "invoice",
+			DisplayName: "Invoice",
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "invoice", Action: "read", Scopes: []string{"space"}}},
+		Capabilities: []CapabilityDefinition{{
+			ID:      "billing.invoice",
+			Version: "0.0.1",
+			Level:   "standard",
+		}},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, "capabilities[0].audit.enforcement")
+	assertContainsError(t, errors, "capabilities[0].data_plane.allowed")
+}
+
+func TestValidateManifestRejectsStandardCapabilityWithoutOperations(t *testing.T) {
+	manifest := Manifest{
+		ID:               "plystra.email_smtp",
+		Name:             "SMTP Email",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "email_delivery",
+			DisplayName: "Email Delivery",
+			Actions:     []ActionDefinition{{Key: "create", RiskLevel: "high"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "email_delivery", Action: "create", Scopes: []string{"space"}}},
+		Capabilities: []CapabilityDefinition{{
+			ID:        "email.transactional",
+			Version:   "0.0.1",
+			Level:     "standard",
+			Audit:     CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"direct_db"}},
+		}},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, "operations is required for standard and certified capabilities")
+}
+
+func TestValidateManifestRejectsIncompleteMediatedOperation(t *testing.T) {
+	manifest := Manifest{
+		ID:               "plystra.email_smtp",
+		Name:             "SMTP Email",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "email_delivery",
+			DisplayName: "Email Delivery",
+			Actions:     []ActionDefinition{{Key: "create", RiskLevel: "high"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "email_delivery", Action: "create", Scopes: []string{"space"}}},
+		Capabilities: []CapabilityDefinition{{
+			ID:        "email.transactional",
+			Version:   "0.0.1",
+			Level:     "standard",
+			Audit:     CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"direct_db"}},
+			Operations: []CapabilityOperationDefinition{{
+				Name:       "send",
+				Invocation: CapabilityInvocationDefinition{Mode: "revocable_mediated_grant", GrantTTLMS: 30000},
+				Delegation: CapabilityDelegationDefinition{Mode: "plugin_service"},
+			}},
+		}},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, "introspection=required")
+	assertContainsError(t, errors, "outcome_receipt=required")
+	assertContainsError(t, errors, "idempotency=required")
+}
+
+func TestValidateManifestRejectsGovernanceDataPlaneMismatch(t *testing.T) {
+	manifest := Manifest{
+		ID:               "plystra.invoice",
+		Name:             "Invoice",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "invoice",
+			DisplayName: "Invoice",
+			Actions:     []ActionDefinition{{Key: "approve", RiskLevel: "high"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "invoice", Action: "approve", Scopes: []string{"space"}}},
+		Capabilities: []CapabilityDefinition{{
+			ID:        "billing.invoice",
+			Version:   "0.0.1",
+			Level:     "standard",
+			Audit:     CapabilityAuditDefinition{Enforcement: "controlled_action"},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"direct_db"}},
+		}},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, "controlled_action")
+}
+
+func standardSendEmailOperation() CapabilityOperationDefinition {
+	return CapabilityOperationDefinition{
+		Name: "send",
+		Invocation: CapabilityInvocationDefinition{
+			Mode:           "revocable_mediated_grant",
+			GrantTTLMS:     30000,
+			Introspection:  "required",
+			OutcomeReceipt: "required",
+			Idempotency:    "required",
+			TimeoutMS:      10000,
+			Cancellation:   "best_effort",
+		},
+		Delegation: CapabilityDelegationDefinition{Mode: "plugin_service"},
+		CallGraph:  CapabilityCallGraphDefinition{MaxDepth: 4},
 	}
 }
 

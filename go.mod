@@ -1,6 +1,6 @@
 module github.com/plystra/plystra
 
-go 1.25.10
+go 1.25.11
 
 require (
 	ariga.io/atlas v0.36.2-0.20250730182955-2c6300d0a3e1

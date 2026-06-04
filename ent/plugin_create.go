@@ -52,6 +52,48 @@ func (_c *PluginCreate) SetVersion(v string) *PluginCreate {
 	return _c
 }
 
+// SetType sets the "type" field.
+func (_c *PluginCreate) SetType(v string) *PluginCreate {
+	_c.mutation.SetType(v)
+	return _c
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (_c *PluginCreate) SetNillableType(v *string) *PluginCreate {
+	if v != nil {
+		_c.SetType(*v)
+	}
+	return _c
+}
+
+// SetScope sets the "scope" field.
+func (_c *PluginCreate) SetScope(v string) *PluginCreate {
+	_c.mutation.SetScope(v)
+	return _c
+}
+
+// SetNillableScope sets the "scope" field if the given value is not nil.
+func (_c *PluginCreate) SetNillableScope(v *string) *PluginCreate {
+	if v != nil {
+		_c.SetScope(*v)
+	}
+	return _c
+}
+
+// SetAppID sets the "app_id" field.
+func (_c *PluginCreate) SetAppID(v string) *PluginCreate {
+	_c.mutation.SetAppID(v)
+	return _c
+}
+
+// SetNillableAppID sets the "app_id" field if the given value is not nil.
+func (_c *PluginCreate) SetNillableAppID(v *string) *PluginCreate {
+	if v != nil {
+		_c.SetAppID(*v)
+	}
+	return _c
+}
+
 // SetSource sets the "source" field.
 func (_c *PluginCreate) SetSource(v string) *PluginCreate {
 	_c.mutation.SetSource(v)
@@ -155,6 +197,14 @@ func (_c *PluginCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *PluginCreate) defaults() {
+	if _, ok := _c.mutation.GetType(); !ok {
+		v := plugin.DefaultType
+		_c.mutation.SetType(v)
+	}
+	if _, ok := _c.mutation.Scope(); !ok {
+		v := plugin.DefaultScope
+		_c.mutation.SetScope(v)
+	}
 	if _, ok := _c.mutation.Source(); !ok {
 		v := plugin.DefaultSource
 		_c.mutation.SetSource(v)
@@ -257,6 +307,18 @@ func (_c *PluginCreate) createSpec() (*Plugin, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Version(); ok {
 		_spec.SetField(plugin.FieldVersion, field.TypeString, value)
 		_node.Version = value
+	}
+	if value, ok := _c.mutation.GetType(); ok {
+		_spec.SetField(plugin.FieldType, field.TypeString, value)
+		_node.Type = value
+	}
+	if value, ok := _c.mutation.Scope(); ok {
+		_spec.SetField(plugin.FieldScope, field.TypeString, value)
+		_node.Scope = value
+	}
+	if value, ok := _c.mutation.AppID(); ok {
+		_spec.SetField(plugin.FieldAppID, field.TypeString, value)
+		_node.AppID = &value
 	}
 	if value, ok := _c.mutation.Source(); ok {
 		_spec.SetField(plugin.FieldSource, field.TypeString, value)

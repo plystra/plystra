@@ -21,6 +21,12 @@ const (
 	FieldDescription = "description"
 	// FieldVersion holds the string denoting the version field in the database.
 	FieldVersion = "version"
+	// FieldType holds the string denoting the type field in the database.
+	FieldType = "type"
+	// FieldScope holds the string denoting the scope field in the database.
+	FieldScope = "scope"
+	// FieldAppID holds the string denoting the app_id field in the database.
+	FieldAppID = "app_id"
 	// FieldSource holds the string denoting the source field in the database.
 	FieldSource = "source"
 	// FieldStatus holds the string denoting the status field in the database.
@@ -42,6 +48,9 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldVersion,
+	FieldType,
+	FieldScope,
+	FieldAppID,
 	FieldSource,
 	FieldStatus,
 	FieldManifest,
@@ -66,6 +75,10 @@ var (
 	NameValidator func(string) error
 	// VersionValidator is a validator for the "version" field. It is called by the builders before save.
 	VersionValidator func(string) error
+	// DefaultType holds the default value on creation for the "type" field.
+	DefaultType string
+	// DefaultScope holds the default value on creation for the "scope" field.
+	DefaultScope string
 	// DefaultSource holds the default value on creation for the "source" field.
 	DefaultSource string
 	// DefaultStatus holds the default value on creation for the "status" field.
@@ -106,6 +119,21 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // ByVersion orders the results by the version field.
 func ByVersion(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldVersion, opts...).ToFunc()
+}
+
+// ByType orders the results by the type field.
+func ByType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldType, opts...).ToFunc()
+}
+
+// ByScope orders the results by the scope field.
+func ByScope(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldScope, opts...).ToFunc()
+}
+
+// ByAppID orders the results by the app_id field.
+func ByAppID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAppID, opts...).ToFunc()
 }
 
 // BySource orders the results by the source field.

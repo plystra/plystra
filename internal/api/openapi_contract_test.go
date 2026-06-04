@@ -37,6 +37,7 @@ func TestOpenAPIDocumentsReleaseRoutesAndEnvelope(t *testing.T) {
 		"/api/v1/version",
 		"/api/v1/auth/register",
 		"/api/v1/auth/login",
+		"/api/v1/auth/me",
 		"/api/v1/admin/me",
 		"/api/v1/admin/grants",
 		"/api/v1/api-keys",

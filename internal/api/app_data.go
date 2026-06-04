@@ -50,7 +50,7 @@ var appDataReservedListQueryKeys = map[string]bool{
 	"order":           true,
 }
 
-var appDataSearchDataFields = []string{
+var appDataDefaultSearchDataFields = []string{
 	"name",
 	"title",
 	"full_name",
@@ -59,9 +59,8 @@ var appDataSearchDataFields = []string{
 	"description",
 	"status",
 	"current_status",
-	"developer_id",
-	"project_id",
-	"task_id",
+	"summary",
+	"label",
 }
 
 var appDataRecordSortColumns = map[string]string{
@@ -460,7 +459,7 @@ func (s *Server) listAppDataRecords(w http.ResponseWriter, r *http.Request, mode
 	if visibility := strings.TrimSpace(r.URL.Query().Get("visibility")); visibility != "" {
 		q = q.Where(entappdatarecord.Visibility(visibility))
 	}
-	predicates, err := appDataRecordQueryPredicates(r.URL.Query())
+	predicates, err := appDataRecordQueryPredicates(r.URL.Query(), appDataSearchFieldsForModel(model))
 	if err != nil {
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", err.Error(), nil)
 		return
@@ -1075,7 +1074,19 @@ func (s *Server) createAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 	if !ok {
 		return
 	}
-	_, err = client.AppDataRecord.Create().
+	tx, err := client.Tx(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to start app data transaction.", err.Error())
+		return
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+	txClient := tx.Client()
+	_, err = txClient.AppDataRecord.Create().
 		SetID(req.ID).
 		SetSpaceID(model.SpaceID).
 		SetModelID(model.ID).
@@ -1092,16 +1103,24 @@ func (s *Server) createAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 		writeError(w, r, http.StatusConflict, "APP_DATA_RECORD_CREATE_FAILED", "Failed to create app data record.", err.Error())
 		return
 	}
-	record, err := s.loadAppDataRecordByID(r.Context(), model.SpaceID, model.Key, req.ID)
+	record, err := loadAppDataRecordByIDFromClient(r.Context(), txClient, model.SpaceID, model.Key, req.ID)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load created app data record.", err.Error())
 		return
 	}
-	if err := s.writeAppDataRecordRevision(r.Context(), r, actor, record, "create"); err != nil {
+	if err := writeAppDataRecordRevisionWithClient(r.Context(), txClient, r, actor, record, "create"); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to write app data revision.", err.Error())
 		return
 	}
-	s.recordMutationAudit(r.Context(), r, actor, model.SpaceID, "app_data.record.created", resourceType, record.ID, appDataAuditDetails("record_create", model.Key, record.ID, record.Data, record.Metadata))
+	if err := s.recordMutationAuditWithClient(r.Context(), txClient, r, actor, model.SpaceID, "app_data.record.created", resourceType, record.ID, appDataAuditDetails("record_create", model.Key, record.ID, record.Data, record.Metadata)); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to write app data audit log.", err.Error())
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to commit app data transaction.", err.Error())
+		return
+	}
+	committed = true
 	writeData(w, r, http.StatusCreated, map[string]any{
 		"record":        appDataRecordMap(record),
 		"authorization": decision,
@@ -1210,11 +1229,23 @@ func (s *Server) updateAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 	if !ok {
 		return
 	}
+	tx, err := client.Tx(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to start app data transaction.", err.Error())
+		return
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+	txClient := tx.Client()
 	data := current.Data
 	if req.Data != nil {
 		data = req.Data
 	}
-	update := client.AppDataRecord.UpdateOneID(current.ID).
+	update := txClient.AppDataRecord.UpdateOneID(current.ID).
 		SetVisibility(firstNonEmpty(proposed.Resource.Visibility, "private")).
 		SetStatus(firstNonEmpty(proposed.Resource.Status, "active")).
 		SetData(nonNilMap(data)).
@@ -1226,16 +1257,24 @@ func (s *Server) updateAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 		writeError(w, r, http.StatusConflict, "APP_DATA_RECORD_UPDATE_FAILED", "Failed to update app data record.", err.Error())
 		return
 	}
-	record, err := s.loadAppDataRecordByID(r.Context(), model.SpaceID, model.Key, current.ID)
+	record, err := loadAppDataRecordByIDFromClient(r.Context(), txClient, model.SpaceID, model.Key, current.ID)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load updated app data record.", err.Error())
 		return
 	}
-	if err := s.writeAppDataRecordRevision(r.Context(), r, actor, record, "update"); err != nil {
+	if err := writeAppDataRecordRevisionWithClient(r.Context(), txClient, r, actor, record, "update"); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to write app data revision.", err.Error())
 		return
 	}
-	s.recordMutationAudit(r.Context(), r, actor, model.SpaceID, "app_data.record.updated", resourceType, record.ID, appDataAuditDetails("record_update", model.Key, record.ID, record.Data, record.Metadata))
+	if err := s.recordMutationAuditWithClient(r.Context(), txClient, r, actor, model.SpaceID, "app_data.record.updated", resourceType, record.ID, appDataAuditDetails("record_update", model.Key, record.ID, record.Data, record.Metadata)); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to write app data audit log.", err.Error())
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to commit app data transaction.", err.Error())
+		return
+	}
+	committed = true
 	writeData(w, r, http.StatusOK, map[string]any{
 		"record":        appDataRecordMap(record),
 		"authorization": decision,
@@ -1291,7 +1330,19 @@ func (s *Server) updateAppDataRecordStatus(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		return
 	}
-	update := client.AppDataRecord.UpdateOneID(record.ID).SetStatus(status)
+	tx, err := client.Tx(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to start app data transaction.", err.Error())
+		return
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
+	txClient := tx.Client()
+	update := txClient.AppDataRecord.UpdateOneID(record.ID).SetStatus(status)
 	if status == "deleted" {
 		update.SetDeletedAt(time.Now().UTC())
 	}
@@ -1299,16 +1350,24 @@ func (s *Server) updateAppDataRecordStatus(w http.ResponseWriter, r *http.Reques
 		writeError(w, r, http.StatusConflict, "APP_DATA_RECORD_STATUS_FAILED", "Failed to update app data record status.", err.Error())
 		return
 	}
-	updated, err := s.loadAppDataRecordForRevision(r.Context(), record.ID)
+	updated, err := loadAppDataRecordForRevisionFromClient(r.Context(), txClient, record.ID)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load updated app data record.", err.Error())
 		return
 	}
-	if err := s.writeAppDataRecordRevision(r.Context(), r, actor, updated, action); err != nil {
+	if err := writeAppDataRecordRevisionWithClient(r.Context(), txClient, r, actor, updated, action); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to write app data revision.", err.Error())
 		return
 	}
-	s.recordMutationAudit(r.Context(), r, actor, model.SpaceID, "app_data.record."+action+"d", appDataModelResourceType(model.Key), updated.ID, appDataAuditDetails("record_"+action, model.Key, updated.ID, updated.Data, updated.Metadata))
+	if err := s.recordMutationAuditWithClient(r.Context(), txClient, r, actor, model.SpaceID, "app_data.record."+action+"d", appDataModelResourceType(model.Key), updated.ID, appDataAuditDetails("record_"+action, model.Key, updated.ID, updated.Data, updated.Metadata)); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to write app data audit log.", err.Error())
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to commit app data transaction.", err.Error())
+		return
+	}
+	committed = true
 	writeData(w, r, http.StatusOK, map[string]any{
 		"record":        appDataRecordMap(updated),
 		"authorization": decision,
@@ -1319,6 +1378,21 @@ func (s *Server) listAppDataRecordRevisions(w http.ResponseWriter, r *http.Reque
 	client, ok := s.requireEnt(w, r)
 	if !ok {
 		return
+	}
+	record, err := s.loadAppDataRecordByID(r.Context(), model.SpaceID, model.Key, recordID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, r, http.StatusNotFound, "APP_DATA_RECORD_NOT_FOUND", "App data record was not found.", nil)
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data record.", err.Error())
+		return
+	}
+	actor := appDataActorFromRequest(r, authz.ActorContext{SpaceID: model.SpaceID})
+	if !s.appDataServiceAuthorized(r, "read", model.SpaceID) {
+		if _, ok := s.authorizeAppDataRecord(w, r, actor, "read", record); !ok {
+			return
+		}
 	}
 	revisions, err := client.AppDataRecordRevision.Query().
 		Where(
@@ -1789,7 +1863,7 @@ func appDataRecordCursorValue(sortKey string, record *coreent.AppDataRecord) (st
 	}
 }
 
-func appDataRecordQueryPredicates(query map[string][]string) ([]predicate.AppDataRecord, error) {
+func appDataRecordQueryPredicates(query map[string][]string, searchFields []string) ([]predicate.AppDataRecord, error) {
 	predicates := []predicate.AppDataRecord{}
 	for key, values := range query {
 		key = strings.TrimSpace(key)
@@ -1810,7 +1884,7 @@ func appDataRecordQueryPredicates(query map[string][]string) ([]predicate.AppDat
 		if len(search) > 128 {
 			return nil, errors.New("search must be 128 characters or fewer")
 		}
-		predicates = append(predicates, appDataSearchPredicate(search))
+		predicates = append(predicates, appDataSearchPredicate(search, searchFields))
 	}
 	return predicates, nil
 }
@@ -1836,7 +1910,7 @@ func appDataJSONFieldFilterPredicate(field string, expected []string) predicate.
 	})
 }
 
-func appDataSearchPredicate(search string) predicate.AppDataRecord {
+func appDataSearchPredicate(search string, fields []string) predicate.AppDataRecord {
 	return predicate.AppDataRecord(func(selector *sql.Selector) {
 		needle := strings.TrimSpace(search)
 		ors := []*sql.Predicate{
@@ -1844,11 +1918,56 @@ func appDataSearchPredicate(search string) predicate.AppDataRecord {
 			sql.ContainsFold(selector.C(entappdatarecord.FieldDisplayName), needle),
 			sql.ContainsFold(selector.C(entappdatarecord.FieldStatus), needle),
 		}
-		for _, field := range appDataSearchDataFields {
+		for _, field := range fields {
 			ors = append(ors, appDataJSONTextContainsFold(entappdatarecord.FieldData, field, needle))
 		}
 		selector.Where(sql.Or(ors...))
 	})
+}
+
+func appDataSearchFieldsForModel(model *coreent.AppDataModel) []string {
+	fields := make([]string, 0, len(appDataDefaultSearchDataFields)+16)
+	seen := map[string]bool{}
+	add := func(field string) {
+		field = strings.TrimSpace(field)
+		if !validAppDataDataField(field) || seen[field] {
+			return
+		}
+		seen[field] = true
+		fields = append(fields, field)
+	}
+	for _, field := range appDataDefaultSearchDataFields {
+		add(field)
+	}
+	if model != nil {
+		for _, field := range appDataSearchFieldsFromMetadata(model.Metadata) {
+			add(field)
+		}
+	}
+	return fields
+}
+
+func appDataSearchFieldsFromMetadata(metadata map[string]any) []string {
+	raw, ok := metadata["search_fields"]
+	if !ok {
+		return nil
+	}
+	values, ok := raw.([]any)
+	if !ok {
+		return nil
+	}
+	fields := make([]string, 0, len(values))
+	for _, value := range values {
+		field, ok := value.(string)
+		if !ok {
+			continue
+		}
+		field = strings.TrimSpace(field)
+		if validAppDataDataField(field) {
+			fields = append(fields, field)
+		}
+	}
+	return fields
 }
 
 func appDataJSONTextContainsFold(column, field, needle string) *sql.Predicate {
@@ -2079,6 +2198,16 @@ func validateAppDataModelMutation(req appDataModelMutationRequest, creating bool
 	if req.Status != nil && !validAppDataModelStatus(*req.Status) {
 		return fmt.Errorf("status must be active, disabled, or archived")
 	}
+	if req.Schema != nil {
+		if err := validateGovernedJSONValue("schema", req.Schema, governedJSONPolicy{MaxBytes: maxAppDataModelSchemaBytes}); err != nil {
+			return err
+		}
+	}
+	if req.Metadata != nil {
+		if err := validateGovernedMetadata("metadata", req.Metadata); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -2094,6 +2223,16 @@ func validateAppDataRecordMutation(req appDataRecordMutationRequest, creating bo
 	}
 	if creating && req.Data == nil {
 		return fmt.Errorf("data is required")
+	}
+	if req.Data != nil {
+		if err := validateGovernedJSONValue("data", req.Data, governedJSONPolicy{MaxBytes: maxAppDataRecordDataBytes}); err != nil {
+			return err
+		}
+	}
+	if req.Metadata != nil {
+		if err := validateGovernedMetadata("metadata", req.Metadata); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -22,7 +22,7 @@ Core provides:
 
 Requirements:
 
-- Go 1.25.10+ (required for current Go standard-library security fixes)
+- Go 1.25.11+ (required for current Go standard-library security fixes)
 - Docker or a local PostgreSQL 16+ instance
 
 Start PostgreSQL and run the local release gate:
@@ -109,7 +109,7 @@ Core intentionally keeps authentication minimal: password login, protected regis
 
 Backend OS Alpha can store ordinary application data in Plystra Core when a project does not want a separate business database for structured records. Create a space-scoped model under `/api/v1/spaces/{space_id}/data/models`; Core registers a model-specific resource type such as `data_customer`, creates read/create/update/archive/delete permission definitions, and returns those permission IDs in the model response.
 
-Applications then bind those generated permissions to roles through `/api/v1/spaces/{space_id}/role-permissions` and assign roles to Members with `/api/v1/spaces/{space_id}/member-role-grants`. Record endpoints under `/api/v1/spaces/{space_id}/data/models/{model_key}/records` are governed by the normal Plystra authorization engine and write revision history. Audit logs include model, record, and changed key names for explainability, but do not copy business field values by default.
+Applications then bind those generated permissions to roles through `/api/v1/spaces/{space_id}/role-permissions` and assign roles to Members with `/api/v1/spaces/{space_id}/member-role-grants`. Record endpoints under `/api/v1/spaces/{space_id}/data/models/{model_key}/records` are governed by the normal Plystra authorization engine. Record, revision, and mutation-audit writes commit atomically for single-record and batch mutations. Audit logs include model, record, and changed key names for explainability, but do not copy business field values by default.
 
 ## Documentation
 
@@ -165,7 +165,7 @@ go run ./cmd/plystractl upgrade verify
 
 `/api/v1/ready` reports Core readiness, migration state, system capabilities, and plugin status counts. Production alpha still requires external PostgreSQL and versioned migrations; cloud hosting and marketplace behavior are outside this phase.
 
-Plugin manifests are governed contracts, not route-only metadata. Core validates declared resources, permissions, audit event types, routes, jobs, events, health checks, required secrets, external network access, settings, and capability profiles before storing a plugin manifest. Capability levels follow the product specification: `declared` for discovery-only profiles, `standard` for implemented contracts, and `certified` for providers that pass a conformance suite.
+Plugin manifests are governed contracts, not route-only metadata. Core validates declared resources, permissions, audit event types, routes, jobs, events, health checks, required secrets, external network access, settings, and capability profiles before storing a plugin manifest. Capability levels follow the product specification: `declared` for discovery-only profiles, `standard` for implemented contracts, and `certified` for providers that pass a conformance suite. Capability audit enforcement gates the allowed data plane: direct provider database access is limited to grant-only/reported-event paths, observed mutation requires a mutation journal or Action Gateway, and Core Data API must be explicitly declared for providers that store records through Core App Data.
 
 Routes may declare either static `resource_type`/`action` authorization or an `authorization.mode=dynamic_resource` resolver for generic CRUD-style routes. Dynamic route authorization must name the path parameter, resource-key strategy, action, and covered resources so Core can still validate the plugin governance surface without knowing plugin business semantics.
 

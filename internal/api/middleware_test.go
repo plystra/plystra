@@ -356,6 +356,18 @@ func TestPublicMinimalAuthRoutesDoNotRequireBearerSession(t *testing.T) {
 	}
 }
 
+func TestAuthenticatedMinimalAuthMeRouteDoesNotRequireAdminPermission(t *testing.T) {
+	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/me", nil)
+	rec := httptest.NewRecorder()
+	server.requestMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeData(w, r, http.StatusOK, map[string]any{"ok": true})
+	})).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("auth/me middleware status = %d, want route through to handler", rec.Code)
+	}
+}
+
 func TestAdminGrantPermissionMatching(t *testing.T) {
 	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
 	for _, tc := range []struct {

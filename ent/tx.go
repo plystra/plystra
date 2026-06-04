@@ -28,6 +28,8 @@ type Tx struct {
 	AuditLog *AuditLogClient
 	// BackgroundJob is the client for interacting with the BackgroundJob builders.
 	BackgroundJob *BackgroundJobClient
+	// CapabilityGrant is the client for interacting with the CapabilityGrant builders.
+	CapabilityGrant *CapabilityGrantClient
 	// Group is the client for interacting with the Group builders.
 	Group *GroupClient
 	// Member is the client for interacting with the Member builders.
@@ -205,6 +207,7 @@ func (tx *Tx) init() {
 	tx.AuditEventType = NewAuditEventTypeClient(tx.config)
 	tx.AuditLog = NewAuditLogClient(tx.config)
 	tx.BackgroundJob = NewBackgroundJobClient(tx.config)
+	tx.CapabilityGrant = NewCapabilityGrantClient(tx.config)
 	tx.Group = NewGroupClient(tx.config)
 	tx.Member = NewMemberClient(tx.config)
 	tx.MemberRole = NewMemberRoleClient(tx.config)

@@ -91,6 +91,11 @@ type openAPIReady struct {
 	Plugins               map[string]any `json:"plugins"`
 }
 
+type openAPICapabilitiesResponse struct {
+	States   map[string]string `json:"states"`
+	Services []map[string]any  `json:"services"`
+}
+
 type openAPIVersionResponse struct {
 	Version string `json:"version" example:"0.0.1"`
 }
@@ -144,6 +149,22 @@ type openAPILogoutResponse struct {
 type openAPIActorContextResponse struct {
 	Actor            map[string]any   `json:"actor"`
 	AvailableMembers []map[string]any `json:"available_members"`
+}
+
+type openAPIAuthMeSession struct {
+	ActiveSpaceID      string `json:"active_space_id,omitempty"`
+	ActiveMemberID     string `json:"active_member_id,omitempty"`
+	ActiveUserMemberID string `json:"active_user_member_id,omitempty"`
+	ExpiresAt          string `json:"expires_at" format:"date-time"`
+	RefreshExpiresAt   string `json:"refresh_expires_at" format:"date-time"`
+}
+
+type openAPIAuthMeResponse struct {
+	SessionID        string               `json:"session_id"`
+	User             openAPIUserSession   `json:"user"`
+	Session          openAPIAuthMeSession `json:"session"`
+	Actor            map[string]any       `json:"actor,omitempty"`
+	AvailableMembers []map[string]any     `json:"available_members"`
 }
 
 type openAPIAdminMeResponse struct {
@@ -505,6 +526,9 @@ type openAPIPlugin struct {
 	Name             string         `json:"name"`
 	Description      string         `json:"description,omitempty"`
 	Version          string         `json:"version"`
+	Type             string         `json:"type" example:"plugin"`
+	Scope            string         `json:"scope" example:"public"`
+	AppID            string         `json:"app_id,omitempty" example:"forge"`
 	Source           string         `json:"source"`
 	Status           string         `json:"status"`
 	Manifest         map[string]any `json:"manifest"`
@@ -552,6 +576,70 @@ type openAPIPluginSetting struct {
 	Metadata     map[string]any `json:"metadata"`
 	CreatedAt    string         `json:"created_at" format:"date-time"`
 	UpdatedAt    string         `json:"updated_at" format:"date-time"`
+}
+
+type openAPICapabilityGrantPrincipal struct {
+	UserID       string `json:"user_id,omitempty"`
+	MemberID     string `json:"member_id,omitempty"`
+	UserMemberID string `json:"user_member_id,omitempty"`
+}
+
+type openAPICapabilityGrantCaller struct {
+	PluginID string `json:"plugin_id"`
+}
+
+type openAPICapabilityGrantTargetIdentity struct {
+	ProviderID string `json:"provider_id"`
+}
+
+type openAPICapabilityGrantTarget struct {
+	ProviderID   string                               `json:"provider_id"`
+	Endpoint     string                               `json:"endpoint,omitempty"`
+	OperationURL string                               `json:"operation_url,omitempty"`
+	Identity     openAPICapabilityGrantTargetIdentity `json:"identity"`
+}
+
+type openAPICapabilityGrant struct {
+	GrantID               string                        `json:"grant_id"`
+	Grant                 string                        `json:"grant,omitempty" description:"Opaque grant token returned only at issuance or reissue time."`
+	SpaceID               string                        `json:"space_id"`
+	Capability            string                        `json:"capability"`
+	Operation             string                        `json:"operation"`
+	PrincipalUserID       string                        `json:"principal_user_id,omitempty"`
+	PrincipalMemberID     string                        `json:"principal_member_id,omitempty"`
+	PrincipalUserMemberID string                        `json:"principal_user_member_id,omitempty"`
+	CallerPluginID        string                        `json:"caller_plugin_id"`
+	TargetProviderID      string                        `json:"target_provider_id"`
+	Target                *openAPICapabilityGrantTarget `json:"target,omitempty"`
+	ParentGrantID         string                        `json:"parent_grant_id,omitempty"`
+	DecisionID            string                        `json:"decision_id,omitempty"`
+	CorrelationID         string                        `json:"correlation_id"`
+	IdempotencyKey        string                        `json:"idempotency_key"`
+	TargetIdempotencyKey  string                        `json:"target_idempotency_key"`
+	BindingEpoch          int                           `json:"binding_epoch"`
+	Status                string                        `json:"status" example:"active"`
+	OutcomeStatus         string                        `json:"outcome_status" example:"pending"`
+	ExpectedOutcomeBy     string                        `json:"expected_outcome_by" format:"date-time"`
+	ExpiresAt             string                        `json:"expires_at" format:"date-time"`
+	RevokedAt             *time.Time                    `json:"revoked_at,omitempty"`
+	RevokedReason         string                        `json:"revoked_reason,omitempty"`
+	Metadata              map[string]any                `json:"metadata"`
+	CreatedAt             string                        `json:"created_at" format:"date-time"`
+	UpdatedAt             string                        `json:"updated_at" format:"date-time"`
+}
+
+type openAPIGrantIntrospectionResponse struct {
+	Active               bool                            `json:"active"`
+	Reason               string                          `json:"reason,omitempty"`
+	GrantID              string                          `json:"grant_id,omitempty"`
+	SpaceID              string                          `json:"space_id,omitempty"`
+	Principal            openAPICapabilityGrantPrincipal `json:"principal,omitempty"`
+	Caller               openAPICapabilityGrantCaller    `json:"caller,omitempty"`
+	TargetIdempotencyKey string                          `json:"target_idempotency_key,omitempty"`
+	DecisionID           string                          `json:"decision_id,omitempty"`
+	CorrelationID        string                          `json:"correlation_id,omitempty"`
+	BindingEpoch         int                             `json:"binding_epoch,omitempty"`
+	ExpiresAt            string                          `json:"expires_at,omitempty" format:"date-time"`
 }
 
 type openAPIOverviewResponse struct {
@@ -628,7 +716,7 @@ func GenerateOpenAPI(version string) (*openapi3.Spec, error) {
 		{Name: "Identity", Tags: []string{"Users", "Spaces", "Groups", "Members", "User Members"}},
 		{Name: "Resources", Tags: []string{"Resource Types", "Resources", "App Data", "Data Console"}},
 		{Name: "Audit", Tags: []string{"Audit"}},
-		{Name: "Extensions", Tags: []string{"Plugins", "Templates"}},
+		{Name: "Extensions", Tags: []string{"Capabilities", "Capability Grants", "Plugins", "Templates"}},
 	})
 	for _, route := range openAPIRoutes() {
 		oc, err := reflector.NewOperationContext(route.Method, route.Path)
@@ -764,6 +852,8 @@ func openAPITags() []openapi3.Tag {
 		{"App Data", "Generic space-scoped business data models and records governed by Plystra authorization."},
 		{"Data Console", "Feature-flagged preview data API; disabled by default."},
 		{"Audit", "Append-only audit log query endpoints."},
+		{"Capabilities", "Installed system capability states and services."},
+		{"Capability Grants", "Core-tracked revocable grants for governed plugin-to-plugin capability invocation."},
 		{"Plugins", "Preview plugin metadata, lifecycle flags, settings, and generated metadata; not a stable plugin runtime."},
 		{"Templates", "Preview template catalog and install-flow metadata; not a stable template ecosystem."},
 	}
@@ -781,9 +871,11 @@ func openAPIRoutes() []openAPIRoute {
 		{Method: http.MethodGet, Path: "/api/v1/version", Tag: "System", ID: "getVersion", Summary: "Get Core version", Response: new(openAPIEnvelope[openAPIVersionResponse]), Security: openAPIPublic},
 		{Method: http.MethodGet, Path: "/metrics", Tag: "System", ID: "getMetrics", Summary: "Get Prometheus metrics", Response: new(string), ContentType: "text/plain", Security: openAPIMetrics},
 		{Method: http.MethodGet, Path: "/api/v1/console/overview", Tag: "Console", ID: "getConsoleOverview", Summary: "Get admin console overview", Response: new(openAPIEnvelope[openAPIOverviewResponse]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/capabilities", Tag: "Capabilities", ID: "listCapabilities", Summary: "List installed capability states and services", Response: new(openAPIEnvelope[openAPICapabilitiesResponse]), Security: openAPIAdmin},
 
 		{Method: http.MethodPost, Path: "/api/v1/auth/register", Tag: "Auth", ID: "register", Summary: "Register a user", Description: "Registration is disabled by default. Token-protected ordinary registration creates a user, default Member, UserMember binding, Space admin grant, and session inside the deployment-level Simple Mode default Space. First-super-admin bootstrap requires PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED plus PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN. Public user-only registration with PLYSTRA_AUTH_PUBLIC_USER_REGISTRATION_ENABLED creates only a User and does not create a Member, UserMember binding, admin grant, or session.", Body: new(authRegisterRequest), Response: new(openAPIEnvelope[openAPIRegisterResponse]), Status: http.StatusCreated, Security: openAPIPublic},
 		{Method: http.MethodPost, Path: "/api/v1/auth/login", Tag: "Auth", ID: "login", Summary: "Create a user session", Body: new(authLoginRequest), Response: new(openAPIEnvelope[openAPILoginResponse]), Security: openAPIPublic},
+		{Method: http.MethodGet, Path: "/api/v1/auth/me", Tag: "Auth", ID: "getCurrentSession", Summary: "Get current authenticated user and session", Response: new(openAPIEnvelope[openAPIAuthMeResponse]), Security: openAPISession},
 		{Method: http.MethodPost, Path: "/api/v1/auth/refresh", Tag: "Auth", ID: "refreshSession", Summary: "Rotate access and refresh tokens", Body: new(authRefreshRequest), Response: new(openAPIEnvelope[openAPIRefreshResponse]), Security: openAPIPublic},
 		{Method: http.MethodPost, Path: "/api/v1/auth/logout", Tag: "Auth", ID: "logout", Summary: "Revoke a session token", Body: new(authLogoutRequest), Response: new(openAPIEnvelope[openAPILogoutResponse]), Security: openAPIPublic},
 		{Method: http.MethodGet, Path: "/api/v1/actor/context", Tag: "Actor", ID: "getActorContext", Summary: "Get current actor context", Response: new(openAPIEnvelope[openAPIActorContextResponse]), Security: openAPISession},
@@ -810,6 +902,9 @@ func openAPIRoutes() []openAPIRoute {
 
 		{Method: http.MethodPost, Path: "/api/v1/authz/check", Tag: "Authorization", ID: "checkAuthorization", Summary: "Run authorization check", Body: new(authzRequest), Response: new(openAPIEnvelope[openAPIAuthzCheckResponse]), Security: openAPIAdmin},
 		{Method: http.MethodPost, Path: "/api/v1/authz/explain", Tag: "Authorization", ID: "explainAuthorization", Summary: "Run authorization explain trace", Body: new(authzRequest), Response: new(openAPIEnvelope[map[string]any]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/capability-grants", Tag: "Capability Grants", ID: "issueCapabilityGrant", Summary: "Issue a governed capability invocation grant", Description: "Resolves an enabled capability provider, verifies the caller declared the required capability, records a revocable grant ledger row, and returns a target endpoint plus opaque grant token. Core does not proxy the business payload.", Body: new(capabilityGrantRequest), Response: new(openAPIEnvelope[openAPICapabilityGrant]), Status: http.StatusCreated, Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/grants/introspect", Tag: "Capability Grants", ID: "introspectCapabilityGrant", Summary: "Introspect a mediated capability grant", Description: "Provider runtimes call this before executing a revocable mediated grant. The response contains authorization metadata only; business payloads never pass through Core.", Body: new(grantIntrospectionRequest), Response: new(openAPIEnvelope[openAPIGrantIntrospectionResponse]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/capability-outcomes", Tag: "Capability Grants", ID: "recordCapabilityOutcome", Summary: "Record a capability grant outcome receipt", Description: "Provider runtimes report idempotent execution outcomes so Core can reconcile mediated grants without being in the synchronous business-response path.", Body: new(capabilityOutcomeRequest), Response: new(openAPIEnvelope[openAPICapabilityGrant]), Security: openAPIAdmin},
 
 		{Method: http.MethodGet, Path: "/api/v1/users", Tag: "Users", ID: "listUsers", Summary: "List users", Params: new(openAPILimitQuery), Response: new(openAPIListEnvelope[openAPIUser]), Security: openAPIAdmin},
 		{Method: http.MethodPost, Path: "/api/v1/users", Tag: "Users", ID: "createUser", Summary: "Create a user", Body: new(userMutationRequest), Response: new(openAPIEnvelope[openAPIUser]), Status: http.StatusCreated, Security: openAPIAdmin},

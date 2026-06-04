@@ -44,3 +44,42 @@ func TestAppDataBatchOperationServiceAuthorized(t *testing.T) {
 		t.Fatal("secondary service authorization must not allow normal model creates")
 	}
 }
+
+func TestValidateGovernedMetadataRejectsSecretLikeKeys(t *testing.T) {
+	err := validateGovernedMetadata("metadata", map[string]any{
+		"nested": map[string]any{
+			"api_token": "do-not-store-here",
+		},
+	})
+	if err == nil || !strings.Contains(err.Error(), "secret-like key") {
+		t.Fatalf("expected secret-like metadata rejection, got %v", err)
+	}
+}
+
+func TestValidateAppDataRecordMutationLimitsDataSize(t *testing.T) {
+	err := validateAppDataRecordMutation(appDataRecordMutationRequest{
+		Data: map[string]any{
+			"description": strings.Repeat("a", maxAppDataRecordDataBytes),
+		},
+	}, true)
+	if err == nil || !strings.Contains(err.Error(), "data must be") {
+		t.Fatalf("expected data size validation error, got %v", err)
+	}
+}
+
+func TestAppDataSearchFieldsUseModelMetadataExtension(t *testing.T) {
+	model := &coreent.AppDataModel{Metadata: map[string]any{
+		"search_fields": []any{"customer_id", "invoice_id", "bad-field", "name"},
+	}}
+	fields := appDataSearchFieldsForModel(model)
+	seen := map[string]bool{}
+	for _, field := range fields {
+		seen[field] = true
+	}
+	if !seen["name"] || !seen["customer_id"] || !seen["invoice_id"] {
+		t.Fatalf("expected default and metadata search fields, got %#v", fields)
+	}
+	if seen["bad-field"] {
+		t.Fatalf("invalid metadata search field was accepted: %#v", fields)
+	}
+}

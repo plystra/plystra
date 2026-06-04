@@ -19,6 +19,7 @@ import (
 	"github.com/plystra/plystra/ent/auditeventtype"
 	"github.com/plystra/plystra/ent/auditlog"
 	"github.com/plystra/plystra/ent/backgroundjob"
+	"github.com/plystra/plystra/ent/capabilitygrant"
 	"github.com/plystra/plystra/ent/group"
 	"github.com/plystra/plystra/ent/member"
 	"github.com/plystra/plystra/ent/memberrole"
@@ -58,6 +59,7 @@ const (
 	TypeAuditEventType           = "AuditEventType"
 	TypeAuditLog                 = "AuditLog"
 	TypeBackgroundJob            = "BackgroundJob"
+	TypeCapabilityGrant          = "CapabilityGrant"
 	TypeGroup                    = "Group"
 	TypeMember                   = "Member"
 	TypeMemberRole               = "MemberRole"
@@ -8846,6 +8848,1771 @@ func (m *BackgroundJobMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown BackgroundJob edge %s", name)
 }
 
+// CapabilityGrantMutation represents an operation that mutates the CapabilityGrant nodes in the graph.
+type CapabilityGrantMutation struct {
+	config
+	op                       Op
+	typ                      string
+	id                       *string
+	token_hash               *string
+	space_id                 *string
+	capability               *string
+	operation                *string
+	principal_user_id        *string
+	principal_member_id      *string
+	principal_user_member_id *string
+	caller_plugin_id         *string
+	target_provider_id       *string
+	parent_grant_id          *string
+	decision_id              *string
+	correlation_id           *string
+	idempotency_key          *string
+	target_idempotency_key   *string
+	binding_epoch            *int
+	addbinding_epoch         *int
+	status                   *string
+	outcome_status           *string
+	expected_outcome_by      *time.Time
+	expires_at               *time.Time
+	revoked_at               *time.Time
+	revoked_reason           *string
+	metadata                 *map[string]interface{}
+	created_at               *time.Time
+	updated_at               *time.Time
+	clearedFields            map[string]struct{}
+	done                     bool
+	oldValue                 func(context.Context) (*CapabilityGrant, error)
+	predicates               []predicate.CapabilityGrant
+}
+
+var _ ent.Mutation = (*CapabilityGrantMutation)(nil)
+
+// capabilitygrantOption allows management of the mutation configuration using functional options.
+type capabilitygrantOption func(*CapabilityGrantMutation)
+
+// newCapabilityGrantMutation creates new mutation for the CapabilityGrant entity.
+func newCapabilityGrantMutation(c config, op Op, opts ...capabilitygrantOption) *CapabilityGrantMutation {
+	m := &CapabilityGrantMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeCapabilityGrant,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withCapabilityGrantID sets the ID field of the mutation.
+func withCapabilityGrantID(id string) capabilitygrantOption {
+	return func(m *CapabilityGrantMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *CapabilityGrant
+		)
+		m.oldValue = func(ctx context.Context) (*CapabilityGrant, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().CapabilityGrant.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withCapabilityGrant sets the old CapabilityGrant of the mutation.
+func withCapabilityGrant(node *CapabilityGrant) capabilitygrantOption {
+	return func(m *CapabilityGrantMutation) {
+		m.oldValue = func(context.Context) (*CapabilityGrant, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m CapabilityGrantMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m CapabilityGrantMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of CapabilityGrant entities.
+func (m *CapabilityGrantMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *CapabilityGrantMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *CapabilityGrantMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().CapabilityGrant.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetTokenHash sets the "token_hash" field.
+func (m *CapabilityGrantMutation) SetTokenHash(s string) {
+	m.token_hash = &s
+}
+
+// TokenHash returns the value of the "token_hash" field in the mutation.
+func (m *CapabilityGrantMutation) TokenHash() (r string, exists bool) {
+	v := m.token_hash
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTokenHash returns the old "token_hash" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldTokenHash(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTokenHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTokenHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTokenHash: %w", err)
+	}
+	return oldValue.TokenHash, nil
+}
+
+// ResetTokenHash resets all changes to the "token_hash" field.
+func (m *CapabilityGrantMutation) ResetTokenHash() {
+	m.token_hash = nil
+}
+
+// SetSpaceID sets the "space_id" field.
+func (m *CapabilityGrantMutation) SetSpaceID(s string) {
+	m.space_id = &s
+}
+
+// SpaceID returns the value of the "space_id" field in the mutation.
+func (m *CapabilityGrantMutation) SpaceID() (r string, exists bool) {
+	v := m.space_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSpaceID returns the old "space_id" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldSpaceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSpaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSpaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSpaceID: %w", err)
+	}
+	return oldValue.SpaceID, nil
+}
+
+// ResetSpaceID resets all changes to the "space_id" field.
+func (m *CapabilityGrantMutation) ResetSpaceID() {
+	m.space_id = nil
+}
+
+// SetCapability sets the "capability" field.
+func (m *CapabilityGrantMutation) SetCapability(s string) {
+	m.capability = &s
+}
+
+// Capability returns the value of the "capability" field in the mutation.
+func (m *CapabilityGrantMutation) Capability() (r string, exists bool) {
+	v := m.capability
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCapability returns the old "capability" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldCapability(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCapability is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCapability requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCapability: %w", err)
+	}
+	return oldValue.Capability, nil
+}
+
+// ResetCapability resets all changes to the "capability" field.
+func (m *CapabilityGrantMutation) ResetCapability() {
+	m.capability = nil
+}
+
+// SetOperation sets the "operation" field.
+func (m *CapabilityGrantMutation) SetOperation(s string) {
+	m.operation = &s
+}
+
+// Operation returns the value of the "operation" field in the mutation.
+func (m *CapabilityGrantMutation) Operation() (r string, exists bool) {
+	v := m.operation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOperation returns the old "operation" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldOperation(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOperation is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOperation requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOperation: %w", err)
+	}
+	return oldValue.Operation, nil
+}
+
+// ResetOperation resets all changes to the "operation" field.
+func (m *CapabilityGrantMutation) ResetOperation() {
+	m.operation = nil
+}
+
+// SetPrincipalUserID sets the "principal_user_id" field.
+func (m *CapabilityGrantMutation) SetPrincipalUserID(s string) {
+	m.principal_user_id = &s
+}
+
+// PrincipalUserID returns the value of the "principal_user_id" field in the mutation.
+func (m *CapabilityGrantMutation) PrincipalUserID() (r string, exists bool) {
+	v := m.principal_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrincipalUserID returns the old "principal_user_id" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldPrincipalUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrincipalUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrincipalUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrincipalUserID: %w", err)
+	}
+	return oldValue.PrincipalUserID, nil
+}
+
+// ClearPrincipalUserID clears the value of the "principal_user_id" field.
+func (m *CapabilityGrantMutation) ClearPrincipalUserID() {
+	m.principal_user_id = nil
+	m.clearedFields[capabilitygrant.FieldPrincipalUserID] = struct{}{}
+}
+
+// PrincipalUserIDCleared returns if the "principal_user_id" field was cleared in this mutation.
+func (m *CapabilityGrantMutation) PrincipalUserIDCleared() bool {
+	_, ok := m.clearedFields[capabilitygrant.FieldPrincipalUserID]
+	return ok
+}
+
+// ResetPrincipalUserID resets all changes to the "principal_user_id" field.
+func (m *CapabilityGrantMutation) ResetPrincipalUserID() {
+	m.principal_user_id = nil
+	delete(m.clearedFields, capabilitygrant.FieldPrincipalUserID)
+}
+
+// SetPrincipalMemberID sets the "principal_member_id" field.
+func (m *CapabilityGrantMutation) SetPrincipalMemberID(s string) {
+	m.principal_member_id = &s
+}
+
+// PrincipalMemberID returns the value of the "principal_member_id" field in the mutation.
+func (m *CapabilityGrantMutation) PrincipalMemberID() (r string, exists bool) {
+	v := m.principal_member_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrincipalMemberID returns the old "principal_member_id" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldPrincipalMemberID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrincipalMemberID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrincipalMemberID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrincipalMemberID: %w", err)
+	}
+	return oldValue.PrincipalMemberID, nil
+}
+
+// ClearPrincipalMemberID clears the value of the "principal_member_id" field.
+func (m *CapabilityGrantMutation) ClearPrincipalMemberID() {
+	m.principal_member_id = nil
+	m.clearedFields[capabilitygrant.FieldPrincipalMemberID] = struct{}{}
+}
+
+// PrincipalMemberIDCleared returns if the "principal_member_id" field was cleared in this mutation.
+func (m *CapabilityGrantMutation) PrincipalMemberIDCleared() bool {
+	_, ok := m.clearedFields[capabilitygrant.FieldPrincipalMemberID]
+	return ok
+}
+
+// ResetPrincipalMemberID resets all changes to the "principal_member_id" field.
+func (m *CapabilityGrantMutation) ResetPrincipalMemberID() {
+	m.principal_member_id = nil
+	delete(m.clearedFields, capabilitygrant.FieldPrincipalMemberID)
+}
+
+// SetPrincipalUserMemberID sets the "principal_user_member_id" field.
+func (m *CapabilityGrantMutation) SetPrincipalUserMemberID(s string) {
+	m.principal_user_member_id = &s
+}
+
+// PrincipalUserMemberID returns the value of the "principal_user_member_id" field in the mutation.
+func (m *CapabilityGrantMutation) PrincipalUserMemberID() (r string, exists bool) {
+	v := m.principal_user_member_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrincipalUserMemberID returns the old "principal_user_member_id" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldPrincipalUserMemberID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrincipalUserMemberID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrincipalUserMemberID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrincipalUserMemberID: %w", err)
+	}
+	return oldValue.PrincipalUserMemberID, nil
+}
+
+// ClearPrincipalUserMemberID clears the value of the "principal_user_member_id" field.
+func (m *CapabilityGrantMutation) ClearPrincipalUserMemberID() {
+	m.principal_user_member_id = nil
+	m.clearedFields[capabilitygrant.FieldPrincipalUserMemberID] = struct{}{}
+}
+
+// PrincipalUserMemberIDCleared returns if the "principal_user_member_id" field was cleared in this mutation.
+func (m *CapabilityGrantMutation) PrincipalUserMemberIDCleared() bool {
+	_, ok := m.clearedFields[capabilitygrant.FieldPrincipalUserMemberID]
+	return ok
+}
+
+// ResetPrincipalUserMemberID resets all changes to the "principal_user_member_id" field.
+func (m *CapabilityGrantMutation) ResetPrincipalUserMemberID() {
+	m.principal_user_member_id = nil
+	delete(m.clearedFields, capabilitygrant.FieldPrincipalUserMemberID)
+}
+
+// SetCallerPluginID sets the "caller_plugin_id" field.
+func (m *CapabilityGrantMutation) SetCallerPluginID(s string) {
+	m.caller_plugin_id = &s
+}
+
+// CallerPluginID returns the value of the "caller_plugin_id" field in the mutation.
+func (m *CapabilityGrantMutation) CallerPluginID() (r string, exists bool) {
+	v := m.caller_plugin_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCallerPluginID returns the old "caller_plugin_id" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldCallerPluginID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCallerPluginID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCallerPluginID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCallerPluginID: %w", err)
+	}
+	return oldValue.CallerPluginID, nil
+}
+
+// ResetCallerPluginID resets all changes to the "caller_plugin_id" field.
+func (m *CapabilityGrantMutation) ResetCallerPluginID() {
+	m.caller_plugin_id = nil
+}
+
+// SetTargetProviderID sets the "target_provider_id" field.
+func (m *CapabilityGrantMutation) SetTargetProviderID(s string) {
+	m.target_provider_id = &s
+}
+
+// TargetProviderID returns the value of the "target_provider_id" field in the mutation.
+func (m *CapabilityGrantMutation) TargetProviderID() (r string, exists bool) {
+	v := m.target_provider_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTargetProviderID returns the old "target_provider_id" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldTargetProviderID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTargetProviderID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTargetProviderID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTargetProviderID: %w", err)
+	}
+	return oldValue.TargetProviderID, nil
+}
+
+// ResetTargetProviderID resets all changes to the "target_provider_id" field.
+func (m *CapabilityGrantMutation) ResetTargetProviderID() {
+	m.target_provider_id = nil
+}
+
+// SetParentGrantID sets the "parent_grant_id" field.
+func (m *CapabilityGrantMutation) SetParentGrantID(s string) {
+	m.parent_grant_id = &s
+}
+
+// ParentGrantID returns the value of the "parent_grant_id" field in the mutation.
+func (m *CapabilityGrantMutation) ParentGrantID() (r string, exists bool) {
+	v := m.parent_grant_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldParentGrantID returns the old "parent_grant_id" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldParentGrantID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldParentGrantID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldParentGrantID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldParentGrantID: %w", err)
+	}
+	return oldValue.ParentGrantID, nil
+}
+
+// ClearParentGrantID clears the value of the "parent_grant_id" field.
+func (m *CapabilityGrantMutation) ClearParentGrantID() {
+	m.parent_grant_id = nil
+	m.clearedFields[capabilitygrant.FieldParentGrantID] = struct{}{}
+}
+
+// ParentGrantIDCleared returns if the "parent_grant_id" field was cleared in this mutation.
+func (m *CapabilityGrantMutation) ParentGrantIDCleared() bool {
+	_, ok := m.clearedFields[capabilitygrant.FieldParentGrantID]
+	return ok
+}
+
+// ResetParentGrantID resets all changes to the "parent_grant_id" field.
+func (m *CapabilityGrantMutation) ResetParentGrantID() {
+	m.parent_grant_id = nil
+	delete(m.clearedFields, capabilitygrant.FieldParentGrantID)
+}
+
+// SetDecisionID sets the "decision_id" field.
+func (m *CapabilityGrantMutation) SetDecisionID(s string) {
+	m.decision_id = &s
+}
+
+// DecisionID returns the value of the "decision_id" field in the mutation.
+func (m *CapabilityGrantMutation) DecisionID() (r string, exists bool) {
+	v := m.decision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDecisionID returns the old "decision_id" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldDecisionID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDecisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDecisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDecisionID: %w", err)
+	}
+	return oldValue.DecisionID, nil
+}
+
+// ClearDecisionID clears the value of the "decision_id" field.
+func (m *CapabilityGrantMutation) ClearDecisionID() {
+	m.decision_id = nil
+	m.clearedFields[capabilitygrant.FieldDecisionID] = struct{}{}
+}
+
+// DecisionIDCleared returns if the "decision_id" field was cleared in this mutation.
+func (m *CapabilityGrantMutation) DecisionIDCleared() bool {
+	_, ok := m.clearedFields[capabilitygrant.FieldDecisionID]
+	return ok
+}
+
+// ResetDecisionID resets all changes to the "decision_id" field.
+func (m *CapabilityGrantMutation) ResetDecisionID() {
+	m.decision_id = nil
+	delete(m.clearedFields, capabilitygrant.FieldDecisionID)
+}
+
+// SetCorrelationID sets the "correlation_id" field.
+func (m *CapabilityGrantMutation) SetCorrelationID(s string) {
+	m.correlation_id = &s
+}
+
+// CorrelationID returns the value of the "correlation_id" field in the mutation.
+func (m *CapabilityGrantMutation) CorrelationID() (r string, exists bool) {
+	v := m.correlation_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCorrelationID returns the old "correlation_id" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldCorrelationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCorrelationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCorrelationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCorrelationID: %w", err)
+	}
+	return oldValue.CorrelationID, nil
+}
+
+// ResetCorrelationID resets all changes to the "correlation_id" field.
+func (m *CapabilityGrantMutation) ResetCorrelationID() {
+	m.correlation_id = nil
+}
+
+// SetIdempotencyKey sets the "idempotency_key" field.
+func (m *CapabilityGrantMutation) SetIdempotencyKey(s string) {
+	m.idempotency_key = &s
+}
+
+// IdempotencyKey returns the value of the "idempotency_key" field in the mutation.
+func (m *CapabilityGrantMutation) IdempotencyKey() (r string, exists bool) {
+	v := m.idempotency_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdempotencyKey returns the old "idempotency_key" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldIdempotencyKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdempotencyKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdempotencyKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdempotencyKey: %w", err)
+	}
+	return oldValue.IdempotencyKey, nil
+}
+
+// ResetIdempotencyKey resets all changes to the "idempotency_key" field.
+func (m *CapabilityGrantMutation) ResetIdempotencyKey() {
+	m.idempotency_key = nil
+}
+
+// SetTargetIdempotencyKey sets the "target_idempotency_key" field.
+func (m *CapabilityGrantMutation) SetTargetIdempotencyKey(s string) {
+	m.target_idempotency_key = &s
+}
+
+// TargetIdempotencyKey returns the value of the "target_idempotency_key" field in the mutation.
+func (m *CapabilityGrantMutation) TargetIdempotencyKey() (r string, exists bool) {
+	v := m.target_idempotency_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTargetIdempotencyKey returns the old "target_idempotency_key" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldTargetIdempotencyKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTargetIdempotencyKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTargetIdempotencyKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTargetIdempotencyKey: %w", err)
+	}
+	return oldValue.TargetIdempotencyKey, nil
+}
+
+// ResetTargetIdempotencyKey resets all changes to the "target_idempotency_key" field.
+func (m *CapabilityGrantMutation) ResetTargetIdempotencyKey() {
+	m.target_idempotency_key = nil
+}
+
+// SetBindingEpoch sets the "binding_epoch" field.
+func (m *CapabilityGrantMutation) SetBindingEpoch(i int) {
+	m.binding_epoch = &i
+	m.addbinding_epoch = nil
+}
+
+// BindingEpoch returns the value of the "binding_epoch" field in the mutation.
+func (m *CapabilityGrantMutation) BindingEpoch() (r int, exists bool) {
+	v := m.binding_epoch
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBindingEpoch returns the old "binding_epoch" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldBindingEpoch(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBindingEpoch is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBindingEpoch requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBindingEpoch: %w", err)
+	}
+	return oldValue.BindingEpoch, nil
+}
+
+// AddBindingEpoch adds i to the "binding_epoch" field.
+func (m *CapabilityGrantMutation) AddBindingEpoch(i int) {
+	if m.addbinding_epoch != nil {
+		*m.addbinding_epoch += i
+	} else {
+		m.addbinding_epoch = &i
+	}
+}
+
+// AddedBindingEpoch returns the value that was added to the "binding_epoch" field in this mutation.
+func (m *CapabilityGrantMutation) AddedBindingEpoch() (r int, exists bool) {
+	v := m.addbinding_epoch
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBindingEpoch resets all changes to the "binding_epoch" field.
+func (m *CapabilityGrantMutation) ResetBindingEpoch() {
+	m.binding_epoch = nil
+	m.addbinding_epoch = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *CapabilityGrantMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *CapabilityGrantMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *CapabilityGrantMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetOutcomeStatus sets the "outcome_status" field.
+func (m *CapabilityGrantMutation) SetOutcomeStatus(s string) {
+	m.outcome_status = &s
+}
+
+// OutcomeStatus returns the value of the "outcome_status" field in the mutation.
+func (m *CapabilityGrantMutation) OutcomeStatus() (r string, exists bool) {
+	v := m.outcome_status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOutcomeStatus returns the old "outcome_status" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldOutcomeStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOutcomeStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOutcomeStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOutcomeStatus: %w", err)
+	}
+	return oldValue.OutcomeStatus, nil
+}
+
+// ResetOutcomeStatus resets all changes to the "outcome_status" field.
+func (m *CapabilityGrantMutation) ResetOutcomeStatus() {
+	m.outcome_status = nil
+}
+
+// SetExpectedOutcomeBy sets the "expected_outcome_by" field.
+func (m *CapabilityGrantMutation) SetExpectedOutcomeBy(t time.Time) {
+	m.expected_outcome_by = &t
+}
+
+// ExpectedOutcomeBy returns the value of the "expected_outcome_by" field in the mutation.
+func (m *CapabilityGrantMutation) ExpectedOutcomeBy() (r time.Time, exists bool) {
+	v := m.expected_outcome_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpectedOutcomeBy returns the old "expected_outcome_by" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldExpectedOutcomeBy(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpectedOutcomeBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpectedOutcomeBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpectedOutcomeBy: %w", err)
+	}
+	return oldValue.ExpectedOutcomeBy, nil
+}
+
+// ResetExpectedOutcomeBy resets all changes to the "expected_outcome_by" field.
+func (m *CapabilityGrantMutation) ResetExpectedOutcomeBy() {
+	m.expected_outcome_by = nil
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (m *CapabilityGrantMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *CapabilityGrantMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldExpiresAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *CapabilityGrantMutation) ResetExpiresAt() {
+	m.expires_at = nil
+}
+
+// SetRevokedAt sets the "revoked_at" field.
+func (m *CapabilityGrantMutation) SetRevokedAt(t time.Time) {
+	m.revoked_at = &t
+}
+
+// RevokedAt returns the value of the "revoked_at" field in the mutation.
+func (m *CapabilityGrantMutation) RevokedAt() (r time.Time, exists bool) {
+	v := m.revoked_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRevokedAt returns the old "revoked_at" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldRevokedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRevokedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRevokedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRevokedAt: %w", err)
+	}
+	return oldValue.RevokedAt, nil
+}
+
+// ClearRevokedAt clears the value of the "revoked_at" field.
+func (m *CapabilityGrantMutation) ClearRevokedAt() {
+	m.revoked_at = nil
+	m.clearedFields[capabilitygrant.FieldRevokedAt] = struct{}{}
+}
+
+// RevokedAtCleared returns if the "revoked_at" field was cleared in this mutation.
+func (m *CapabilityGrantMutation) RevokedAtCleared() bool {
+	_, ok := m.clearedFields[capabilitygrant.FieldRevokedAt]
+	return ok
+}
+
+// ResetRevokedAt resets all changes to the "revoked_at" field.
+func (m *CapabilityGrantMutation) ResetRevokedAt() {
+	m.revoked_at = nil
+	delete(m.clearedFields, capabilitygrant.FieldRevokedAt)
+}
+
+// SetRevokedReason sets the "revoked_reason" field.
+func (m *CapabilityGrantMutation) SetRevokedReason(s string) {
+	m.revoked_reason = &s
+}
+
+// RevokedReason returns the value of the "revoked_reason" field in the mutation.
+func (m *CapabilityGrantMutation) RevokedReason() (r string, exists bool) {
+	v := m.revoked_reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRevokedReason returns the old "revoked_reason" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldRevokedReason(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRevokedReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRevokedReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRevokedReason: %w", err)
+	}
+	return oldValue.RevokedReason, nil
+}
+
+// ClearRevokedReason clears the value of the "revoked_reason" field.
+func (m *CapabilityGrantMutation) ClearRevokedReason() {
+	m.revoked_reason = nil
+	m.clearedFields[capabilitygrant.FieldRevokedReason] = struct{}{}
+}
+
+// RevokedReasonCleared returns if the "revoked_reason" field was cleared in this mutation.
+func (m *CapabilityGrantMutation) RevokedReasonCleared() bool {
+	_, ok := m.clearedFields[capabilitygrant.FieldRevokedReason]
+	return ok
+}
+
+// ResetRevokedReason resets all changes to the "revoked_reason" field.
+func (m *CapabilityGrantMutation) ResetRevokedReason() {
+	m.revoked_reason = nil
+	delete(m.clearedFields, capabilitygrant.FieldRevokedReason)
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *CapabilityGrantMutation) SetMetadata(value map[string]interface{}) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *CapabilityGrantMutation) Metadata() (r map[string]interface{}, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldMetadata(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *CapabilityGrantMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[capabilitygrant.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *CapabilityGrantMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[capabilitygrant.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *CapabilityGrantMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, capabilitygrant.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *CapabilityGrantMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *CapabilityGrantMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *CapabilityGrantMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *CapabilityGrantMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *CapabilityGrantMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the CapabilityGrant entity.
+// If the CapabilityGrant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityGrantMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *CapabilityGrantMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the CapabilityGrantMutation builder.
+func (m *CapabilityGrantMutation) Where(ps ...predicate.CapabilityGrant) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the CapabilityGrantMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *CapabilityGrantMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.CapabilityGrant, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *CapabilityGrantMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *CapabilityGrantMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (CapabilityGrant).
+func (m *CapabilityGrantMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *CapabilityGrantMutation) Fields() []string {
+	fields := make([]string, 0, 24)
+	if m.token_hash != nil {
+		fields = append(fields, capabilitygrant.FieldTokenHash)
+	}
+	if m.space_id != nil {
+		fields = append(fields, capabilitygrant.FieldSpaceID)
+	}
+	if m.capability != nil {
+		fields = append(fields, capabilitygrant.FieldCapability)
+	}
+	if m.operation != nil {
+		fields = append(fields, capabilitygrant.FieldOperation)
+	}
+	if m.principal_user_id != nil {
+		fields = append(fields, capabilitygrant.FieldPrincipalUserID)
+	}
+	if m.principal_member_id != nil {
+		fields = append(fields, capabilitygrant.FieldPrincipalMemberID)
+	}
+	if m.principal_user_member_id != nil {
+		fields = append(fields, capabilitygrant.FieldPrincipalUserMemberID)
+	}
+	if m.caller_plugin_id != nil {
+		fields = append(fields, capabilitygrant.FieldCallerPluginID)
+	}
+	if m.target_provider_id != nil {
+		fields = append(fields, capabilitygrant.FieldTargetProviderID)
+	}
+	if m.parent_grant_id != nil {
+		fields = append(fields, capabilitygrant.FieldParentGrantID)
+	}
+	if m.decision_id != nil {
+		fields = append(fields, capabilitygrant.FieldDecisionID)
+	}
+	if m.correlation_id != nil {
+		fields = append(fields, capabilitygrant.FieldCorrelationID)
+	}
+	if m.idempotency_key != nil {
+		fields = append(fields, capabilitygrant.FieldIdempotencyKey)
+	}
+	if m.target_idempotency_key != nil {
+		fields = append(fields, capabilitygrant.FieldTargetIdempotencyKey)
+	}
+	if m.binding_epoch != nil {
+		fields = append(fields, capabilitygrant.FieldBindingEpoch)
+	}
+	if m.status != nil {
+		fields = append(fields, capabilitygrant.FieldStatus)
+	}
+	if m.outcome_status != nil {
+		fields = append(fields, capabilitygrant.FieldOutcomeStatus)
+	}
+	if m.expected_outcome_by != nil {
+		fields = append(fields, capabilitygrant.FieldExpectedOutcomeBy)
+	}
+	if m.expires_at != nil {
+		fields = append(fields, capabilitygrant.FieldExpiresAt)
+	}
+	if m.revoked_at != nil {
+		fields = append(fields, capabilitygrant.FieldRevokedAt)
+	}
+	if m.revoked_reason != nil {
+		fields = append(fields, capabilitygrant.FieldRevokedReason)
+	}
+	if m.metadata != nil {
+		fields = append(fields, capabilitygrant.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, capabilitygrant.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, capabilitygrant.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *CapabilityGrantMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case capabilitygrant.FieldTokenHash:
+		return m.TokenHash()
+	case capabilitygrant.FieldSpaceID:
+		return m.SpaceID()
+	case capabilitygrant.FieldCapability:
+		return m.Capability()
+	case capabilitygrant.FieldOperation:
+		return m.Operation()
+	case capabilitygrant.FieldPrincipalUserID:
+		return m.PrincipalUserID()
+	case capabilitygrant.FieldPrincipalMemberID:
+		return m.PrincipalMemberID()
+	case capabilitygrant.FieldPrincipalUserMemberID:
+		return m.PrincipalUserMemberID()
+	case capabilitygrant.FieldCallerPluginID:
+		return m.CallerPluginID()
+	case capabilitygrant.FieldTargetProviderID:
+		return m.TargetProviderID()
+	case capabilitygrant.FieldParentGrantID:
+		return m.ParentGrantID()
+	case capabilitygrant.FieldDecisionID:
+		return m.DecisionID()
+	case capabilitygrant.FieldCorrelationID:
+		return m.CorrelationID()
+	case capabilitygrant.FieldIdempotencyKey:
+		return m.IdempotencyKey()
+	case capabilitygrant.FieldTargetIdempotencyKey:
+		return m.TargetIdempotencyKey()
+	case capabilitygrant.FieldBindingEpoch:
+		return m.BindingEpoch()
+	case capabilitygrant.FieldStatus:
+		return m.Status()
+	case capabilitygrant.FieldOutcomeStatus:
+		return m.OutcomeStatus()
+	case capabilitygrant.FieldExpectedOutcomeBy:
+		return m.ExpectedOutcomeBy()
+	case capabilitygrant.FieldExpiresAt:
+		return m.ExpiresAt()
+	case capabilitygrant.FieldRevokedAt:
+		return m.RevokedAt()
+	case capabilitygrant.FieldRevokedReason:
+		return m.RevokedReason()
+	case capabilitygrant.FieldMetadata:
+		return m.Metadata()
+	case capabilitygrant.FieldCreatedAt:
+		return m.CreatedAt()
+	case capabilitygrant.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *CapabilityGrantMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case capabilitygrant.FieldTokenHash:
+		return m.OldTokenHash(ctx)
+	case capabilitygrant.FieldSpaceID:
+		return m.OldSpaceID(ctx)
+	case capabilitygrant.FieldCapability:
+		return m.OldCapability(ctx)
+	case capabilitygrant.FieldOperation:
+		return m.OldOperation(ctx)
+	case capabilitygrant.FieldPrincipalUserID:
+		return m.OldPrincipalUserID(ctx)
+	case capabilitygrant.FieldPrincipalMemberID:
+		return m.OldPrincipalMemberID(ctx)
+	case capabilitygrant.FieldPrincipalUserMemberID:
+		return m.OldPrincipalUserMemberID(ctx)
+	case capabilitygrant.FieldCallerPluginID:
+		return m.OldCallerPluginID(ctx)
+	case capabilitygrant.FieldTargetProviderID:
+		return m.OldTargetProviderID(ctx)
+	case capabilitygrant.FieldParentGrantID:
+		return m.OldParentGrantID(ctx)
+	case capabilitygrant.FieldDecisionID:
+		return m.OldDecisionID(ctx)
+	case capabilitygrant.FieldCorrelationID:
+		return m.OldCorrelationID(ctx)
+	case capabilitygrant.FieldIdempotencyKey:
+		return m.OldIdempotencyKey(ctx)
+	case capabilitygrant.FieldTargetIdempotencyKey:
+		return m.OldTargetIdempotencyKey(ctx)
+	case capabilitygrant.FieldBindingEpoch:
+		return m.OldBindingEpoch(ctx)
+	case capabilitygrant.FieldStatus:
+		return m.OldStatus(ctx)
+	case capabilitygrant.FieldOutcomeStatus:
+		return m.OldOutcomeStatus(ctx)
+	case capabilitygrant.FieldExpectedOutcomeBy:
+		return m.OldExpectedOutcomeBy(ctx)
+	case capabilitygrant.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
+	case capabilitygrant.FieldRevokedAt:
+		return m.OldRevokedAt(ctx)
+	case capabilitygrant.FieldRevokedReason:
+		return m.OldRevokedReason(ctx)
+	case capabilitygrant.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case capabilitygrant.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case capabilitygrant.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown CapabilityGrant field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CapabilityGrantMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case capabilitygrant.FieldTokenHash:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTokenHash(v)
+		return nil
+	case capabilitygrant.FieldSpaceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSpaceID(v)
+		return nil
+	case capabilitygrant.FieldCapability:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCapability(v)
+		return nil
+	case capabilitygrant.FieldOperation:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOperation(v)
+		return nil
+	case capabilitygrant.FieldPrincipalUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrincipalUserID(v)
+		return nil
+	case capabilitygrant.FieldPrincipalMemberID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrincipalMemberID(v)
+		return nil
+	case capabilitygrant.FieldPrincipalUserMemberID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrincipalUserMemberID(v)
+		return nil
+	case capabilitygrant.FieldCallerPluginID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCallerPluginID(v)
+		return nil
+	case capabilitygrant.FieldTargetProviderID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTargetProviderID(v)
+		return nil
+	case capabilitygrant.FieldParentGrantID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetParentGrantID(v)
+		return nil
+	case capabilitygrant.FieldDecisionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDecisionID(v)
+		return nil
+	case capabilitygrant.FieldCorrelationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCorrelationID(v)
+		return nil
+	case capabilitygrant.FieldIdempotencyKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdempotencyKey(v)
+		return nil
+	case capabilitygrant.FieldTargetIdempotencyKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTargetIdempotencyKey(v)
+		return nil
+	case capabilitygrant.FieldBindingEpoch:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBindingEpoch(v)
+		return nil
+	case capabilitygrant.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case capabilitygrant.FieldOutcomeStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOutcomeStatus(v)
+		return nil
+	case capabilitygrant.FieldExpectedOutcomeBy:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpectedOutcomeBy(v)
+		return nil
+	case capabilitygrant.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
+		return nil
+	case capabilitygrant.FieldRevokedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRevokedAt(v)
+		return nil
+	case capabilitygrant.FieldRevokedReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRevokedReason(v)
+		return nil
+	case capabilitygrant.FieldMetadata:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case capabilitygrant.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case capabilitygrant.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown CapabilityGrant field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *CapabilityGrantMutation) AddedFields() []string {
+	var fields []string
+	if m.addbinding_epoch != nil {
+		fields = append(fields, capabilitygrant.FieldBindingEpoch)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *CapabilityGrantMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case capabilitygrant.FieldBindingEpoch:
+		return m.AddedBindingEpoch()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CapabilityGrantMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case capabilitygrant.FieldBindingEpoch:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBindingEpoch(v)
+		return nil
+	}
+	return fmt.Errorf("unknown CapabilityGrant numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *CapabilityGrantMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(capabilitygrant.FieldPrincipalUserID) {
+		fields = append(fields, capabilitygrant.FieldPrincipalUserID)
+	}
+	if m.FieldCleared(capabilitygrant.FieldPrincipalMemberID) {
+		fields = append(fields, capabilitygrant.FieldPrincipalMemberID)
+	}
+	if m.FieldCleared(capabilitygrant.FieldPrincipalUserMemberID) {
+		fields = append(fields, capabilitygrant.FieldPrincipalUserMemberID)
+	}
+	if m.FieldCleared(capabilitygrant.FieldParentGrantID) {
+		fields = append(fields, capabilitygrant.FieldParentGrantID)
+	}
+	if m.FieldCleared(capabilitygrant.FieldDecisionID) {
+		fields = append(fields, capabilitygrant.FieldDecisionID)
+	}
+	if m.FieldCleared(capabilitygrant.FieldRevokedAt) {
+		fields = append(fields, capabilitygrant.FieldRevokedAt)
+	}
+	if m.FieldCleared(capabilitygrant.FieldRevokedReason) {
+		fields = append(fields, capabilitygrant.FieldRevokedReason)
+	}
+	if m.FieldCleared(capabilitygrant.FieldMetadata) {
+		fields = append(fields, capabilitygrant.FieldMetadata)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *CapabilityGrantMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *CapabilityGrantMutation) ClearField(name string) error {
+	switch name {
+	case capabilitygrant.FieldPrincipalUserID:
+		m.ClearPrincipalUserID()
+		return nil
+	case capabilitygrant.FieldPrincipalMemberID:
+		m.ClearPrincipalMemberID()
+		return nil
+	case capabilitygrant.FieldPrincipalUserMemberID:
+		m.ClearPrincipalUserMemberID()
+		return nil
+	case capabilitygrant.FieldParentGrantID:
+		m.ClearParentGrantID()
+		return nil
+	case capabilitygrant.FieldDecisionID:
+		m.ClearDecisionID()
+		return nil
+	case capabilitygrant.FieldRevokedAt:
+		m.ClearRevokedAt()
+		return nil
+	case capabilitygrant.FieldRevokedReason:
+		m.ClearRevokedReason()
+		return nil
+	case capabilitygrant.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	}
+	return fmt.Errorf("unknown CapabilityGrant nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *CapabilityGrantMutation) ResetField(name string) error {
+	switch name {
+	case capabilitygrant.FieldTokenHash:
+		m.ResetTokenHash()
+		return nil
+	case capabilitygrant.FieldSpaceID:
+		m.ResetSpaceID()
+		return nil
+	case capabilitygrant.FieldCapability:
+		m.ResetCapability()
+		return nil
+	case capabilitygrant.FieldOperation:
+		m.ResetOperation()
+		return nil
+	case capabilitygrant.FieldPrincipalUserID:
+		m.ResetPrincipalUserID()
+		return nil
+	case capabilitygrant.FieldPrincipalMemberID:
+		m.ResetPrincipalMemberID()
+		return nil
+	case capabilitygrant.FieldPrincipalUserMemberID:
+		m.ResetPrincipalUserMemberID()
+		return nil
+	case capabilitygrant.FieldCallerPluginID:
+		m.ResetCallerPluginID()
+		return nil
+	case capabilitygrant.FieldTargetProviderID:
+		m.ResetTargetProviderID()
+		return nil
+	case capabilitygrant.FieldParentGrantID:
+		m.ResetParentGrantID()
+		return nil
+	case capabilitygrant.FieldDecisionID:
+		m.ResetDecisionID()
+		return nil
+	case capabilitygrant.FieldCorrelationID:
+		m.ResetCorrelationID()
+		return nil
+	case capabilitygrant.FieldIdempotencyKey:
+		m.ResetIdempotencyKey()
+		return nil
+	case capabilitygrant.FieldTargetIdempotencyKey:
+		m.ResetTargetIdempotencyKey()
+		return nil
+	case capabilitygrant.FieldBindingEpoch:
+		m.ResetBindingEpoch()
+		return nil
+	case capabilitygrant.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case capabilitygrant.FieldOutcomeStatus:
+		m.ResetOutcomeStatus()
+		return nil
+	case capabilitygrant.FieldExpectedOutcomeBy:
+		m.ResetExpectedOutcomeBy()
+		return nil
+	case capabilitygrant.FieldExpiresAt:
+		m.ResetExpiresAt()
+		return nil
+	case capabilitygrant.FieldRevokedAt:
+		m.ResetRevokedAt()
+		return nil
+	case capabilitygrant.FieldRevokedReason:
+		m.ResetRevokedReason()
+		return nil
+	case capabilitygrant.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case capabilitygrant.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case capabilitygrant.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown CapabilityGrant field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *CapabilityGrantMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *CapabilityGrantMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *CapabilityGrantMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *CapabilityGrantMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *CapabilityGrantMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *CapabilityGrantMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *CapabilityGrantMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown CapabilityGrant unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *CapabilityGrantMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown CapabilityGrant edge %s", name)
+}
+
 // GroupMutation represents an operation that mutates the Group nodes in the graph.
 type GroupMutation struct {
 	config
@@ -12329,6 +14096,9 @@ type PluginMutation struct {
 	name          *string
 	description   *string
 	version       *string
+	_type         *string
+	scope         *string
+	app_id        *string
 	source        *string
 	status        *string
 	manifest      *map[string]interface{}
@@ -12601,6 +14371,127 @@ func (m *PluginMutation) ResetVersion() {
 	m.version = nil
 }
 
+// SetType sets the "type" field.
+func (m *PluginMutation) SetType(s string) {
+	m._type = &s
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *PluginMutation) GetType() (r string, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the Plugin entity.
+// If the Plugin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginMutation) OldType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *PluginMutation) ResetType() {
+	m._type = nil
+}
+
+// SetScope sets the "scope" field.
+func (m *PluginMutation) SetScope(s string) {
+	m.scope = &s
+}
+
+// Scope returns the value of the "scope" field in the mutation.
+func (m *PluginMutation) Scope() (r string, exists bool) {
+	v := m.scope
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScope returns the old "scope" field's value of the Plugin entity.
+// If the Plugin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginMutation) OldScope(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScope is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScope requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScope: %w", err)
+	}
+	return oldValue.Scope, nil
+}
+
+// ResetScope resets all changes to the "scope" field.
+func (m *PluginMutation) ResetScope() {
+	m.scope = nil
+}
+
+// SetAppID sets the "app_id" field.
+func (m *PluginMutation) SetAppID(s string) {
+	m.app_id = &s
+}
+
+// AppID returns the value of the "app_id" field in the mutation.
+func (m *PluginMutation) AppID() (r string, exists bool) {
+	v := m.app_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppID returns the old "app_id" field's value of the Plugin entity.
+// If the Plugin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginMutation) OldAppID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppID: %w", err)
+	}
+	return oldValue.AppID, nil
+}
+
+// ClearAppID clears the value of the "app_id" field.
+func (m *PluginMutation) ClearAppID() {
+	m.app_id = nil
+	m.clearedFields[plugin.FieldAppID] = struct{}{}
+}
+
+// AppIDCleared returns if the "app_id" field was cleared in this mutation.
+func (m *PluginMutation) AppIDCleared() bool {
+	_, ok := m.clearedFields[plugin.FieldAppID]
+	return ok
+}
+
+// ResetAppID resets all changes to the "app_id" field.
+func (m *PluginMutation) ResetAppID() {
+	m.app_id = nil
+	delete(m.clearedFields, plugin.FieldAppID)
+}
+
 // SetSource sets the "source" field.
 func (m *PluginMutation) SetSource(s string) {
 	m.source = &s
@@ -12815,7 +14706,7 @@ func (m *PluginMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PluginMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 12)
 	if m.key != nil {
 		fields = append(fields, plugin.FieldKey)
 	}
@@ -12827,6 +14718,15 @@ func (m *PluginMutation) Fields() []string {
 	}
 	if m.version != nil {
 		fields = append(fields, plugin.FieldVersion)
+	}
+	if m._type != nil {
+		fields = append(fields, plugin.FieldType)
+	}
+	if m.scope != nil {
+		fields = append(fields, plugin.FieldScope)
+	}
+	if m.app_id != nil {
+		fields = append(fields, plugin.FieldAppID)
 	}
 	if m.source != nil {
 		fields = append(fields, plugin.FieldSource)
@@ -12859,6 +14759,12 @@ func (m *PluginMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case plugin.FieldVersion:
 		return m.Version()
+	case plugin.FieldType:
+		return m.GetType()
+	case plugin.FieldScope:
+		return m.Scope()
+	case plugin.FieldAppID:
+		return m.AppID()
 	case plugin.FieldSource:
 		return m.Source()
 	case plugin.FieldStatus:
@@ -12886,6 +14792,12 @@ func (m *PluginMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldDescription(ctx)
 	case plugin.FieldVersion:
 		return m.OldVersion(ctx)
+	case plugin.FieldType:
+		return m.OldType(ctx)
+	case plugin.FieldScope:
+		return m.OldScope(ctx)
+	case plugin.FieldAppID:
+		return m.OldAppID(ctx)
 	case plugin.FieldSource:
 		return m.OldSource(ctx)
 	case plugin.FieldStatus:
@@ -12932,6 +14844,27 @@ func (m *PluginMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetVersion(v)
+		return nil
+	case plugin.FieldType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case plugin.FieldScope:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScope(v)
+		return nil
+	case plugin.FieldAppID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppID(v)
 		return nil
 	case plugin.FieldSource:
 		v, ok := value.(string)
@@ -13001,6 +14934,9 @@ func (m *PluginMutation) ClearedFields() []string {
 	if m.FieldCleared(plugin.FieldDescription) {
 		fields = append(fields, plugin.FieldDescription)
 	}
+	if m.FieldCleared(plugin.FieldAppID) {
+		fields = append(fields, plugin.FieldAppID)
+	}
 	return fields
 }
 
@@ -13017,6 +14953,9 @@ func (m *PluginMutation) ClearField(name string) error {
 	switch name {
 	case plugin.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case plugin.FieldAppID:
+		m.ClearAppID()
 		return nil
 	}
 	return fmt.Errorf("unknown Plugin nullable field %s", name)
@@ -13037,6 +14976,15 @@ func (m *PluginMutation) ResetField(name string) error {
 		return nil
 	case plugin.FieldVersion:
 		m.ResetVersion()
+		return nil
+	case plugin.FieldType:
+		m.ResetType()
+		return nil
+	case plugin.FieldScope:
+		m.ResetScope()
+		return nil
+	case plugin.FieldAppID:
+		m.ResetAppID()
 		return nil
 	case plugin.FieldSource:
 		m.ResetSource()

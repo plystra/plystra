@@ -381,6 +381,82 @@ var (
 		Columns:    BackgroundJobsColumns,
 		PrimaryKey: []*schema.Column{BackgroundJobsColumns[0]},
 	}
+	// CapabilityGrantsColumns holds the columns for the "capability_grants" table.
+	CapabilityGrantsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "token_hash", Type: field.TypeString},
+		{Name: "space_id", Type: field.TypeString},
+		{Name: "capability", Type: field.TypeString},
+		{Name: "operation", Type: field.TypeString},
+		{Name: "principal_user_id", Type: field.TypeString, Nullable: true},
+		{Name: "principal_member_id", Type: field.TypeString, Nullable: true},
+		{Name: "principal_user_member_id", Type: field.TypeString, Nullable: true},
+		{Name: "caller_plugin_id", Type: field.TypeString},
+		{Name: "target_provider_id", Type: field.TypeString},
+		{Name: "parent_grant_id", Type: field.TypeString, Nullable: true},
+		{Name: "decision_id", Type: field.TypeString, Nullable: true},
+		{Name: "correlation_id", Type: field.TypeString},
+		{Name: "idempotency_key", Type: field.TypeString},
+		{Name: "target_idempotency_key", Type: field.TypeString},
+		{Name: "binding_epoch", Type: field.TypeInt, Default: schema.Expr("1")},
+		{Name: "status", Type: field.TypeString, Default: schema.Expr("'active'")},
+		{Name: "outcome_status", Type: field.TypeString, Default: schema.Expr("'pending'")},
+		{Name: "expected_outcome_by", Type: field.TypeTime},
+		{Name: "expires_at", Type: field.TypeTime},
+		{Name: "revoked_at", Type: field.TypeTime, Nullable: true},
+		{Name: "revoked_reason", Type: field.TypeString, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, Default: schema.Expr("'{}'::jsonb")},
+		{Name: "created_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+		{Name: "updated_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+	}
+	// CapabilityGrantsTable holds the schema information for the "capability_grants" table.
+	CapabilityGrantsTable = &schema.Table{
+		Name:       "capability_grants",
+		Columns:    CapabilityGrantsColumns,
+		PrimaryKey: []*schema.Column{CapabilityGrantsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "capabilitygrant_token_hash",
+				Unique:  true,
+				Columns: []*schema.Column{CapabilityGrantsColumns[1]},
+			},
+			{
+				Name:    "capabilitygrant_space_id_caller_plugin_id_capability_operation_idempotency_key",
+				Unique:  true,
+				Columns: []*schema.Column{CapabilityGrantsColumns[2], CapabilityGrantsColumns[8], CapabilityGrantsColumns[3], CapabilityGrantsColumns[4], CapabilityGrantsColumns[13]},
+			},
+			{
+				Name:    "capabilitygrant_space_id_target_provider_id_capability_operation_target_idempotency_key",
+				Unique:  true,
+				Columns: []*schema.Column{CapabilityGrantsColumns[2], CapabilityGrantsColumns[9], CapabilityGrantsColumns[3], CapabilityGrantsColumns[4], CapabilityGrantsColumns[14]},
+			},
+			{
+				Name:    "capabilitygrant_space_id_capability_operation",
+				Unique:  false,
+				Columns: []*schema.Column{CapabilityGrantsColumns[2], CapabilityGrantsColumns[3], CapabilityGrantsColumns[4]},
+			},
+			{
+				Name:    "capabilitygrant_target_provider_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{CapabilityGrantsColumns[9], CapabilityGrantsColumns[16]},
+			},
+			{
+				Name:    "capabilitygrant_parent_grant_id",
+				Unique:  false,
+				Columns: []*schema.Column{CapabilityGrantsColumns[10]},
+			},
+			{
+				Name:    "capabilitygrant_status_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{CapabilityGrantsColumns[16], CapabilityGrantsColumns[19]},
+			},
+			{
+				Name:    "capabilitygrant_outcome_status_expected_outcome_by",
+				Unique:  false,
+				Columns: []*schema.Column{CapabilityGrantsColumns[17], CapabilityGrantsColumns[18]},
+			},
+		},
+	}
 	// GroupsColumns holds the columns for the "groups" table.
 	GroupsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -487,6 +563,9 @@ var (
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "version", Type: field.TypeString},
+		{Name: "type", Type: field.TypeString, Default: schema.Expr("'plugin'")},
+		{Name: "scope", Type: field.TypeString, Default: schema.Expr("'public'")},
+		{Name: "app_id", Type: field.TypeString, Nullable: true},
 		{Name: "source", Type: field.TypeString, Default: schema.Expr("'official'")},
 		{Name: "status", Type: field.TypeString, Default: schema.Expr("'installed'")},
 		{Name: "manifest", Type: field.TypeJSON},
@@ -503,6 +582,16 @@ var (
 				Name:    "plugin_key",
 				Unique:  true,
 				Columns: []*schema.Column{PluginsColumns[1]},
+			},
+			{
+				Name:    "plugin_type_scope_status",
+				Unique:  false,
+				Columns: []*schema.Column{PluginsColumns[5], PluginsColumns[6], PluginsColumns[9]},
+			},
+			{
+				Name:    "plugin_app_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{PluginsColumns[7], PluginsColumns[9]},
 			},
 		},
 	}
@@ -872,6 +961,7 @@ var (
 		AuditEventTypesTable,
 		AuditLogsTable,
 		BackgroundJobsTable,
+		CapabilityGrantsTable,
 		GroupsTable,
 		MembersTable,
 		MemberRolesTable,

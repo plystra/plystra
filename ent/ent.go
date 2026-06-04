@@ -20,6 +20,7 @@ import (
 	"github.com/plystra/plystra/ent/auditeventtype"
 	"github.com/plystra/plystra/ent/auditlog"
 	"github.com/plystra/plystra/ent/backgroundjob"
+	"github.com/plystra/plystra/ent/capabilitygrant"
 	"github.com/plystra/plystra/ent/group"
 	"github.com/plystra/plystra/ent/member"
 	"github.com/plystra/plystra/ent/memberrole"
@@ -107,6 +108,7 @@ func checkColumn(t, c string) error {
 			auditeventtype.Table:           auditeventtype.ValidColumn,
 			auditlog.Table:                 auditlog.ValidColumn,
 			backgroundjob.Table:            backgroundjob.ValidColumn,
+			capabilitygrant.Table:          capabilitygrant.ValidColumn,
 			group.Table:                    group.ValidColumn,
 			member.Table:                   member.ValidColumn,
 			memberrole.Table:               memberrole.ValidColumn,

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	coreent "github.com/plystra/plystra/ent"
 	entauditeventtype "github.com/plystra/plystra/ent/auditeventtype"
@@ -70,6 +71,9 @@ func (s *Server) handlePluginInstall(w http.ResponseWriter, r *http.Request) {
 	}
 	source := firstNonEmpty(req.Source, req.Manifest.Source, "local")
 	status := firstNonEmpty(req.Manifest.Status, "installed")
+	pluginType := firstNonEmpty(req.Manifest.Type, "plugin")
+	pluginScope := firstNonEmpty(req.Manifest.Scope, "public")
+	appID := strings.TrimSpace(req.Manifest.AppID)
 	manifestMap, err := pluginManifestMap(req.Manifest)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to encode plugin manifest.", err.Error())
@@ -88,6 +92,9 @@ func (s *Server) handlePluginInstall(w http.ResponseWriter, r *http.Request) {
 			SetName(req.Manifest.Name).
 			SetNillableDescription(optionalString(req.Manifest.Description)).
 			SetVersion(req.Manifest.Version).
+			SetType(pluginType).
+			SetScope(pluginScope).
+			SetNillableAppID(optionalString(appID)).
 			SetSource(source).
 			SetStatus(status).
 			SetManifest(manifestMap).
@@ -96,6 +103,9 @@ func (s *Server) handlePluginInstall(w http.ResponseWriter, r *http.Request) {
 		update := client.Plugin.UpdateOneID(existing.ID).
 			SetName(req.Manifest.Name).
 			SetVersion(req.Manifest.Version).
+			SetType(pluginType).
+			SetScope(pluginScope).
+			SetNillableAppID(optionalString(appID)).
 			SetSource(source).
 			SetStatus(status).
 			SetManifest(manifestMap)
@@ -286,6 +296,14 @@ func (s *Server) installPluginManifestMetadata(ctx context.Context, pluginID str
 	}
 	for _, setting := range manifest.Settings {
 		scope := firstNonEmpty(setting.Scope, "space")
+		defaultValue := pluginSettingDefaultValueMap(setting)
+		if setting.Default != nil {
+			if err := validatePluginSettingValue(pluginSettingDefinitionFromManifest(pluginID, setting, scope), defaultValue); err != nil {
+				return err
+			}
+		} else if err := validateGovernedJSONValue("settings."+setting.Key+".default", defaultValue, governedJSONPolicy{MaxBytes: maxPluginSettingValueBytes, RejectSecrets: true}); err != nil {
+			return err
+		}
 		existingSetting, err := s.ent.PluginSettingsDefinition.Query().Where(entpluginsettingsdefinition.PluginID(pluginID), entpluginsettingsdefinition.Key(setting.Key), entpluginsettingsdefinition.Scope(scope)).Only(ctx)
 		if coreent.IsNotFound(err) {
 			_, err = s.ent.PluginSettingsDefinition.Create().
@@ -293,7 +311,7 @@ func (s *Server) installPluginManifestMetadata(ctx context.Context, pluginID str
 				SetPluginID(pluginID).
 				SetKey(setting.Key).
 				SetValueType(firstNonEmpty(setting.ValueType, "string")).
-				SetDefaultValue(map[string]any{}).
+				SetDefaultValue(defaultValue).
 				SetNillableDescription(optionalString(setting.Description)).
 				SetScope(scope).
 				SetMetadata(metadata).
@@ -301,6 +319,7 @@ func (s *Server) installPluginManifestMetadata(ctx context.Context, pluginID str
 		} else if err == nil {
 			update := s.ent.PluginSettingsDefinition.UpdateOneID(existingSetting.ID).
 				SetValueType(firstNonEmpty(setting.ValueType, "string")).
+				SetDefaultValue(defaultValue).
 				SetMetadata(metadata)
 			if setting.Description == "" {
 				update.ClearDescription()

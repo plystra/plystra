@@ -13,6 +13,7 @@ import (
 	"github.com/plystra/plystra/ent/auditeventtype"
 	"github.com/plystra/plystra/ent/auditlog"
 	"github.com/plystra/plystra/ent/backgroundjob"
+	"github.com/plystra/plystra/ent/capabilitygrant"
 	"github.com/plystra/plystra/ent/group"
 	"github.com/plystra/plystra/ent/member"
 	"github.com/plystra/plystra/ent/memberrole"
@@ -313,6 +314,70 @@ func init() {
 	backgroundjobDescID := backgroundjobFields[0].Descriptor()
 	// backgroundjob.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	backgroundjob.IDValidator = backgroundjobDescID.Validators[0].(func(string) error)
+	capabilitygrantFields := schema.CapabilityGrant{}.Fields()
+	_ = capabilitygrantFields
+	// capabilitygrantDescTokenHash is the schema descriptor for token_hash field.
+	capabilitygrantDescTokenHash := capabilitygrantFields[1].Descriptor()
+	// capabilitygrant.TokenHashValidator is a validator for the "token_hash" field. It is called by the builders before save.
+	capabilitygrant.TokenHashValidator = capabilitygrantDescTokenHash.Validators[0].(func(string) error)
+	// capabilitygrantDescSpaceID is the schema descriptor for space_id field.
+	capabilitygrantDescSpaceID := capabilitygrantFields[2].Descriptor()
+	// capabilitygrant.SpaceIDValidator is a validator for the "space_id" field. It is called by the builders before save.
+	capabilitygrant.SpaceIDValidator = capabilitygrantDescSpaceID.Validators[0].(func(string) error)
+	// capabilitygrantDescCapability is the schema descriptor for capability field.
+	capabilitygrantDescCapability := capabilitygrantFields[3].Descriptor()
+	// capabilitygrant.CapabilityValidator is a validator for the "capability" field. It is called by the builders before save.
+	capabilitygrant.CapabilityValidator = capabilitygrantDescCapability.Validators[0].(func(string) error)
+	// capabilitygrantDescOperation is the schema descriptor for operation field.
+	capabilitygrantDescOperation := capabilitygrantFields[4].Descriptor()
+	// capabilitygrant.OperationValidator is a validator for the "operation" field. It is called by the builders before save.
+	capabilitygrant.OperationValidator = capabilitygrantDescOperation.Validators[0].(func(string) error)
+	// capabilitygrantDescCallerPluginID is the schema descriptor for caller_plugin_id field.
+	capabilitygrantDescCallerPluginID := capabilitygrantFields[8].Descriptor()
+	// capabilitygrant.CallerPluginIDValidator is a validator for the "caller_plugin_id" field. It is called by the builders before save.
+	capabilitygrant.CallerPluginIDValidator = capabilitygrantDescCallerPluginID.Validators[0].(func(string) error)
+	// capabilitygrantDescTargetProviderID is the schema descriptor for target_provider_id field.
+	capabilitygrantDescTargetProviderID := capabilitygrantFields[9].Descriptor()
+	// capabilitygrant.TargetProviderIDValidator is a validator for the "target_provider_id" field. It is called by the builders before save.
+	capabilitygrant.TargetProviderIDValidator = capabilitygrantDescTargetProviderID.Validators[0].(func(string) error)
+	// capabilitygrantDescCorrelationID is the schema descriptor for correlation_id field.
+	capabilitygrantDescCorrelationID := capabilitygrantFields[12].Descriptor()
+	// capabilitygrant.CorrelationIDValidator is a validator for the "correlation_id" field. It is called by the builders before save.
+	capabilitygrant.CorrelationIDValidator = capabilitygrantDescCorrelationID.Validators[0].(func(string) error)
+	// capabilitygrantDescIdempotencyKey is the schema descriptor for idempotency_key field.
+	capabilitygrantDescIdempotencyKey := capabilitygrantFields[13].Descriptor()
+	// capabilitygrant.IdempotencyKeyValidator is a validator for the "idempotency_key" field. It is called by the builders before save.
+	capabilitygrant.IdempotencyKeyValidator = capabilitygrantDescIdempotencyKey.Validators[0].(func(string) error)
+	// capabilitygrantDescTargetIdempotencyKey is the schema descriptor for target_idempotency_key field.
+	capabilitygrantDescTargetIdempotencyKey := capabilitygrantFields[14].Descriptor()
+	// capabilitygrant.TargetIdempotencyKeyValidator is a validator for the "target_idempotency_key" field. It is called by the builders before save.
+	capabilitygrant.TargetIdempotencyKeyValidator = capabilitygrantDescTargetIdempotencyKey.Validators[0].(func(string) error)
+	// capabilitygrantDescBindingEpoch is the schema descriptor for binding_epoch field.
+	capabilitygrantDescBindingEpoch := capabilitygrantFields[15].Descriptor()
+	// capabilitygrant.DefaultBindingEpoch holds the default value on creation for the binding_epoch field.
+	capabilitygrant.DefaultBindingEpoch = capabilitygrantDescBindingEpoch.Default.(int)
+	// capabilitygrantDescStatus is the schema descriptor for status field.
+	capabilitygrantDescStatus := capabilitygrantFields[16].Descriptor()
+	// capabilitygrant.DefaultStatus holds the default value on creation for the status field.
+	capabilitygrant.DefaultStatus = capabilitygrantDescStatus.Default.(string)
+	// capabilitygrantDescOutcomeStatus is the schema descriptor for outcome_status field.
+	capabilitygrantDescOutcomeStatus := capabilitygrantFields[17].Descriptor()
+	// capabilitygrant.DefaultOutcomeStatus holds the default value on creation for the outcome_status field.
+	capabilitygrant.DefaultOutcomeStatus = capabilitygrantDescOutcomeStatus.Default.(string)
+	// capabilitygrantDescCreatedAt is the schema descriptor for created_at field.
+	capabilitygrantDescCreatedAt := capabilitygrantFields[23].Descriptor()
+	// capabilitygrant.DefaultCreatedAt holds the default value on creation for the created_at field.
+	capabilitygrant.DefaultCreatedAt = capabilitygrantDescCreatedAt.Default.(func() time.Time)
+	// capabilitygrantDescUpdatedAt is the schema descriptor for updated_at field.
+	capabilitygrantDescUpdatedAt := capabilitygrantFields[24].Descriptor()
+	// capabilitygrant.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	capabilitygrant.DefaultUpdatedAt = capabilitygrantDescUpdatedAt.Default.(func() time.Time)
+	// capabilitygrant.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	capabilitygrant.UpdateDefaultUpdatedAt = capabilitygrantDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// capabilitygrantDescID is the schema descriptor for id field.
+	capabilitygrantDescID := capabilitygrantFields[0].Descriptor()
+	// capabilitygrant.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	capabilitygrant.IDValidator = capabilitygrantDescID.Validators[0].(func(string) error)
 	groupFields := schema.Group{}.Fields()
 	_ = groupFields
 	// groupDescSpaceID is the schema descriptor for space_id field.
@@ -477,20 +542,28 @@ func init() {
 	pluginDescVersion := pluginFields[4].Descriptor()
 	// plugin.VersionValidator is a validator for the "version" field. It is called by the builders before save.
 	plugin.VersionValidator = pluginDescVersion.Validators[0].(func(string) error)
+	// pluginDescType is the schema descriptor for type field.
+	pluginDescType := pluginFields[5].Descriptor()
+	// plugin.DefaultType holds the default value on creation for the type field.
+	plugin.DefaultType = pluginDescType.Default.(string)
+	// pluginDescScope is the schema descriptor for scope field.
+	pluginDescScope := pluginFields[6].Descriptor()
+	// plugin.DefaultScope holds the default value on creation for the scope field.
+	plugin.DefaultScope = pluginDescScope.Default.(string)
 	// pluginDescSource is the schema descriptor for source field.
-	pluginDescSource := pluginFields[5].Descriptor()
+	pluginDescSource := pluginFields[8].Descriptor()
 	// plugin.DefaultSource holds the default value on creation for the source field.
 	plugin.DefaultSource = pluginDescSource.Default.(string)
 	// pluginDescStatus is the schema descriptor for status field.
-	pluginDescStatus := pluginFields[6].Descriptor()
+	pluginDescStatus := pluginFields[9].Descriptor()
 	// plugin.DefaultStatus holds the default value on creation for the status field.
 	plugin.DefaultStatus = pluginDescStatus.Default.(string)
 	// pluginDescCreatedAt is the schema descriptor for created_at field.
-	pluginDescCreatedAt := pluginFields[8].Descriptor()
+	pluginDescCreatedAt := pluginFields[11].Descriptor()
 	// plugin.DefaultCreatedAt holds the default value on creation for the created_at field.
 	plugin.DefaultCreatedAt = pluginDescCreatedAt.Default.(func() time.Time)
 	// pluginDescUpdatedAt is the schema descriptor for updated_at field.
-	pluginDescUpdatedAt := pluginFields[9].Descriptor()
+	pluginDescUpdatedAt := pluginFields[12].Descriptor()
 	// plugin.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	plugin.DefaultUpdatedAt = pluginDescUpdatedAt.Default.(func() time.Time)
 	// plugin.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

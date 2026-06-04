@@ -22,6 +22,7 @@ import (
 	"github.com/plystra/plystra/ent/auditeventtype"
 	"github.com/plystra/plystra/ent/auditlog"
 	"github.com/plystra/plystra/ent/backgroundjob"
+	"github.com/plystra/plystra/ent/capabilitygrant"
 	"github.com/plystra/plystra/ent/group"
 	"github.com/plystra/plystra/ent/member"
 	"github.com/plystra/plystra/ent/memberrole"
@@ -64,6 +65,8 @@ type Client struct {
 	AuditLog *AuditLogClient
 	// BackgroundJob is the client for interacting with the BackgroundJob builders.
 	BackgroundJob *BackgroundJobClient
+	// CapabilityGrant is the client for interacting with the CapabilityGrant builders.
+	CapabilityGrant *CapabilityGrantClient
 	// Group is the client for interacting with the Group builders.
 	Group *GroupClient
 	// Member is the client for interacting with the Member builders.
@@ -121,6 +124,7 @@ func (c *Client) init() {
 	c.AuditEventType = NewAuditEventTypeClient(c.config)
 	c.AuditLog = NewAuditLogClient(c.config)
 	c.BackgroundJob = NewBackgroundJobClient(c.config)
+	c.CapabilityGrant = NewCapabilityGrantClient(c.config)
 	c.Group = NewGroupClient(c.config)
 	c.Member = NewMemberClient(c.config)
 	c.MemberRole = NewMemberRoleClient(c.config)
@@ -240,6 +244,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		AuditEventType:           NewAuditEventTypeClient(cfg),
 		AuditLog:                 NewAuditLogClient(cfg),
 		BackgroundJob:            NewBackgroundJobClient(cfg),
+		CapabilityGrant:          NewCapabilityGrantClient(cfg),
 		Group:                    NewGroupClient(cfg),
 		Member:                   NewMemberClient(cfg),
 		MemberRole:               NewMemberRoleClient(cfg),
@@ -286,6 +291,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		AuditEventType:           NewAuditEventTypeClient(cfg),
 		AuditLog:                 NewAuditLogClient(cfg),
 		BackgroundJob:            NewBackgroundJobClient(cfg),
+		CapabilityGrant:          NewCapabilityGrantClient(cfg),
 		Group:                    NewGroupClient(cfg),
 		Member:                   NewMemberClient(cfg),
 		MemberRole:               NewMemberRoleClient(cfg),
@@ -336,10 +342,11 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.AdminGrant, c.ApiKey, c.AppDataModel, c.AppDataRecord,
 		c.AppDataRecordRevision, c.AuditEventType, c.AuditLog, c.BackgroundJob,
-		c.Group, c.Member, c.MemberRole, c.Permission, c.Plugin, c.PluginAdminMenu,
-		c.PluginSettingsDefinition, c.PluginSettingsValue, c.Resource,
-		c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role, c.RolePermission,
-		c.Session, c.Space, c.TemplateInstallation, c.User, c.UserMember,
+		c.CapabilityGrant, c.Group, c.Member, c.MemberRole, c.Permission, c.Plugin,
+		c.PluginAdminMenu, c.PluginSettingsDefinition, c.PluginSettingsValue,
+		c.Resource, c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role,
+		c.RolePermission, c.Session, c.Space, c.TemplateInstallation, c.User,
+		c.UserMember,
 	} {
 		n.Use(hooks...)
 	}
@@ -351,10 +358,11 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.AdminGrant, c.ApiKey, c.AppDataModel, c.AppDataRecord,
 		c.AppDataRecordRevision, c.AuditEventType, c.AuditLog, c.BackgroundJob,
-		c.Group, c.Member, c.MemberRole, c.Permission, c.Plugin, c.PluginAdminMenu,
-		c.PluginSettingsDefinition, c.PluginSettingsValue, c.Resource,
-		c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role, c.RolePermission,
-		c.Session, c.Space, c.TemplateInstallation, c.User, c.UserMember,
+		c.CapabilityGrant, c.Group, c.Member, c.MemberRole, c.Permission, c.Plugin,
+		c.PluginAdminMenu, c.PluginSettingsDefinition, c.PluginSettingsValue,
+		c.Resource, c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role,
+		c.RolePermission, c.Session, c.Space, c.TemplateInstallation, c.User,
+		c.UserMember,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -379,6 +387,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AuditLog.mutate(ctx, m)
 	case *BackgroundJobMutation:
 		return c.BackgroundJob.mutate(ctx, m)
+	case *CapabilityGrantMutation:
+		return c.CapabilityGrant.mutate(ctx, m)
 	case *GroupMutation:
 		return c.Group.mutate(ctx, m)
 	case *MemberMutation:
@@ -1484,6 +1494,139 @@ func (c *BackgroundJobClient) mutate(ctx context.Context, m *BackgroundJobMutati
 		return (&BackgroundJobDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown BackgroundJob mutation op: %q", m.Op())
+	}
+}
+
+// CapabilityGrantClient is a client for the CapabilityGrant schema.
+type CapabilityGrantClient struct {
+	config
+}
+
+// NewCapabilityGrantClient returns a client for the CapabilityGrant from the given config.
+func NewCapabilityGrantClient(c config) *CapabilityGrantClient {
+	return &CapabilityGrantClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `capabilitygrant.Hooks(f(g(h())))`.
+func (c *CapabilityGrantClient) Use(hooks ...Hook) {
+	c.hooks.CapabilityGrant = append(c.hooks.CapabilityGrant, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `capabilitygrant.Intercept(f(g(h())))`.
+func (c *CapabilityGrantClient) Intercept(interceptors ...Interceptor) {
+	c.inters.CapabilityGrant = append(c.inters.CapabilityGrant, interceptors...)
+}
+
+// Create returns a builder for creating a CapabilityGrant entity.
+func (c *CapabilityGrantClient) Create() *CapabilityGrantCreate {
+	mutation := newCapabilityGrantMutation(c.config, OpCreate)
+	return &CapabilityGrantCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of CapabilityGrant entities.
+func (c *CapabilityGrantClient) CreateBulk(builders ...*CapabilityGrantCreate) *CapabilityGrantCreateBulk {
+	return &CapabilityGrantCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *CapabilityGrantClient) MapCreateBulk(slice any, setFunc func(*CapabilityGrantCreate, int)) *CapabilityGrantCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &CapabilityGrantCreateBulk{err: fmt.Errorf("calling to CapabilityGrantClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*CapabilityGrantCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &CapabilityGrantCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for CapabilityGrant.
+func (c *CapabilityGrantClient) Update() *CapabilityGrantUpdate {
+	mutation := newCapabilityGrantMutation(c.config, OpUpdate)
+	return &CapabilityGrantUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CapabilityGrantClient) UpdateOne(_m *CapabilityGrant) *CapabilityGrantUpdateOne {
+	mutation := newCapabilityGrantMutation(c.config, OpUpdateOne, withCapabilityGrant(_m))
+	return &CapabilityGrantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CapabilityGrantClient) UpdateOneID(id string) *CapabilityGrantUpdateOne {
+	mutation := newCapabilityGrantMutation(c.config, OpUpdateOne, withCapabilityGrantID(id))
+	return &CapabilityGrantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for CapabilityGrant.
+func (c *CapabilityGrantClient) Delete() *CapabilityGrantDelete {
+	mutation := newCapabilityGrantMutation(c.config, OpDelete)
+	return &CapabilityGrantDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CapabilityGrantClient) DeleteOne(_m *CapabilityGrant) *CapabilityGrantDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CapabilityGrantClient) DeleteOneID(id string) *CapabilityGrantDeleteOne {
+	builder := c.Delete().Where(capabilitygrant.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CapabilityGrantDeleteOne{builder}
+}
+
+// Query returns a query builder for CapabilityGrant.
+func (c *CapabilityGrantClient) Query() *CapabilityGrantQuery {
+	return &CapabilityGrantQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCapabilityGrant},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a CapabilityGrant entity by its id.
+func (c *CapabilityGrantClient) Get(ctx context.Context, id string) (*CapabilityGrant, error) {
+	return c.Query().Where(capabilitygrant.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CapabilityGrantClient) GetX(ctx context.Context, id string) *CapabilityGrant {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *CapabilityGrantClient) Hooks() []Hook {
+	return c.hooks.CapabilityGrant
+}
+
+// Interceptors returns the client interceptors.
+func (c *CapabilityGrantClient) Interceptors() []Interceptor {
+	return c.inters.CapabilityGrant
+}
+
+func (c *CapabilityGrantClient) mutate(ctx context.Context, m *CapabilityGrantMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CapabilityGrantCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CapabilityGrantUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CapabilityGrantUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CapabilityGrantDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown CapabilityGrant mutation op: %q", m.Op())
 	}
 }
 
@@ -4018,16 +4161,18 @@ func (c *UserMemberClient) mutate(ctx context.Context, m *UserMemberMutation) (V
 type (
 	hooks struct {
 		AdminGrant, ApiKey, AppDataModel, AppDataRecord, AppDataRecordRevision,
-		AuditEventType, AuditLog, BackgroundJob, Group, Member, MemberRole, Permission,
-		Plugin, PluginAdminMenu, PluginSettingsDefinition, PluginSettingsValue,
-		Resource, ResourceAction, ResourceMapping, ResourceType, Role, RolePermission,
-		Session, Space, TemplateInstallation, User, UserMember []ent.Hook
+		AuditEventType, AuditLog, BackgroundJob, CapabilityGrant, Group, Member,
+		MemberRole, Permission, Plugin, PluginAdminMenu, PluginSettingsDefinition,
+		PluginSettingsValue, Resource, ResourceAction, ResourceMapping, ResourceType,
+		Role, RolePermission, Session, Space, TemplateInstallation, User,
+		UserMember []ent.Hook
 	}
 	inters struct {
 		AdminGrant, ApiKey, AppDataModel, AppDataRecord, AppDataRecordRevision,
-		AuditEventType, AuditLog, BackgroundJob, Group, Member, MemberRole, Permission,
-		Plugin, PluginAdminMenu, PluginSettingsDefinition, PluginSettingsValue,
-		Resource, ResourceAction, ResourceMapping, ResourceType, Role, RolePermission,
-		Session, Space, TemplateInstallation, User, UserMember []ent.Interceptor
+		AuditEventType, AuditLog, BackgroundJob, CapabilityGrant, Group, Member,
+		MemberRole, Permission, Plugin, PluginAdminMenu, PluginSettingsDefinition,
+		PluginSettingsValue, Resource, ResourceAction, ResourceMapping, ResourceType,
+		Role, RolePermission, Session, Space, TemplateInstallation, User,
+		UserMember []ent.Interceptor
 	}
 )

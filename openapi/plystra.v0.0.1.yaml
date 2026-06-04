@@ -227,6 +227,80 @@ components:
                 visibility:
                     type: string
             type: object
+        ApiCapabilityGrantExecutor:
+            properties:
+                plugin_id:
+                    type: string
+            type: object
+        ApiCapabilityGrantPrincipal:
+            properties:
+                member_id:
+                    type: string
+                user_id:
+                    type: string
+                user_member_id:
+                    type: string
+            type: object
+        ApiCapabilityGrantRequest:
+            properties:
+                capability:
+                    type: string
+                correlation_id:
+                    type: string
+                executor:
+                    $ref: '#/components/schemas/ApiCapabilityGrantExecutor'
+                idempotency_key:
+                    type: string
+                input_summary:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                operation:
+                    type: string
+                parent_grant_id:
+                    type: string
+                principal:
+                    $ref: '#/components/schemas/ApiCapabilityGrantPrincipal'
+                resource:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                space_id:
+                    type: string
+                ttl_ms:
+                    type: integer
+            type: object
+        ApiCapabilityOutcomeRequest:
+            properties:
+                events:
+                    items: {}
+                    nullable: true
+                    type: array
+                finished_at:
+                    format: date-time
+                    nullable: true
+                    type: string
+                grant_id:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                outcome_event_id:
+                    type: string
+                result_ref:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                status:
+                    type: string
+                target_idempotency_key:
+                    type: string
+            type: object
         ApiDataRowMutationRequest:
             properties:
                 actor:
@@ -253,6 +327,17 @@ components:
                     type: string
                 visibility:
                     nullable: true
+                    type: string
+            type: object
+        ApiGrantIntrospectionRequest:
+            properties:
+                capability:
+                    type: string
+                grant:
+                    type: string
+                operation:
+                    type: string
+                target_provider_id:
                     type: string
             type: object
         ApiGroupMutationRequest:
@@ -693,6 +778,39 @@ components:
                 user_agent:
                     type: string
             type: object
+        ApiOpenAPIAuthMeResponse:
+            properties:
+                actor:
+                    additionalProperties: {}
+                    type: object
+                available_members:
+                    items:
+                        additionalProperties: {}
+                        type: object
+                    nullable: true
+                    type: array
+                session:
+                    $ref: '#/components/schemas/ApiOpenAPIAuthMeSession'
+                session_id:
+                    type: string
+                user:
+                    $ref: '#/components/schemas/ApiOpenAPIUserSession'
+            type: object
+        ApiOpenAPIAuthMeSession:
+            properties:
+                active_member_id:
+                    type: string
+                active_space_id:
+                    type: string
+                active_user_member_id:
+                    type: string
+                expires_at:
+                    format: date-time
+                    type: string
+                refresh_expires_at:
+                    format: date-time
+                    type: string
+            type: object
         ApiOpenAPIAuthzCheckResponse:
             properties:
                 allow:
@@ -712,6 +830,116 @@ components:
                 reason:
                     type: string
                 trace_id:
+                    type: string
+            type: object
+        ApiOpenAPICapabilitiesResponse:
+            properties:
+                services:
+                    items:
+                        additionalProperties: {}
+                        type: object
+                    nullable: true
+                    type: array
+                states:
+                    additionalProperties:
+                        type: string
+                    nullable: true
+                    type: object
+            type: object
+        ApiOpenAPICapabilityGrant:
+            properties:
+                binding_epoch:
+                    type: integer
+                caller_plugin_id:
+                    type: string
+                capability:
+                    type: string
+                correlation_id:
+                    type: string
+                created_at:
+                    format: date-time
+                    type: string
+                decision_id:
+                    type: string
+                expected_outcome_by:
+                    format: date-time
+                    type: string
+                expires_at:
+                    format: date-time
+                    type: string
+                grant:
+                    description: Opaque grant token returned only at issuance or reissue time.
+                    type: string
+                grant_id:
+                    type: string
+                idempotency_key:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                operation:
+                    type: string
+                outcome_status:
+                    example: pending
+                    type: string
+                parent_grant_id:
+                    type: string
+                principal_member_id:
+                    type: string
+                principal_user_id:
+                    type: string
+                principal_user_member_id:
+                    type: string
+                revoked_at:
+                    format: date-time
+                    nullable: true
+                    type: string
+                revoked_reason:
+                    type: string
+                space_id:
+                    type: string
+                status:
+                    example: active
+                    type: string
+                target:
+                    $ref: '#/components/schemas/ApiOpenAPICapabilityGrantTarget'
+                target_idempotency_key:
+                    type: string
+                target_provider_id:
+                    type: string
+                updated_at:
+                    format: date-time
+                    type: string
+            type: object
+        ApiOpenAPICapabilityGrantCaller:
+            properties:
+                plugin_id:
+                    type: string
+            type: object
+        ApiOpenAPICapabilityGrantPrincipal:
+            properties:
+                member_id:
+                    type: string
+                user_id:
+                    type: string
+                user_member_id:
+                    type: string
+            type: object
+        ApiOpenAPICapabilityGrantTarget:
+            properties:
+                endpoint:
+                    type: string
+                identity:
+                    $ref: '#/components/schemas/ApiOpenAPICapabilityGrantTargetIdentity'
+                operation_url:
+                    type: string
+                provider_id:
+                    type: string
+            type: object
+        ApiOpenAPICapabilityGrantTargetIdentity:
+            properties:
+                provider_id:
                     type: string
             type: object
         ApiOpenAPIDataRowMutationResponse:
@@ -785,6 +1013,14 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
+        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthMeResponse:
+            properties:
+                data:
+                    $ref: '#/components/schemas/ApiOpenAPIAuthMeResponse'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
         ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthzCheckResponse:
             properties:
                 data:
@@ -793,10 +1029,34 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
+        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilitiesResponse:
+            properties:
+                data:
+                    $ref: '#/components/schemas/ApiOpenAPICapabilitiesResponse'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
+        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilityGrant:
+            properties:
+                data:
+                    $ref: '#/components/schemas/ApiOpenAPICapabilityGrant'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
         ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIDataRowMutationResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIDataRowMutationResponse'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
+        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGrantIntrospectionResponse:
+            properties:
+                data:
+                    $ref: '#/components/schemas/ApiOpenAPIGrantIntrospectionResponse'
                 request_id:
                     example: req_01hzyj6b6q8
                     type: string
@@ -1039,6 +1299,32 @@ components:
                     $ref: '#/components/schemas/ApiOpenAPIError'
                 request_id:
                     example: req_01hzyj6b6q8
+                    type: string
+            type: object
+        ApiOpenAPIGrantIntrospectionResponse:
+            properties:
+                active:
+                    type: boolean
+                binding_epoch:
+                    type: integer
+                caller:
+                    $ref: '#/components/schemas/ApiOpenAPICapabilityGrantCaller'
+                correlation_id:
+                    type: string
+                decision_id:
+                    type: string
+                expires_at:
+                    format: date-time
+                    type: string
+                grant_id:
+                    type: string
+                principal:
+                    $ref: '#/components/schemas/ApiOpenAPICapabilityGrantPrincipal'
+                reason:
+                    type: string
+                space_id:
+                    type: string
+                target_idempotency_key:
                     type: string
             type: object
         ApiOpenAPIGroup:
@@ -1552,6 +1838,9 @@ components:
             properties:
                 admin_menus_count:
                     type: integer
+                app_id:
+                    example: forge
+                    type: string
                 created_at:
                     format: date-time
                     type: string
@@ -1571,9 +1860,15 @@ components:
                     type: integer
                 resources_count:
                     type: integer
+                scope:
+                    example: public
+                    type: string
                 source:
                     type: string
                 status:
+                    type: string
+                type:
+                    example: plugin
                     type: string
                 updated_at:
                     format: date-time
@@ -2438,15 +2733,88 @@ components:
                 risk_level:
                     type: string
             type: object
+        PluginsCapabilityAuditDefinition:
+            properties:
+                enforcement:
+                    type: string
+                mutation_journal:
+                    $ref: '#/components/schemas/PluginsMutationJournalDefinition'
+            type: object
+        PluginsCapabilityCallGraphDefinition:
+            properties:
+                allowed_callers:
+                    items:
+                        type: string
+                    type: array
+                max_depth:
+                    type: integer
+                reentrant:
+                    type: boolean
+            type: object
+        PluginsCapabilityDataPlaneDefinition:
+            properties:
+                allowed:
+                    items:
+                        type: string
+                    nullable: true
+                    type: array
+                disallowed:
+                    items:
+                        type: string
+                    type: array
+            type: object
         PluginsCapabilityDefinition:
             properties:
+                audit:
+                    $ref: '#/components/schemas/PluginsCapabilityAuditDefinition'
+                data_plane:
+                    $ref: '#/components/schemas/PluginsCapabilityDataPlaneDefinition'
                 description:
                     type: string
                 id:
                     type: string
                 level:
                     type: string
+                operations:
+                    items:
+                        $ref: '#/components/schemas/PluginsCapabilityOperationDefinition'
+                    type: array
                 version:
+                    type: string
+            type: object
+        PluginsCapabilityDelegationDefinition:
+            properties:
+                mode:
+                    type: string
+            type: object
+        PluginsCapabilityInvocationDefinition:
+            properties:
+                cancellation:
+                    type: string
+                grant_ttl_ms:
+                    type: integer
+                idempotency:
+                    type: string
+                introspection:
+                    type: string
+                mode:
+                    type: string
+                outcome_receipt:
+                    type: string
+                result_unknown_reconciliation:
+                    type: string
+                timeout_ms:
+                    type: integer
+            type: object
+        PluginsCapabilityOperationDefinition:
+            properties:
+                call_graph:
+                    $ref: '#/components/schemas/PluginsCapabilityCallGraphDefinition'
+                delegation:
+                    $ref: '#/components/schemas/PluginsCapabilityDelegationDefinition'
+                invocation:
+                    $ref: '#/components/schemas/PluginsCapabilityInvocationDefinition'
+                name:
                     type: string
             type: object
         PluginsCapabilityRequirement:
@@ -2498,6 +2866,8 @@ components:
                         $ref: '#/components/schemas/PluginsAdminMenuDefinition'
                     nullable: true
                     type: array
+                app_id:
+                    type: string
                 audit_events:
                     items:
                         $ref: '#/components/schemas/PluginsAuditEventDefinition'
@@ -2529,6 +2899,10 @@ components:
                         $ref: '#/components/schemas/PluginsJobDefinition'
                     nullable: true
                     type: array
+                local_capabilities:
+                    items:
+                        $ref: '#/components/schemas/PluginsCapabilityDefinition'
+                    type: array
                 manifest_version:
                     type: string
                 name:
@@ -2557,6 +2931,10 @@ components:
                         $ref: '#/components/schemas/PluginsRouteDefinition'
                     nullable: true
                     type: array
+                runtime:
+                    $ref: '#/components/schemas/PluginsProviderRuntimeDefinition'
+                scope:
+                    type: string
                 secrets:
                     items:
                         $ref: '#/components/schemas/PluginsSecretDefinition'
@@ -2571,7 +2949,22 @@ components:
                     type: string
                 status:
                     type: string
+                type:
+                    type: string
                 version:
+                    type: string
+            type: object
+        PluginsMutationJournalDefinition:
+            properties:
+                archival:
+                    type: string
+                atomic:
+                    type: boolean
+                availability_coupling:
+                    type: boolean
+                payload:
+                    type: string
+                retention:
                     type: string
             type: object
         PluginsNetworkDefinition:
@@ -2596,6 +2989,19 @@ components:
                         type: string
                     nullable: true
                     type: array
+            type: object
+        PluginsProviderRuntimeDefinition:
+            properties:
+                endpoint_setting_key:
+                    type: string
+                protocol:
+                    type: string
+                schema_compatibility:
+                    $ref: '#/components/schemas/PluginsSchemaCompatibilityDefinition'
+                type:
+                    type: string
+                version:
+                    type: string
             type: object
         PluginsResourceDefinition:
             properties:
@@ -2643,6 +3049,15 @@ components:
                 resource_type:
                     type: string
             type: object
+        PluginsSchemaCompatibilityDefinition:
+            properties:
+                max:
+                    type: integer
+                min:
+                    type: integer
+                preferred:
+                    type: integer
+            type: object
         PluginsSecretDefinition:
             properties:
                 description:
@@ -2654,6 +3069,7 @@ components:
             type: object
         PluginsSettingDefinition:
             properties:
+                default: {}
                 description:
                     type: string
                 key:
@@ -3311,6 +3727,27 @@ paths:
             summary: Revoke a session token
             tags:
                 - Auth
+    /api/v1/auth/me:
+        get:
+            operationId: getCurrentSession
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthMeResponse'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+            summary: Get current authenticated user and session
+            tags:
+                - Auth
     /api/v1/auth/refresh:
         post:
             operationId: refreshSession
@@ -3418,6 +3855,86 @@ paths:
             summary: Run authorization explain trace
             tags:
                 - Authorization
+    /api/v1/capabilities:
+        get:
+            operationId: listCapabilities
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilitiesResponse'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: List installed capability states and services
+            tags:
+                - Capabilities
+    /api/v1/capability-grants:
+        post:
+            description: Resolves an enabled capability provider, verifies the caller declared the required capability, records a revocable grant ledger row, and returns a target endpoint plus opaque grant token. Core does not proxy the business payload.
+            operationId: issueCapabilityGrant
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiCapabilityGrantRequest'
+                required: true
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilityGrant'
+                    description: Created
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Issue a governed capability invocation grant
+            tags:
+                - Capability Grants
+    /api/v1/capability-outcomes:
+        post:
+            description: Provider runtimes report idempotent execution outcomes so Core can reconcile mediated grants without being in the synchronous business-response path.
+            operationId: recordCapabilityOutcome
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiCapabilityOutcomeRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilityGrant'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Record a capability grant outcome receipt
+            tags:
+                - Capability Grants
     /api/v1/console/overview:
         get:
             operationId: getConsoleOverview
@@ -3645,6 +4162,35 @@ paths:
             summary: List data-console tables
             tags:
                 - Data Console
+    /api/v1/grants/introspect:
+        post:
+            description: Provider runtimes call this before executing a revocable mediated grant. The response contains authorization metadata only; business payloads never pass through Core.
+            operationId: introspectCapabilityGrant
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiGrantIntrospectionRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGrantIntrospectionResponse'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Introspect a mediated capability grant
+            tags:
+                - Capability Grants
     /api/v1/groups/{group_id}:
         get:
             operationId: getGroupByID
@@ -7119,6 +7665,10 @@ tags:
       name: Data Console
     - description: Append-only audit log query endpoints.
       name: Audit
+    - description: Installed system capability states and services.
+      name: Capabilities
+    - description: Core-tracked revocable grants for governed plugin-to-plugin capability invocation.
+      name: Capability Grants
     - description: Preview plugin metadata, lifecycle flags, settings, and generated metadata; not a stable plugin runtime.
       name: Plugins
     - description: Preview template catalog and install-flow metadata; not a stable template ecosystem.
@@ -7159,5 +7709,7 @@ x-tagGroups:
         - Audit
     - name: Extensions
       tags:
+        - Capabilities
+        - Capability Grants
         - Plugins
         - Templates

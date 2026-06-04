@@ -88,6 +88,14 @@
       "description": "Append-only audit log query endpoints."
     },
     {
+      "name": "Capabilities",
+      "description": "Installed system capability states and services."
+    },
+    {
+      "name": "Capability Grants",
+      "description": "Core-tracked revocable grants for governed plugin-to-plugin capability invocation."
+    },
+    {
       "name": "Plugins",
       "description": "Preview plugin metadata, lifecycle flags, settings, and generated metadata; not a stable plugin runtime."
     },
@@ -946,6 +954,42 @@
         }
       }
     },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Get current authenticated user and session",
+        "operationId": "getCurrentSession",
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthMeResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/auth/refresh": {
       "post": {
         "tags": [
@@ -1112,6 +1156,145 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiOpenAPIEnvelopeMapStringInterface"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/capabilities": {
+      "get": {
+        "tags": [
+          "Capabilities"
+        ],
+        "summary": "List installed capability states and services",
+        "operationId": "listCapabilities",
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilitiesResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/capability-grants": {
+      "post": {
+        "tags": [
+          "Capability Grants"
+        ],
+        "summary": "Issue a governed capability invocation grant",
+        "description": "Resolves an enabled capability provider, verifies the caller declared the required capability, records a revocable grant ledger row, and returns a target endpoint plus opaque grant token. Core does not proxy the business payload.",
+        "operationId": "issueCapabilityGrant",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiCapabilityGrantRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilityGrant"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/capability-outcomes": {
+      "post": {
+        "tags": [
+          "Capability Grants"
+        ],
+        "summary": "Record a capability grant outcome receipt",
+        "description": "Provider runtimes report idempotent execution outcomes so Core can reconcile mediated grants without being in the synchronous business-response path.",
+        "operationId": "recordCapabilityOutcome",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiCapabilityOutcomeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilityGrant"
                 }
               }
             }
@@ -1502,6 +1685,56 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceMapping"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/grants/introspect": {
+      "post": {
+        "tags": [
+          "Capability Grants"
+        ],
+        "summary": "Introspect a mediated capability grant",
+        "description": "Provider runtimes call this before executing a revocable mediated grant. The response contains authorization metadata only; business payloads never pass through Core.",
+        "operationId": "introspectCapabilityGrant",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiGrantIntrospectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGrantIntrospectionResponse"
                 }
               }
             }
@@ -7748,6 +7981,112 @@
           }
         }
       },
+      "ApiCapabilityGrantExecutor": {
+        "type": "object",
+        "properties": {
+          "plugin_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiCapabilityGrantPrincipal": {
+        "type": "object",
+        "properties": {
+          "member_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "user_member_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiCapabilityGrantRequest": {
+        "type": "object",
+        "properties": {
+          "capability": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "executor": {
+            "$ref": "#/components/schemas/ApiCapabilityGrantExecutor"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "input_summary": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "operation": {
+            "type": "string"
+          },
+          "parent_grant_id": {
+            "type": "string"
+          },
+          "principal": {
+            "$ref": "#/components/schemas/ApiCapabilityGrantPrincipal"
+          },
+          "resource": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "ttl_ms": {
+            "type": "integer"
+          }
+        }
+      },
+      "ApiCapabilityOutcomeRequest": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {},
+            "nullable": true
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "outcome_event_id": {
+            "type": "string"
+          },
+          "result_ref": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "target_idempotency_key": {
+            "type": "string"
+          }
+        }
+      },
       "ApiDataRowMutationRequest": {
         "type": "object",
         "properties": {
@@ -7784,6 +8123,23 @@
           "visibility": {
             "type": "string",
             "nullable": true
+          }
+        }
+      },
+      "ApiGrantIntrospectionRequest": {
+        "type": "object",
+        "properties": {
+          "capability": {
+            "type": "string"
+          },
+          "grant": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "target_provider_id": {
+            "type": "string"
           }
         }
       },
@@ -8412,6 +8768,54 @@
           }
         }
       },
+      "ApiOpenAPIAuthMeResponse": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "available_members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "nullable": true
+          },
+          "session": {
+            "$ref": "#/components/schemas/ApiOpenAPIAuthMeSession"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/ApiOpenAPIUserSession"
+          }
+        }
+      },
+      "ApiOpenAPIAuthMeSession": {
+        "type": "object",
+        "properties": {
+          "active_member_id": {
+            "type": "string"
+          },
+          "active_space_id": {
+            "type": "string"
+          },
+          "active_user_member_id": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "refresh_expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "ApiOpenAPIAuthzCheckResponse": {
         "type": "object",
         "properties": {
@@ -8438,6 +8842,167 @@
             "type": "string"
           },
           "trace_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiOpenAPICapabilitiesResponse": {
+        "type": "object",
+        "properties": {
+          "services": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "nullable": true
+          },
+          "states": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "ApiOpenAPICapabilityGrant": {
+        "type": "object",
+        "properties": {
+          "binding_epoch": {
+            "type": "integer"
+          },
+          "caller_plugin_id": {
+            "type": "string"
+          },
+          "capability": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decision_id": {
+            "type": "string"
+          },
+          "expected_outcome_by": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "grant": {
+            "type": "string",
+            "description": "Opaque grant token returned only at issuance or reissue time."
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "operation": {
+            "type": "string"
+          },
+          "outcome_status": {
+            "type": "string",
+            "example": "pending"
+          },
+          "parent_grant_id": {
+            "type": "string"
+          },
+          "principal_member_id": {
+            "type": "string"
+          },
+          "principal_user_id": {
+            "type": "string"
+          },
+          "principal_user_member_id": {
+            "type": "string"
+          },
+          "revoked_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "revoked_reason": {
+            "type": "string"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "example": "active"
+          },
+          "target": {
+            "$ref": "#/components/schemas/ApiOpenAPICapabilityGrantTarget"
+          },
+          "target_idempotency_key": {
+            "type": "string"
+          },
+          "target_provider_id": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiOpenAPICapabilityGrantCaller": {
+        "type": "object",
+        "properties": {
+          "plugin_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiOpenAPICapabilityGrantPrincipal": {
+        "type": "object",
+        "properties": {
+          "member_id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "user_member_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiOpenAPICapabilityGrantTarget": {
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "type": "string"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/ApiOpenAPICapabilityGrantTargetIdentity"
+          },
+          "operation_url": {
+            "type": "string"
+          },
+          "provider_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiOpenAPICapabilityGrantTargetIdentity": {
+        "type": "object",
+        "properties": {
+          "provider_id": {
             "type": "string"
           }
         }
@@ -8549,6 +9114,18 @@
           }
         }
       },
+      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthMeResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ApiOpenAPIAuthMeResponse"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req_01hzyj6b6q8"
+          }
+        }
+      },
       "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthzCheckResponse": {
         "type": "object",
         "properties": {
@@ -8561,11 +9138,47 @@
           }
         }
       },
+      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilitiesResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ApiOpenAPICapabilitiesResponse"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req_01hzyj6b6q8"
+          }
+        }
+      },
+      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilityGrant": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ApiOpenAPICapabilityGrant"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req_01hzyj6b6q8"
+          }
+        }
+      },
       "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIDataRowMutationResponse": {
         "type": "object",
         "properties": {
           "data": {
             "$ref": "#/components/schemas/ApiOpenAPIDataRowMutationResponse"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req_01hzyj6b6q8"
+          }
+        }
+      },
+      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGrantIntrospectionResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ApiOpenAPIGrantIntrospectionResponse"
           },
           "request_id": {
             "type": "string",
@@ -8926,6 +9539,45 @@
           "request_id": {
             "type": "string",
             "example": "req_01hzyj6b6q8"
+          }
+        }
+      },
+      "ApiOpenAPIGrantIntrospectionResponse": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "binding_epoch": {
+            "type": "integer"
+          },
+          "caller": {
+            "$ref": "#/components/schemas/ApiOpenAPICapabilityGrantCaller"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "decision_id": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "principal": {
+            "$ref": "#/components/schemas/ApiOpenAPICapabilityGrantPrincipal"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "target_idempotency_key": {
+            "type": "string"
           }
         }
       },
@@ -9669,6 +10321,10 @@
           "admin_menus_count": {
             "type": "integer"
           },
+          "app_id": {
+            "type": "string",
+            "example": "forge"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -9696,11 +10352,19 @@
           "resources_count": {
             "type": "integer"
           },
+          "scope": {
+            "type": "string",
+            "example": "public"
+          },
           "source": {
             "type": "string"
           },
           "status": {
             "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "example": "plugin"
           },
           "updated_at": {
             "type": "string",
@@ -10939,9 +11603,61 @@
           }
         }
       },
+      "PluginsCapabilityAuditDefinition": {
+        "type": "object",
+        "properties": {
+          "enforcement": {
+            "type": "string"
+          },
+          "mutation_journal": {
+            "$ref": "#/components/schemas/PluginsMutationJournalDefinition"
+          }
+        }
+      },
+      "PluginsCapabilityCallGraphDefinition": {
+        "type": "object",
+        "properties": {
+          "allowed_callers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "max_depth": {
+            "type": "integer"
+          },
+          "reentrant": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PluginsCapabilityDataPlaneDefinition": {
+        "type": "object",
+        "properties": {
+          "allowed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "disallowed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "PluginsCapabilityDefinition": {
         "type": "object",
         "properties": {
+          "audit": {
+            "$ref": "#/components/schemas/PluginsCapabilityAuditDefinition"
+          },
+          "data_plane": {
+            "$ref": "#/components/schemas/PluginsCapabilityDataPlaneDefinition"
+          },
           "description": {
             "type": "string"
           },
@@ -10951,7 +11667,67 @@
           "level": {
             "type": "string"
           },
+          "operations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginsCapabilityOperationDefinition"
+            }
+          },
           "version": {
+            "type": "string"
+          }
+        }
+      },
+      "PluginsCapabilityDelegationDefinition": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string"
+          }
+        }
+      },
+      "PluginsCapabilityInvocationDefinition": {
+        "type": "object",
+        "properties": {
+          "cancellation": {
+            "type": "string"
+          },
+          "grant_ttl_ms": {
+            "type": "integer"
+          },
+          "idempotency": {
+            "type": "string"
+          },
+          "introspection": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "outcome_receipt": {
+            "type": "string"
+          },
+          "result_unknown_reconciliation": {
+            "type": "string"
+          },
+          "timeout_ms": {
+            "type": "integer"
+          }
+        }
+      },
+      "PluginsCapabilityOperationDefinition": {
+        "type": "object",
+        "properties": {
+          "call_graph": {
+            "$ref": "#/components/schemas/PluginsCapabilityCallGraphDefinition"
+          },
+          "delegation": {
+            "$ref": "#/components/schemas/PluginsCapabilityDelegationDefinition"
+          },
+          "invocation": {
+            "$ref": "#/components/schemas/PluginsCapabilityInvocationDefinition"
+          },
+          "name": {
             "type": "string"
           }
         }
@@ -11030,6 +11806,9 @@
             },
             "nullable": true
           },
+          "app_id": {
+            "type": "string"
+          },
           "audit_events": {
             "type": "array",
             "items": {
@@ -11074,6 +11853,12 @@
             },
             "nullable": true
           },
+          "local_capabilities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PluginsCapabilityDefinition"
+            }
+          },
           "manifest_version": {
             "type": "string"
           },
@@ -11114,6 +11899,12 @@
             },
             "nullable": true
           },
+          "runtime": {
+            "$ref": "#/components/schemas/PluginsProviderRuntimeDefinition"
+          },
+          "scope": {
+            "type": "string"
+          },
           "secrets": {
             "type": "array",
             "items": {
@@ -11134,7 +11925,30 @@
           "status": {
             "type": "string"
           },
+          "type": {
+            "type": "string"
+          },
           "version": {
+            "type": "string"
+          }
+        }
+      },
+      "PluginsMutationJournalDefinition": {
+        "type": "object",
+        "properties": {
+          "archival": {
+            "type": "string"
+          },
+          "atomic": {
+            "type": "boolean"
+          },
+          "availability_coupling": {
+            "type": "boolean"
+          },
+          "payload": {
+            "type": "string"
+          },
+          "retention": {
             "type": "string"
           }
         }
@@ -11171,6 +11985,26 @@
               "type": "string"
             },
             "nullable": true
+          }
+        }
+      },
+      "PluginsProviderRuntimeDefinition": {
+        "type": "object",
+        "properties": {
+          "endpoint_setting_key": {
+            "type": "string"
+          },
+          "protocol": {
+            "type": "string"
+          },
+          "schema_compatibility": {
+            "$ref": "#/components/schemas/PluginsSchemaCompatibilityDefinition"
+          },
+          "type": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
           }
         }
       },
@@ -11244,6 +12078,20 @@
           }
         }
       },
+      "PluginsSchemaCompatibilityDefinition": {
+        "type": "object",
+        "properties": {
+          "max": {
+            "type": "integer"
+          },
+          "min": {
+            "type": "integer"
+          },
+          "preferred": {
+            "type": "integer"
+          }
+        }
+      },
       "PluginsSecretDefinition": {
         "type": "object",
         "properties": {
@@ -11261,6 +12109,7 @@
       "PluginsSettingDefinition": {
         "type": "object",
         "properties": {
+          "default": {},
           "description": {
             "type": "string"
           },
@@ -11549,6 +12398,8 @@
     {
       "name": "Extensions",
       "tags": [
+        "Capabilities",
+        "Capability Grants",
         "Plugins",
         "Templates"
       ]

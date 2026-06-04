@@ -112,6 +112,12 @@ func (s *Server) handleResourceUpdate(w http.ResponseWriter, r *http.Request, sp
 	if !decodeJSON(w, r, &req) {
 		return
 	}
+	if req.Metadata != nil {
+		if err := validateGovernedMetadata("metadata", req.Metadata); err != nil {
+			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", err.Error(), nil)
+			return
+		}
+	}
 	current, err := s.loadResourceInSpace(r.Context(), spaceID, resourceID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeError(w, r, http.StatusNotFound, "RESOURCE_NOT_FOUND", "Resource was not found.", nil)
@@ -200,6 +206,12 @@ func (s *Server) createResource(w http.ResponseWriter, r *http.Request, spaceID 
 	}
 	if req.ID == "" {
 		req.ID = newEntityID(req.ResourceType)
+	}
+	if req.Metadata != nil {
+		if err := validateGovernedMetadata("metadata", req.Metadata); err != nil {
+			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", err.Error(), nil)
+			return
+		}
 	}
 	groupID := derefString(req.GroupID)
 	ownerMemberID := derefString(req.OwnerMemberID)

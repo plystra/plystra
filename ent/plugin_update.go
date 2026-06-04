@@ -90,6 +90,54 @@ func (_u *PluginUpdate) SetNillableVersion(v *string) *PluginUpdate {
 	return _u
 }
 
+// SetType sets the "type" field.
+func (_u *PluginUpdate) SetType(v string) *PluginUpdate {
+	_u.mutation.SetType(v)
+	return _u
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (_u *PluginUpdate) SetNillableType(v *string) *PluginUpdate {
+	if v != nil {
+		_u.SetType(*v)
+	}
+	return _u
+}
+
+// SetScope sets the "scope" field.
+func (_u *PluginUpdate) SetScope(v string) *PluginUpdate {
+	_u.mutation.SetScope(v)
+	return _u
+}
+
+// SetNillableScope sets the "scope" field if the given value is not nil.
+func (_u *PluginUpdate) SetNillableScope(v *string) *PluginUpdate {
+	if v != nil {
+		_u.SetScope(*v)
+	}
+	return _u
+}
+
+// SetAppID sets the "app_id" field.
+func (_u *PluginUpdate) SetAppID(v string) *PluginUpdate {
+	_u.mutation.SetAppID(v)
+	return _u
+}
+
+// SetNillableAppID sets the "app_id" field if the given value is not nil.
+func (_u *PluginUpdate) SetNillableAppID(v *string) *PluginUpdate {
+	if v != nil {
+		_u.SetAppID(*v)
+	}
+	return _u
+}
+
+// ClearAppID clears the value of the "app_id" field.
+func (_u *PluginUpdate) ClearAppID() *PluginUpdate {
+	_u.mutation.ClearAppID()
+	return _u
+}
+
 // SetSource sets the "source" field.
 func (_u *PluginUpdate) SetSource(v string) *PluginUpdate {
 	_u.mutation.SetSource(v)
@@ -218,6 +266,18 @@ func (_u *PluginUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Version(); ok {
 		_spec.SetField(plugin.FieldVersion, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.GetType(); ok {
+		_spec.SetField(plugin.FieldType, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Scope(); ok {
+		_spec.SetField(plugin.FieldScope, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.AppID(); ok {
+		_spec.SetField(plugin.FieldAppID, field.TypeString, value)
+	}
+	if _u.mutation.AppIDCleared() {
+		_spec.ClearField(plugin.FieldAppID, field.TypeString)
+	}
 	if value, ok := _u.mutation.Source(); ok {
 		_spec.SetField(plugin.FieldSource, field.TypeString, value)
 	}
@@ -309,6 +369,54 @@ func (_u *PluginUpdateOne) SetNillableVersion(v *string) *PluginUpdateOne {
 	if v != nil {
 		_u.SetVersion(*v)
 	}
+	return _u
+}
+
+// SetType sets the "type" field.
+func (_u *PluginUpdateOne) SetType(v string) *PluginUpdateOne {
+	_u.mutation.SetType(v)
+	return _u
+}
+
+// SetNillableType sets the "type" field if the given value is not nil.
+func (_u *PluginUpdateOne) SetNillableType(v *string) *PluginUpdateOne {
+	if v != nil {
+		_u.SetType(*v)
+	}
+	return _u
+}
+
+// SetScope sets the "scope" field.
+func (_u *PluginUpdateOne) SetScope(v string) *PluginUpdateOne {
+	_u.mutation.SetScope(v)
+	return _u
+}
+
+// SetNillableScope sets the "scope" field if the given value is not nil.
+func (_u *PluginUpdateOne) SetNillableScope(v *string) *PluginUpdateOne {
+	if v != nil {
+		_u.SetScope(*v)
+	}
+	return _u
+}
+
+// SetAppID sets the "app_id" field.
+func (_u *PluginUpdateOne) SetAppID(v string) *PluginUpdateOne {
+	_u.mutation.SetAppID(v)
+	return _u
+}
+
+// SetNillableAppID sets the "app_id" field if the given value is not nil.
+func (_u *PluginUpdateOne) SetNillableAppID(v *string) *PluginUpdateOne {
+	if v != nil {
+		_u.SetAppID(*v)
+	}
+	return _u
+}
+
+// ClearAppID clears the value of the "app_id" field.
+func (_u *PluginUpdateOne) ClearAppID() *PluginUpdateOne {
+	_u.mutation.ClearAppID()
 	return _u
 }
 
@@ -469,6 +577,18 @@ func (_u *PluginUpdateOne) sqlSave(ctx context.Context) (_node *Plugin, err erro
 	}
 	if value, ok := _u.mutation.Version(); ok {
 		_spec.SetField(plugin.FieldVersion, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.GetType(); ok {
+		_spec.SetField(plugin.FieldType, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Scope(); ok {
+		_spec.SetField(plugin.FieldScope, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.AppID(); ok {
+		_spec.SetField(plugin.FieldAppID, field.TypeString, value)
+	}
+	if _u.mutation.AppIDCleared() {
+		_spec.ClearField(plugin.FieldAppID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Source(); ok {
 		_spec.SetField(plugin.FieldSource, field.TypeString, value)

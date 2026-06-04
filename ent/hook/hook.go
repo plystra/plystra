@@ -105,6 +105,18 @@ func (f BackgroundJobFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Valu
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BackgroundJobMutation", m)
 }
 
+// The CapabilityGrantFunc type is an adapter to allow the use of ordinary
+// function as CapabilityGrant mutator.
+type CapabilityGrantFunc func(context.Context, *ent.CapabilityGrantMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CapabilityGrantFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.CapabilityGrantMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CapabilityGrantMutation", m)
+}
+
 // The GroupFunc type is an adapter to allow the use of ordinary
 // function as Group mutator.
 type GroupFunc func(context.Context, *ent.GroupMutation) (ent.Value, error)

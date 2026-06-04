@@ -26,6 +26,12 @@ type Plugin struct {
 	Description *string `json:"description,omitempty"`
 	// Version holds the value of the "version" field.
 	Version string `json:"version,omitempty"`
+	// Type holds the value of the "type" field.
+	Type string `json:"type,omitempty"`
+	// Scope holds the value of the "scope" field.
+	Scope string `json:"scope,omitempty"`
+	// AppID holds the value of the "app_id" field.
+	AppID *string `json:"app_id,omitempty"`
 	// Source holds the value of the "source" field.
 	Source string `json:"source,omitempty"`
 	// Status holds the value of the "status" field.
@@ -46,7 +52,7 @@ func (*Plugin) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case plugin.FieldManifest:
 			values[i] = new([]byte)
-		case plugin.FieldID, plugin.FieldKey, plugin.FieldName, plugin.FieldDescription, plugin.FieldVersion, plugin.FieldSource, plugin.FieldStatus:
+		case plugin.FieldID, plugin.FieldKey, plugin.FieldName, plugin.FieldDescription, plugin.FieldVersion, plugin.FieldType, plugin.FieldScope, plugin.FieldAppID, plugin.FieldSource, plugin.FieldStatus:
 			values[i] = new(sql.NullString)
 		case plugin.FieldCreatedAt, plugin.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -95,6 +101,25 @@ func (_m *Plugin) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field version", values[i])
 			} else if value.Valid {
 				_m.Version = value.String
+			}
+		case plugin.FieldType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field type", values[i])
+			} else if value.Valid {
+				_m.Type = value.String
+			}
+		case plugin.FieldScope:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field scope", values[i])
+			} else if value.Valid {
+				_m.Scope = value.String
+			}
+		case plugin.FieldAppID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field app_id", values[i])
+			} else if value.Valid {
+				_m.AppID = new(string)
+				*_m.AppID = value.String
 			}
 		case plugin.FieldSource:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -177,6 +202,17 @@ func (_m *Plugin) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("version=")
 	builder.WriteString(_m.Version)
+	builder.WriteString(", ")
+	builder.WriteString("type=")
+	builder.WriteString(_m.Type)
+	builder.WriteString(", ")
+	builder.WriteString("scope=")
+	builder.WriteString(_m.Scope)
+	builder.WriteString(", ")
+	if v := _m.AppID; v != nil {
+		builder.WriteString("app_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("source=")
 	builder.WriteString(_m.Source)

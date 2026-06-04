@@ -406,6 +406,55 @@ func (s *Server) handleAuthLogin(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *Server) handleAuthMe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeMethodNotAllowed(w, r)
+		return
+	}
+	session, err := s.sessionFromRequest(r.Context(), r)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, r, http.StatusUnauthorized, "AUTHENTICATION_REQUIRED", "A valid access token is required.", nil)
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load session.", err.Error())
+		return
+	}
+	user, err := s.ent.User.Query().
+		Where(entuser.ID(session.UserID), entuser.DeletedAtIsNil()).
+		Only(r.Context())
+	if errors.Is(err, pgx.ErrNoRows) || coreent.IsNotFound(err) {
+		writeError(w, r, http.StatusUnauthorized, "AUTHENTICATION_REQUIRED", "Session user is no longer active.", nil)
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load session user.", err.Error())
+		return
+	}
+	response := map[string]any{
+		"session_id": session.ID,
+		"user":       map[string]any{"id": user.ID, "email": user.Email, "status": user.Status},
+		"session": map[string]any{
+			"active_space_id":       session.ActiveSpaceID,
+			"active_member_id":      session.ActiveMemberID,
+			"active_user_member_id": session.ActiveUserMemberID,
+			"expires_at":            session.ExpiresAt.UTC().Format(time.RFC3339),
+			"refresh_expires_at":    session.RefreshExpiresAt.UTC().Format(time.RFC3339),
+		},
+	}
+	if actor, available, err := s.actorForSession(r.Context(), session); err == nil {
+		response["actor"] = actor
+		response["available_members"] = available
+	} else if errors.Is(err, pgx.ErrNoRows) {
+		response["actor"] = nil
+		response["available_members"] = []map[string]any{}
+	} else {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load actor context.", err.Error())
+		return
+	}
+	writeData(w, r, http.StatusOK, response)
+}
+
 func (req *authRegisterRequest) normalize() {
 	req.Email = normalizeEmail(req.Email)
 	req.SpaceName = strings.TrimSpace(req.SpaceName)

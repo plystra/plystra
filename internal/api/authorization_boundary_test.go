@@ -341,10 +341,10 @@ func TestAppDataServicePrincipalRequiresScopedAPIKey(t *testing.T) {
 
 func TestAppDataRecordQueryPredicatesValidateDataFields(t *testing.T) {
 	predicates, err := appDataRecordQueryPredicates(url.Values{
-		"data.developer_id": []string{"dev_1"},
-		"current_status":    []string{"Available"},
-		"search":            []string{"react"},
-	})
+		"data.customer_id": []string{"customer_1"},
+		"current_status":   []string{"active"},
+		"search":           []string{"invoice"},
+	}, appDataDefaultSearchDataFields)
 	if err != nil {
 		t.Fatalf("valid app data filters rejected: %v", err)
 	}
@@ -352,13 +352,13 @@ func TestAppDataRecordQueryPredicatesValidateDataFields(t *testing.T) {
 		t.Fatalf("predicate count = %d, want 3", len(predicates))
 	}
 
-	if _, err := appDataRecordQueryPredicates(url.Values{"data.bad-field": []string{"x"}}); err == nil {
+	if _, err := appDataRecordQueryPredicates(url.Values{"data.bad-field": []string{"x"}}, appDataDefaultSearchDataFields); err == nil {
 		t.Fatalf("invalid JSON data field was accepted")
 	}
-	if _, err := appDataRecordQueryPredicates(url.Values{"data.name) OR 1=1 --": []string{"x"}}); err == nil {
+	if _, err := appDataRecordQueryPredicates(url.Values{"data.name) OR 1=1 --": []string{"x"}}, appDataDefaultSearchDataFields); err == nil {
 		t.Fatalf("unsafe JSON data field was accepted")
 	}
-	if _, err := appDataRecordQueryPredicates(url.Values{"search": []string{string(make([]byte, 129))}}); err == nil {
+	if _, err := appDataRecordQueryPredicates(url.Values{"search": []string{string(make([]byte, 129))}}, appDataDefaultSearchDataFields); err == nil {
 		t.Fatalf("oversized search value was accepted")
 	}
 }
