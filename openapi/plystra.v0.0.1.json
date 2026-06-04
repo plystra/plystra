@@ -694,6 +694,564 @@
         ]
       }
     },
+    "/api/v1/app-modules": {
+      "get": {
+        "tags": [
+          "App Modules"
+        ],
+        "summary": "List app modules",
+        "description": "Lists app-scoped App Modules / Local Plugins. They use the same governed plugin substrate but are not reusable plugin registry entries.",
+        "operationId": "listAppModules",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of rows to return.",
+            "schema": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer",
+              "description": "Maximum number of rows to return."
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/app-modules/{module_key}": {
+      "get": {
+        "tags": [
+          "App Modules"
+        ],
+        "summary": "Get app module metadata",
+        "operationId": "getAppModule",
+        "parameters": [
+          {
+            "name": "module_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/app-modules/{module_key}/admin-menus": {
+      "get": {
+        "tags": [
+          "App Modules"
+        ],
+        "summary": "List app module admin menus",
+        "operationId": "listAppModuleAdminMenus",
+        "parameters": [
+          {
+            "name": "module_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginAdminMenu"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/app-modules/{module_key}/audit-events": {
+      "get": {
+        "tags": [
+          "App Modules"
+        ],
+        "summary": "List app module audit events",
+        "operationId": "listAppModuleAuditEvents",
+        "parameters": [
+          {
+            "name": "module_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditEventType"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/app-modules/{module_key}/disable": {
+      "post": {
+        "tags": [
+          "App Modules"
+        ],
+        "summary": "Disable an app module",
+        "operationId": "disableAppModule",
+        "parameters": [
+          {
+            "name": "module_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/app-modules/{module_key}/enable": {
+      "post": {
+        "tags": [
+          "App Modules"
+        ],
+        "summary": "Enable an app module",
+        "operationId": "enableAppModule",
+        "parameters": [
+          {
+            "name": "module_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/app-modules/{module_key}/permissions": {
+      "get": {
+        "tags": [
+          "App Modules"
+        ],
+        "summary": "List app module permissions",
+        "operationId": "listAppModulePermissions",
+        "parameters": [
+          {
+            "name": "module_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/app-modules/{module_key}/resources": {
+      "get": {
+        "tags": [
+          "App Modules"
+        ],
+        "summary": "List app module resource types",
+        "operationId": "listAppModuleResources",
+        "parameters": [
+          {
+            "name": "module_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/app-modules/{module_key}/settings": {
+      "get": {
+        "tags": [
+          "App Modules"
+        ],
+        "summary": "List app module settings",
+        "operationId": "listAppModuleSettings",
+        "parameters": [
+          {
+            "name": "space_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "module_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginSetting"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "App Modules"
+        ],
+        "summary": "Update app module settings",
+        "operationId": "updateAppModuleSettings",
+        "parameters": [
+          {
+            "name": "module_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiPluginSettingsUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginSetting"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/app-modules/{module_key}/uninstall": {
+      "post": {
+        "tags": [
+          "App Modules"
+        ],
+        "summary": "Uninstall an app module",
+        "operationId": "uninstallAppModule",
+        "parameters": [
+          {
+            "name": "module_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/audit/logs": {
       "get": {
         "tags": [
@@ -2148,7 +2706,8 @@
         "tags": [
           "Plugins"
         ],
-        "summary": "List plugins",
+        "summary": "List reusable plugins",
+        "description": "Lists registry-visible reusable plugins. App-scoped App Modules are governed by the same substrate but are listed under /api/v1/app-modules.",
         "operationId": "listPlugins",
         "parameters": [
           {

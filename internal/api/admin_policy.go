@@ -149,7 +149,7 @@ func adminRequirementFor(method, path, querySpaceID string) adminRequirement {
 	if strings.HasPrefix(path, "/api/v1/data/") {
 		return adminRequirement{PermissionKey: "data:" + readOrManage}
 	}
-	if strings.HasPrefix(path, "/api/v1/plugins") {
+	if strings.HasPrefix(path, "/api/v1/plugins") || strings.HasPrefix(path, "/api/v1/app-modules") {
 		return adminRequirement{PermissionKey: "plugins:" + readOrManage}
 	}
 	if strings.HasPrefix(path, "/api/v1/templates") {

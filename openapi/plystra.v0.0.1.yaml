@@ -3574,6 +3574,327 @@ paths:
             summary: Lookup an app data record by model key and ID
             tags:
                 - App Data
+    /api/v1/app-modules:
+        get:
+            description: Lists app-scoped App Modules / Local Plugins. They use the same governed plugin substrate but are not reusable plugin registry entries.
+            operationId: listAppModules
+            parameters:
+                - description: Maximum number of rows to return.
+                  in: query
+                  name: limit
+                  schema:
+                    description: Maximum number of rows to return.
+                    maximum: 200
+                    minimum: 1
+                    type: integer
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: List app modules
+            tags:
+                - App Modules
+    /api/v1/app-modules/{module_key}:
+        get:
+            operationId: getAppModule
+            parameters:
+                - in: path
+                  name: module_key
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Get app module metadata
+            tags:
+                - App Modules
+    /api/v1/app-modules/{module_key}/admin-menus:
+        get:
+            operationId: listAppModuleAdminMenus
+            parameters:
+                - in: path
+                  name: module_key
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginAdminMenu'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: List app module admin menus
+            tags:
+                - App Modules
+    /api/v1/app-modules/{module_key}/audit-events:
+        get:
+            operationId: listAppModuleAuditEvents
+            parameters:
+                - in: path
+                  name: module_key
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditEventType'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: List app module audit events
+            tags:
+                - App Modules
+    /api/v1/app-modules/{module_key}/disable:
+        post:
+            operationId: disableAppModule
+            parameters:
+                - in: path
+                  name: module_key
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Disable an app module
+            tags:
+                - App Modules
+    /api/v1/app-modules/{module_key}/enable:
+        post:
+            operationId: enableAppModule
+            parameters:
+                - in: path
+                  name: module_key
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Enable an app module
+            tags:
+                - App Modules
+    /api/v1/app-modules/{module_key}/permissions:
+        get:
+            operationId: listAppModulePermissions
+            parameters:
+                - in: path
+                  name: module_key
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: List app module permissions
+            tags:
+                - App Modules
+    /api/v1/app-modules/{module_key}/resources:
+        get:
+            operationId: listAppModuleResources
+            parameters:
+                - in: path
+                  name: module_key
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: List app module resource types
+            tags:
+                - App Modules
+    /api/v1/app-modules/{module_key}/settings:
+        get:
+            operationId: listAppModuleSettings
+            parameters:
+                - in: query
+                  name: space_id
+                  schema:
+                    type: string
+                - in: path
+                  name: module_key
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginSetting'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: List app module settings
+            tags:
+                - App Modules
+        patch:
+            operationId: updateAppModuleSettings
+            parameters:
+                - in: path
+                  name: module_key
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiPluginSettingsUpdateRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginSetting'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Update app module settings
+            tags:
+                - App Modules
+    /api/v1/app-modules/{module_key}/uninstall:
+        post:
+            operationId: uninstallAppModule
+            parameters:
+                - in: path
+                  name: module_key
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Uninstall an app module
+            tags:
+                - App Modules
     /api/v1/audit/logs:
         get:
             operationId: listAuditLogs
@@ -4421,6 +4742,7 @@ paths:
                 - Permissions
     /api/v1/plugins:
         get:
+            description: Lists registry-visible reusable plugins. App-scoped App Modules are governed by the same substrate but are listed under /api/v1/app-modules.
             operationId: listPlugins
             parameters:
                 - description: Maximum number of rows to return.
@@ -4447,7 +4769,7 @@ paths:
             security:
                 - BearerAuth: []
                 - ApiKeyAuth: []
-            summary: List plugins
+            summary: List reusable plugins
             tags:
                 - Plugins
     /api/v1/plugins/{plugin_key}:

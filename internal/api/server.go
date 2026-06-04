@@ -92,6 +92,8 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/v1/plugins/install", s.handlePluginInstall)
 	mux.HandleFunc("/api/v1/plugins", s.handlePlugins)
 	mux.HandleFunc("/api/v1/plugins/", s.handlePluginSubroutes)
+	mux.HandleFunc("/api/v1/app-modules", s.handleAppModules)
+	mux.HandleFunc("/api/v1/app-modules/", s.handleAppModuleSubroutes)
 	mux.HandleFunc("/api/v1/templates", s.handleTemplates)
 	mux.HandleFunc("/api/v1/templates/", s.handleTemplateSubroutes)
 	return s.requestMiddleware(mux)

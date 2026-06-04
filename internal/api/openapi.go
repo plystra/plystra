@@ -539,6 +539,8 @@ type openAPIPlugin struct {
 	UpdatedAt        string         `json:"updated_at" format:"date-time"`
 }
 
+type openAPIAppModule = openAPIPlugin
+
 type openAPIAuditEventType struct {
 	ID           string         `json:"id"`
 	Key          string         `json:"key"`
@@ -1237,7 +1239,7 @@ func openAPIRoutes() []openAPIRoute {
 
 		{Method: http.MethodPost, Path: "/api/v1/plugins/validate-manifest", Tag: "Plugins", ID: "validatePluginManifest", Summary: "Validate plugin manifest", Body: new(plugins.Manifest), Response: new(openAPIEnvelope[openAPIPluginValidationResponse]), Security: openAPIAdmin},
 		{Method: http.MethodPost, Path: "/api/v1/plugins/install", Tag: "Plugins", ID: "installPlugin", Summary: "Install plugin metadata", Body: new(pluginInstallRequest), Response: new(openAPIEnvelope[openAPIPlugin]), Status: http.StatusCreated, Security: openAPIAdmin},
-		{Method: http.MethodGet, Path: "/api/v1/plugins", Tag: "Plugins", ID: "listPlugins", Summary: "List plugins", Params: new(openAPILimitQuery), Response: new(openAPIListEnvelope[openAPIPlugin]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/plugins", Tag: "Plugins", ID: "listPlugins", Summary: "List reusable plugins", Description: "Lists registry-visible reusable plugins. App-scoped App Modules are governed by the same substrate but are listed under /api/v1/app-modules.", Params: new(openAPILimitQuery), Response: new(openAPIListEnvelope[openAPIPlugin]), Security: openAPIAdmin},
 		{Method: http.MethodGet, Path: "/api/v1/plugins/{plugin_key}", Tag: "Plugins", ID: "getPlugin", Summary: "Get plugin metadata", Params: new(struct {
 			PluginKey string `path:"plugin_key"`
 		}), Response: new(openAPIEnvelope[openAPIPlugin]), Security: openAPIAdmin},
@@ -1268,6 +1270,39 @@ func openAPIRoutes() []openAPIRoute {
 		}), Response: new(openAPIListEnvelope[openAPIAuditEventType]), Security: openAPIAdmin},
 		{Method: http.MethodGet, Path: "/api/v1/plugins/{plugin_key}/admin-menus", Tag: "Plugins", ID: "listPluginAdminMenus", Summary: "List plugin admin menus", Params: new(struct {
 			PluginKey string `path:"plugin_key"`
+		}), Response: new(openAPIListEnvelope[openAPIPluginAdminMenu]), Security: openAPIAdmin},
+
+		{Method: http.MethodGet, Path: "/api/v1/app-modules", Tag: "App Modules", ID: "listAppModules", Summary: "List app modules", Description: "Lists app-scoped App Modules / Local Plugins. They use the same governed plugin substrate but are not reusable plugin registry entries.", Params: new(openAPILimitQuery), Response: new(openAPIListEnvelope[openAPIAppModule]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/app-modules/{module_key}", Tag: "App Modules", ID: "getAppModule", Summary: "Get app module metadata", Params: new(struct {
+			ModuleKey string `path:"module_key"`
+		}), Response: new(openAPIEnvelope[openAPIAppModule]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/app-modules/{module_key}/enable", Tag: "App Modules", ID: "enableAppModule", Summary: "Enable an app module", Params: new(struct {
+			ModuleKey string `path:"module_key"`
+		}), Response: new(openAPIEnvelope[openAPIAppModule]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/app-modules/{module_key}/disable", Tag: "App Modules", ID: "disableAppModule", Summary: "Disable an app module", Params: new(struct {
+			ModuleKey string `path:"module_key"`
+		}), Response: new(openAPIEnvelope[openAPIAppModule]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/app-modules/{module_key}/uninstall", Tag: "App Modules", ID: "uninstallAppModule", Summary: "Uninstall an app module", Params: new(struct {
+			ModuleKey string `path:"module_key"`
+		}), Response: new(openAPIEnvelope[openAPIAppModule]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/app-modules/{module_key}/settings", Tag: "App Modules", ID: "listAppModuleSettings", Summary: "List app module settings", Params: new(struct {
+			ModuleKey string `path:"module_key"`
+			SpaceID   string `query:"space_id"`
+		}), Response: new(openAPIListEnvelope[openAPIPluginSetting]), Security: openAPIAdmin},
+		{Method: http.MethodPatch, Path: "/api/v1/app-modules/{module_key}/settings", Tag: "App Modules", ID: "updateAppModuleSettings", Summary: "Update app module settings", Params: new(struct {
+			ModuleKey string `path:"module_key"`
+		}), Body: new(pluginSettingsUpdateRequest), Response: new(openAPIListEnvelope[openAPIPluginSetting]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/app-modules/{module_key}/resources", Tag: "App Modules", ID: "listAppModuleResources", Summary: "List app module resource types", Params: new(struct {
+			ModuleKey string `path:"module_key"`
+		}), Response: new(openAPIListEnvelope[openAPIResourceType]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/app-modules/{module_key}/permissions", Tag: "App Modules", ID: "listAppModulePermissions", Summary: "List app module permissions", Params: new(struct {
+			ModuleKey string `path:"module_key"`
+		}), Response: new(openAPIListEnvelope[openAPIPermission]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/app-modules/{module_key}/audit-events", Tag: "App Modules", ID: "listAppModuleAuditEvents", Summary: "List app module audit events", Params: new(struct {
+			ModuleKey string `path:"module_key"`
+		}), Response: new(openAPIListEnvelope[openAPIAuditEventType]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/app-modules/{module_key}/admin-menus", Tag: "App Modules", ID: "listAppModuleAdminMenus", Summary: "List app module admin menus", Params: new(struct {
+			ModuleKey string `path:"module_key"`
 		}), Response: new(openAPIListEnvelope[openAPIPluginAdminMenu]), Security: openAPIAdmin},
 
 		{Method: http.MethodGet, Path: "/api/v1/templates", Tag: "Templates", ID: "listTemplates", Summary: "List templates", Params: new(openAPILimitQuery), Response: new(openAPIListEnvelope[templates.Manifest]), Security: openAPIAdmin},
