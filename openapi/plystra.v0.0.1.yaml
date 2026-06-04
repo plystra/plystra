@@ -241,6 +241,11 @@ components:
                 user_member_id:
                     type: string
             type: object
+        ApiCapabilityGrantReconcileRequest:
+            properties:
+                space_id:
+                    type: string
+            type: object
         ApiCapabilityGrantRequest:
             properties:
                 capability:
@@ -273,6 +278,23 @@ components:
                     type: string
                 ttl_ms:
                     type: integer
+            type: object
+        ApiCapabilityGrantRevokeRequest:
+            properties:
+                binding_epoch:
+                    type: integer
+                grant_id:
+                    type: string
+                member_id:
+                    type: string
+                parent_grant_id:
+                    type: string
+                reason:
+                    type: string
+                space_id:
+                    type: string
+                target_provider_id:
+                    type: string
             type: object
         ApiCapabilityOutcomeRequest:
             properties:
@@ -4510,6 +4532,64 @@ paths:
                 - BearerAuth: []
                 - ApiKeyAuth: []
             summary: Introspect a mediated capability grant
+            tags:
+                - Capability Grants
+    /api/v1/grants/reconcile:
+        post:
+            description: Scans a Space for mediated grants past their expected outcome window with no receipt and marks them missing (pending versus missing discipline; only missing is signal), then lapses expired active grants.
+            operationId: reconcileCapabilityGrants
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiCapabilityGrantReconcileRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeMapStringInterface'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Reconcile hanging capability grants
+            tags:
+                - Capability Grants
+    /api/v1/grants/revoke:
+        post:
+            description: Core revokes revocable mediated grants at any time by grant_id, member_id, parent_grant_id (the grant and its descendant lineage), or a stale provider binding_epoch. Because providers introspect before executing, revocation is effectively immediate.
+            operationId: revokeCapabilityGrants
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiCapabilityGrantRevokeRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeMapStringInterface'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Revoke capability grants
             tags:
                 - Capability Grants
     /api/v1/groups/{group_id}:

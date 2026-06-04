@@ -2308,6 +2308,106 @@
         ]
       }
     },
+    "/api/v1/grants/reconcile": {
+      "post": {
+        "tags": [
+          "Capability Grants"
+        ],
+        "summary": "Reconcile hanging capability grants",
+        "description": "Scans a Space for mediated grants past their expected outcome window with no receipt and marks them missing (pending versus missing discipline; only missing is signal), then lapses expired active grants.",
+        "operationId": "reconcileCapabilityGrants",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiCapabilityGrantReconcileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeMapStringInterface"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/grants/revoke": {
+      "post": {
+        "tags": [
+          "Capability Grants"
+        ],
+        "summary": "Revoke capability grants",
+        "description": "Core revokes revocable mediated grants at any time by grant_id, member_id, parent_grant_id (the grant and its descendant lineage), or a stale provider binding_epoch. Because providers introspect before executing, revocation is effectively immediate.",
+        "operationId": "revokeCapabilityGrants",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiCapabilityGrantRevokeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeMapStringInterface"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/groups/{group_id}": {
       "get": {
         "tags": [
@@ -8562,6 +8662,14 @@
           }
         }
       },
+      "ApiCapabilityGrantReconcileRequest": {
+        "type": "object",
+        "properties": {
+          "space_id": {
+            "type": "string"
+          }
+        }
+      },
       "ApiCapabilityGrantRequest": {
         "type": "object",
         "properties": {
@@ -8606,6 +8714,32 @@
           },
           "ttl_ms": {
             "type": "integer"
+          }
+        }
+      },
+      "ApiCapabilityGrantRevokeRequest": {
+        "type": "object",
+        "properties": {
+          "binding_epoch": {
+            "type": "integer"
+          },
+          "grant_id": {
+            "type": "string"
+          },
+          "member_id": {
+            "type": "string"
+          },
+          "parent_grant_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "target_provider_id": {
+            "type": "string"
           }
         }
       },

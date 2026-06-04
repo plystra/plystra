@@ -50,6 +50,8 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/v1/capabilities", s.handleCapabilities)
 	mux.HandleFunc("/api/v1/capability-grants", s.handleCapabilityGrants)
 	mux.HandleFunc("/api/v1/grants/introspect", s.handleGrantIntrospect)
+	mux.HandleFunc("/api/v1/grants/revoke", s.handleGrantRevoke)
+	mux.HandleFunc("/api/v1/grants/reconcile", s.handleGrantReconcile)
 	mux.HandleFunc("/api/v1/capability-outcomes", s.handleCapabilityOutcomes)
 	mux.HandleFunc("/metrics", s.handleMetrics)
 	mux.HandleFunc("/api/v1/console/overview", s.handleOverview)
