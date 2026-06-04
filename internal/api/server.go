@@ -5,9 +5,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	coreent "github.com/plystra/plystra/ent"
-	"github.com/plystra/plystra/internal/authz"
-	"github.com/plystra/plystra/internal/kernel"
+	coreent "github.com/plystra/core/ent"
+	"github.com/plystra/core/internal/authz"
+	"github.com/plystra/core/internal/kernel"
 )
 
 type Server struct {

@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/resourcetype"
+	"github.com/plystra/core/ent/resourcetype"
 )
 
 // ResourceTypeCreate is the builder for creating a ResourceType entity.

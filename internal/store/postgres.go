@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 
-	"github.com/plystra/plystra/internal/store/entstore"
+	"github.com/plystra/core/internal/store/entstore"
 )
 
 // PostgresStore is kept as a compatibility alias for older internal callers.

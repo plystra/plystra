@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"strings"
 
-	entresourceaction "github.com/plystra/plystra/ent/resourceaction"
-	entresourcemapping "github.com/plystra/plystra/ent/resourcemapping"
-	entresourcetype "github.com/plystra/plystra/ent/resourcetype"
+	entresourceaction "github.com/plystra/core/ent/resourceaction"
+	entresourcemapping "github.com/plystra/core/ent/resourcemapping"
+	entresourcetype "github.com/plystra/core/ent/resourcetype"
 
 	"github.com/jackc/pgx/v5"
-	coreent "github.com/plystra/plystra/ent"
+	coreent "github.com/plystra/core/ent"
 )
 
 func (s *Server) handleResourceTypes(w http.ResponseWriter, r *http.Request) {

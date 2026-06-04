@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/plystra/plystra/internal/authz"
-	"github.com/plystra/plystra/internal/demo"
-	"github.com/plystra/plystra/internal/store/entstore"
+	"github.com/plystra/core/internal/authz"
+	"github.com/plystra/core/internal/demo"
+	"github.com/plystra/core/internal/store/entstore"
 )
 
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"

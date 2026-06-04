@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/appdatamodel"
+	"github.com/plystra/core/ent/appdatamodel"
 )
 
 // AppDataModel is the model entity for the AppDataModel schema.

@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/predicate"
-	"github.com/plystra/plystra/ent/resourceaction"
+	"github.com/plystra/core/ent/predicate"
+	"github.com/plystra/core/ent/resourceaction"
 )
 
 // ResourceActionUpdate is the builder for updating ResourceAction entities.

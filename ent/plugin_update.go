@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/plugin"
-	"github.com/plystra/plystra/ent/predicate"
+	"github.com/plystra/core/ent/plugin"
+	"github.com/plystra/core/ent/predicate"
 )
 
 // PluginUpdate is the builder for updating Plugin entities.

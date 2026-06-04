@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/appdatarecordrevision"
+	"github.com/plystra/core/ent/appdatarecordrevision"
 )
 
 // AppDataRecordRevisionCreate is the builder for creating a AppDataRecordRevision entity.

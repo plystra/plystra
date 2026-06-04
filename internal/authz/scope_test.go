@@ -3,7 +3,7 @@ package authz_test
 import (
 	"testing"
 
-	"github.com/plystra/plystra/internal/authz"
+	"github.com/plystra/core/internal/authz"
 )
 
 func TestResolveScopeMatrix(t *testing.T) {

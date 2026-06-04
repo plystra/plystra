@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	coreent "github.com/plystra/plystra/ent"
-	entcapabilitygrant "github.com/plystra/plystra/ent/capabilitygrant"
-	entplugin "github.com/plystra/plystra/ent/plugin"
-	entpluginsettingsvalue "github.com/plystra/plystra/ent/pluginsettingsvalue"
-	"github.com/plystra/plystra/internal/authz"
-	"github.com/plystra/plystra/internal/plugins"
+	coreent "github.com/plystra/core/ent"
+	entcapabilitygrant "github.com/plystra/core/ent/capabilitygrant"
+	entplugin "github.com/plystra/core/ent/plugin"
+	entpluginsettingsvalue "github.com/plystra/core/ent/pluginsettingsvalue"
+	"github.com/plystra/core/internal/authz"
+	"github.com/plystra/core/internal/plugins"
 )
 
 const (

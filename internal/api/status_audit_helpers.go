@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/plystra/plystra/internal/authz"
+	"github.com/plystra/core/internal/authz"
 )
 
 func (s *Server) updateStatus(ctx context.Context, table, id, status string) (map[string]any, error) {

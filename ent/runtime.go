@@ -2,4 +2,4 @@
 
 package ent
 
-// The schema-stitching logic is generated in github.com/plystra/plystra/ent/runtime/runtime.go
+// The schema-stitching logic is generated in github.com/plystra/core/ent/runtime/runtime.go

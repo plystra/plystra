@@ -6,9 +6,9 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/plystra/plystra/internal/kernel/contracts"
-	kcap "github.com/plystra/plystra/internal/kernel/contracts/capability"
-	"github.com/plystra/plystra/internal/kernel/registry"
+	"github.com/plystra/core/internal/kernel/contracts"
+	kcap "github.com/plystra/core/internal/kernel/contracts/capability"
+	"github.com/plystra/core/internal/kernel/registry"
 )
 
 type Manager struct {

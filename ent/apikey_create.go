@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/apikey"
+	"github.com/plystra/core/ent/apikey"
 )
 
 // ApiKeyCreate is the builder for creating a ApiKey entity.

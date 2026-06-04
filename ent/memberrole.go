@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/memberrole"
+	"github.com/plystra/core/ent/memberrole"
 )
 
 // MemberRole is the model entity for the MemberRole schema.

@@ -8,8 +8,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/predicate"
-	"github.com/plystra/plystra/ent/resource"
+	"github.com/plystra/core/ent/predicate"
+	"github.com/plystra/core/ent/resource"
 )
 
 // ResourceDelete is the builder for deleting a Resource entity.

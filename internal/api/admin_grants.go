@@ -8,12 +8,12 @@ import (
 	"time"
 
 	entsql "entgo.io/ent/dialect/sql"
-	coreent "github.com/plystra/plystra/ent"
-	entadmingrant "github.com/plystra/plystra/ent/admingrant"
-	entgroup "github.com/plystra/plystra/ent/group"
-	entmember "github.com/plystra/plystra/ent/member"
-	entspace "github.com/plystra/plystra/ent/space"
-	entuser "github.com/plystra/plystra/ent/user"
+	coreent "github.com/plystra/core/ent"
+	entadmingrant "github.com/plystra/core/ent/admingrant"
+	entgroup "github.com/plystra/core/ent/group"
+	entmember "github.com/plystra/core/ent/member"
+	entspace "github.com/plystra/core/ent/space"
+	entuser "github.com/plystra/core/ent/user"
 )
 
 type adminGrantMutationRequest struct {

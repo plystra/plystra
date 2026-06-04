@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/plystra/plystra/internal/authz"
-	contractaudit "github.com/plystra/plystra/internal/kernel/contracts/audit"
+	"github.com/plystra/core/internal/authz"
+	contractaudit "github.com/plystra/core/internal/kernel/contracts/audit"
 )
 
 func (s *Store) WriteAuditLog(ctx context.Context, decision authz.Decision) error {

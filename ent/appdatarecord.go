@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/appdatarecord"
+	"github.com/plystra/core/ent/appdatarecord"
 )
 
 // AppDataRecord is the model entity for the AppDataRecord schema.

@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/backgroundjob"
-	"github.com/plystra/plystra/ent/predicate"
+	"github.com/plystra/core/ent/backgroundjob"
+	"github.com/plystra/core/ent/predicate"
 )
 
 // BackgroundJobUpdate is the builder for updating BackgroundJob entities.

@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/auditeventtype"
+	"github.com/plystra/core/ent/auditeventtype"
 )
 
 // AuditEventTypeCreate is the builder for creating a AuditEventType entity.

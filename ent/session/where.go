@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/predicate"
+	"github.com/plystra/core/ent/predicate"
 )
 
 // ID filters vertices based on their ID field.

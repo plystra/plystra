@@ -9,13 +9,13 @@ import (
 	"strings"
 	"time"
 
-	entusermember "github.com/plystra/plystra/ent/usermember"
+	entusermember "github.com/plystra/core/ent/usermember"
 
 	"github.com/jackc/pgx/v5"
-	coreent "github.com/plystra/plystra/ent"
-	entmember "github.com/plystra/plystra/ent/member"
-	entuser "github.com/plystra/plystra/ent/user"
-	"github.com/plystra/plystra/internal/authz"
+	coreent "github.com/plystra/core/ent"
+	entmember "github.com/plystra/core/ent/member"
+	entuser "github.com/plystra/core/ent/user"
+	"github.com/plystra/core/internal/authz"
 )
 
 type userMemberMutationRequest struct {

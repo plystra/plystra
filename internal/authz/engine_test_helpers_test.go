@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/plystra/plystra/internal/authz"
+	"github.com/plystra/core/internal/authz"
 )
 
 func checkInput(userID, userMemberID, resourceID string) authz.CheckInput {

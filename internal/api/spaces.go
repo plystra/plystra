@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strings"
 
-	entspace "github.com/plystra/plystra/ent/space"
+	entspace "github.com/plystra/core/ent/space"
 
 	"github.com/jackc/pgx/v5"
-	coreent "github.com/plystra/plystra/ent"
-	"github.com/plystra/plystra/internal/authz"
+	coreent "github.com/plystra/core/ent"
+	"github.com/plystra/core/internal/authz"
 )
 
 func (s *Server) handleSpaces(w http.ResponseWriter, r *http.Request) {

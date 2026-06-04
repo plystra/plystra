@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	contractauthz "github.com/plystra/plystra/internal/kernel/contracts/authz"
+	contractauthz "github.com/plystra/core/internal/kernel/contracts/authz"
 )
 
 const groupTreeRule = "target_path = anchor_path OR target_path LIKE anchor_path || '.%'"

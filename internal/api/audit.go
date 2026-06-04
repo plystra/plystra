@@ -6,9 +6,9 @@ import (
 	"time"
 
 	entsql "entgo.io/ent/dialect/sql"
-	coreent "github.com/plystra/plystra/ent"
+	coreent "github.com/plystra/core/ent"
 
-	"github.com/plystra/plystra/ent/auditlog"
+	"github.com/plystra/core/ent/auditlog"
 )
 
 func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {

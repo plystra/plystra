@@ -12,10 +12,10 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/plystra/plystra/internal/api"
-	"github.com/plystra/plystra/internal/kernel"
-	"github.com/plystra/plystra/internal/store/entstore"
-	"github.com/plystra/plystra/internal/system"
+	"github.com/plystra/core/internal/api"
+	"github.com/plystra/core/internal/kernel"
+	"github.com/plystra/core/internal/store/entstore"
+	"github.com/plystra/core/internal/system"
 )
 
 const defaultDatabaseURL = "postgres://plystra:plystra@localhost:5432/plystra?sslmode=disable"

@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/auditeventtype"
+	"github.com/plystra/core/ent/auditeventtype"
 )
 
 // AuditEventType is the model entity for the AuditEventType schema.

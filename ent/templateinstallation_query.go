@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/predicate"
-	"github.com/plystra/plystra/ent/templateinstallation"
+	"github.com/plystra/core/ent/predicate"
+	"github.com/plystra/core/ent/templateinstallation"
 )
 
 // TemplateInstallationQuery is the builder for querying TemplateInstallation entities.

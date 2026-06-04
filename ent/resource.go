@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/resource"
+	"github.com/plystra/core/ent/resource"
 )
 
 // Resource is the model entity for the Resource schema.

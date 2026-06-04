@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	kadmin "github.com/plystra/plystra/internal/kernel/contracts/admin"
-	kauthz "github.com/plystra/plystra/internal/kernel/contracts/authz"
-	kcap "github.com/plystra/plystra/internal/kernel/contracts/capability"
+	kadmin "github.com/plystra/core/internal/kernel/contracts/admin"
+	kauthz "github.com/plystra/core/internal/kernel/contracts/authz"
+	kcap "github.com/plystra/core/internal/kernel/contracts/capability"
 )
 
 type ServiceRegistration = kcap.ServiceRegistration

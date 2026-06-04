@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
-	coreent "github.com/plystra/plystra/ent"
-	entpermission "github.com/plystra/plystra/ent/permission"
-	entplugin "github.com/plystra/plystra/ent/plugin"
-	entpluginadminmenu "github.com/plystra/plystra/ent/pluginadminmenu"
-	entresourcetype "github.com/plystra/plystra/ent/resourcetype"
+	coreent "github.com/plystra/core/ent"
+	entpermission "github.com/plystra/core/ent/permission"
+	entplugin "github.com/plystra/core/ent/plugin"
+	entpluginadminmenu "github.com/plystra/core/ent/pluginadminmenu"
+	entresourcetype "github.com/plystra/core/ent/resourcetype"
 )
 
 type governedPluginKind string

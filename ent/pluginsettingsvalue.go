@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/pluginsettingsvalue"
+	"github.com/plystra/core/ent/pluginsettingsvalue"
 )
 
 // PluginSettingsValue is the model entity for the PluginSettingsValue schema.

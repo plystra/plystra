@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/admingrant"
-	"github.com/plystra/plystra/ent/predicate"
+	"github.com/plystra/core/ent/admingrant"
+	"github.com/plystra/core/ent/predicate"
 )
 
 // AdminGrantQuery is the builder for querying AdminGrant entities.

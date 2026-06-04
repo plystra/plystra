@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/rolepermission"
+	"github.com/plystra/core/ent/rolepermission"
 )
 
 // RolePermissionCreate is the builder for creating a RolePermission entity.

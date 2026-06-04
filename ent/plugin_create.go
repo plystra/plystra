@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/plugin"
+	"github.com/plystra/core/ent/plugin"
 )
 
 // PluginCreate is the builder for creating a Plugin entity.

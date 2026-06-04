@@ -10,11 +10,11 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	coreent "github.com/plystra/plystra/ent"
-	entadmingrant "github.com/plystra/plystra/ent/admingrant"
-	entsession "github.com/plystra/plystra/ent/session"
-	entspace "github.com/plystra/plystra/ent/space"
-	entuser "github.com/plystra/plystra/ent/user"
+	coreent "github.com/plystra/core/ent"
+	entadmingrant "github.com/plystra/core/ent/admingrant"
+	entsession "github.com/plystra/core/ent/session"
+	entspace "github.com/plystra/core/ent/space"
+	entuser "github.com/plystra/core/ent/user"
 )
 
 const (

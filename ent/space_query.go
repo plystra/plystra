@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/predicate"
-	"github.com/plystra/plystra/ent/space"
+	"github.com/plystra/core/ent/predicate"
+	"github.com/plystra/core/ent/space"
 )
 
 // SpaceQuery is the builder for querying Space entities.

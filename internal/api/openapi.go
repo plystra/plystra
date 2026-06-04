@@ -11,8 +11,8 @@ import (
 	"github.com/swaggest/openapi-go/openapi3"
 	"gopkg.in/yaml.v3"
 
-	"github.com/plystra/plystra/internal/plugins"
-	"github.com/plystra/plystra/internal/templates"
+	"github.com/plystra/core/internal/plugins"
+	"github.com/plystra/core/internal/templates"
 )
 
 const OpenAPIVersion = "0.0.1"

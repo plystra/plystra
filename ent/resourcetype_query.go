@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/predicate"
-	"github.com/plystra/plystra/ent/resourcetype"
+	"github.com/plystra/core/ent/predicate"
+	"github.com/plystra/core/ent/resourcetype"
 )
 
 // ResourceTypeQuery is the builder for querying ResourceType entities.

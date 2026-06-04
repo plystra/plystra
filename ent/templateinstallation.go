@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/templateinstallation"
+	"github.com/plystra/core/ent/templateinstallation"
 )
 
 // TemplateInstallation is the model entity for the TemplateInstallation schema.

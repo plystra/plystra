@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/space"
+	"github.com/plystra/core/ent/space"
 )
 
 // SpaceCreate is the builder for creating a Space entity.

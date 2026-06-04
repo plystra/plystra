@@ -3,10 +3,10 @@ package kernel
 import (
 	"context"
 
-	"github.com/plystra/plystra/internal/kernel/contracts"
-	"github.com/plystra/plystra/internal/kernel/events"
-	"github.com/plystra/plystra/internal/kernel/lifecycle"
-	"github.com/plystra/plystra/internal/kernel/registry"
+	"github.com/plystra/core/internal/kernel/contracts"
+	"github.com/plystra/core/internal/kernel/events"
+	"github.com/plystra/core/internal/kernel/lifecycle"
+	"github.com/plystra/core/internal/kernel/registry"
 )
 
 type App struct {

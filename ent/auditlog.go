@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/auditlog"
+	"github.com/plystra/core/ent/auditlog"
 )
 
 // AuditLog is the model entity for the AuditLog schema.

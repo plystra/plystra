@@ -8,8 +8,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/pluginsettingsvalue"
-	"github.com/plystra/plystra/ent/predicate"
+	"github.com/plystra/core/ent/pluginsettingsvalue"
+	"github.com/plystra/core/ent/predicate"
 )
 
 // PluginSettingsValueDelete is the builder for deleting a PluginSettingsValue entity.

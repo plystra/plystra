@@ -12,16 +12,16 @@ import (
 	"testing"
 	"time"
 
-	coreent "github.com/plystra/plystra/ent"
-	entcapabilitygrant "github.com/plystra/plystra/ent/capabilitygrant"
-	entmember "github.com/plystra/plystra/ent/member"
-	entplugin "github.com/plystra/plystra/ent/plugin"
-	entpluginsettingsdefinition "github.com/plystra/plystra/ent/pluginsettingsdefinition"
-	entpluginsettingsvalue "github.com/plystra/plystra/ent/pluginsettingsvalue"
-	entuser "github.com/plystra/plystra/ent/user"
-	entusermember "github.com/plystra/plystra/ent/usermember"
-	"github.com/plystra/plystra/internal/plugins"
-	"github.com/plystra/plystra/internal/store/entstore"
+	coreent "github.com/plystra/core/ent"
+	entcapabilitygrant "github.com/plystra/core/ent/capabilitygrant"
+	entmember "github.com/plystra/core/ent/member"
+	entplugin "github.com/plystra/core/ent/plugin"
+	entpluginsettingsdefinition "github.com/plystra/core/ent/pluginsettingsdefinition"
+	entpluginsettingsvalue "github.com/plystra/core/ent/pluginsettingsvalue"
+	entuser "github.com/plystra/core/ent/user"
+	entusermember "github.com/plystra/core/ent/usermember"
+	"github.com/plystra/core/internal/plugins"
+	"github.com/plystra/core/internal/store/entstore"
 )
 
 type capabilityGrantFixture struct {

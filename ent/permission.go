@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/permission"
+	"github.com/plystra/core/ent/permission"
 )
 
 // Permission is the model entity for the Permission schema.

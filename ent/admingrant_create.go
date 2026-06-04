@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/admingrant"
+	"github.com/plystra/core/ent/admingrant"
 )
 
 // AdminGrantCreate is the builder for creating a AdminGrant entity.

@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/appdatarecordrevision"
+	"github.com/plystra/core/ent/appdatarecordrevision"
 )
 
 // AppDataRecordRevision is the model entity for the AppDataRecordRevision schema.

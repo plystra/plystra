@@ -5,12 +5,12 @@ package enttest
 import (
 	"context"
 
-	"github.com/plystra/plystra/ent"
+	"github.com/plystra/core/ent"
 	// required by schema hooks.
-	_ "github.com/plystra/plystra/ent/runtime"
+	_ "github.com/plystra/core/ent/runtime"
 
 	"entgo.io/ent/dialect/sql/schema"
-	"github.com/plystra/plystra/ent/migrate"
+	"github.com/plystra/core/ent/migrate"
 )
 
 type (

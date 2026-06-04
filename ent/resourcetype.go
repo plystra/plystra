@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/resourcetype"
+	"github.com/plystra/core/ent/resourcetype"
 )
 
 // ResourceType is the model entity for the ResourceType schema.

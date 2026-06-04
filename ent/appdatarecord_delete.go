@@ -8,8 +8,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/appdatarecord"
-	"github.com/plystra/plystra/ent/predicate"
+	"github.com/plystra/core/ent/appdatarecord"
+	"github.com/plystra/core/ent/predicate"
 )
 
 // AppDataRecordDelete is the builder for deleting a AppDataRecord entity.

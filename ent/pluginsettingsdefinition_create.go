@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/pluginsettingsdefinition"
+	"github.com/plystra/core/ent/pluginsettingsdefinition"
 )
 
 // PluginSettingsDefinitionCreate is the builder for creating a PluginSettingsDefinition entity.

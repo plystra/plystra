@@ -1,4 +1,4 @@
-module github.com/plystra/plystra
+module github.com/plystra/core
 
 go 1.25.11
 

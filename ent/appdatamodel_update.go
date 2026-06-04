@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/appdatamodel"
-	"github.com/plystra/plystra/ent/predicate"
+	"github.com/plystra/core/ent/appdatamodel"
+	"github.com/plystra/core/ent/predicate"
 )
 
 // AppDataModelUpdate is the builder for updating AppDataModel entities.

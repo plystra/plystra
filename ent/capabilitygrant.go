@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/capabilitygrant"
+	"github.com/plystra/core/ent/capabilitygrant"
 )
 
 // CapabilityGrant is the model entity for the CapabilityGrant schema.

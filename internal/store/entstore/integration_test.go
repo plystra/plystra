@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	coreent "github.com/plystra/plystra/ent"
-	"github.com/plystra/plystra/ent/auditlog"
-	"github.com/plystra/plystra/ent/resourceaction"
-	"github.com/plystra/plystra/ent/resourcemapping"
-	"github.com/plystra/plystra/ent/resourcetype"
-	"github.com/plystra/plystra/internal/authz"
+	coreent "github.com/plystra/core/ent"
+	"github.com/plystra/core/ent/auditlog"
+	"github.com/plystra/core/ent/resourceaction"
+	"github.com/plystra/core/ent/resourcemapping"
+	"github.com/plystra/core/ent/resourcetype"
+	"github.com/plystra/core/internal/authz"
 )
 
 func TestEntStoreIntegrationConformance(t *testing.T) {

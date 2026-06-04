@@ -3,7 +3,7 @@ package api
 import (
 	"time"
 
-	coreent "github.com/plystra/plystra/ent"
+	coreent "github.com/plystra/core/ent"
 )
 
 func formatTime(value time.Time) string {

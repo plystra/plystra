@@ -1,6 +1,6 @@
 package demo
 
-import "github.com/plystra/plystra/internal/authz"
+import "github.com/plystra/core/internal/authz"
 
 type Scenario struct {
 	Case             int

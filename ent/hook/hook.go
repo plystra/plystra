@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/plystra/plystra/ent"
+	"github.com/plystra/core/ent"
 )
 
 // The AdminGrantFunc type is an adapter to allow the use of ordinary

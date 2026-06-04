@@ -3,9 +3,9 @@ package identity
 import (
 	"context"
 
-	"github.com/plystra/plystra/internal/authz"
-	"github.com/plystra/plystra/internal/kernel/contracts"
-	kcap "github.com/plystra/plystra/internal/kernel/contracts/capability"
+	"github.com/plystra/core/internal/authz"
+	"github.com/plystra/core/internal/kernel/contracts"
+	kcap "github.com/plystra/core/internal/kernel/contracts/capability"
 )
 
 const ID = kcap.IdentityBusiness

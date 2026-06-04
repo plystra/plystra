@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
-	entadmingrant "github.com/plystra/plystra/ent/admingrant"
-	entmember "github.com/plystra/plystra/ent/member"
-	entsession "github.com/plystra/plystra/ent/session"
-	entspace "github.com/plystra/plystra/ent/space"
-	entuser "github.com/plystra/plystra/ent/user"
-	entusermember "github.com/plystra/plystra/ent/usermember"
-	"github.com/plystra/plystra/internal/store/entstore"
+	entadmingrant "github.com/plystra/core/ent/admingrant"
+	entmember "github.com/plystra/core/ent/member"
+	entsession "github.com/plystra/core/ent/session"
+	entspace "github.com/plystra/core/ent/space"
+	entuser "github.com/plystra/core/ent/user"
+	entusermember "github.com/plystra/core/ent/usermember"
+	"github.com/plystra/core/internal/store/entstore"
 )
 
 func TestAuthRegisterIsDisabledByDefault(t *testing.T) {

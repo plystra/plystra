@@ -7,16 +7,17 @@ import (
 	"net/http"
 	"strings"
 
-	coreent "github.com/plystra/plystra/ent"
-	entauditeventtype "github.com/plystra/plystra/ent/auditeventtype"
-	entpermission "github.com/plystra/plystra/ent/permission"
-	entplugin "github.com/plystra/plystra/ent/plugin"
-	entpluginadminmenu "github.com/plystra/plystra/ent/pluginadminmenu"
-	entpluginsettingsdefinition "github.com/plystra/plystra/ent/pluginsettingsdefinition"
-	entresourceaction "github.com/plystra/plystra/ent/resourceaction"
-	entresourcemapping "github.com/plystra/plystra/ent/resourcemapping"
-	entresourcetype "github.com/plystra/plystra/ent/resourcetype"
-	"github.com/plystra/plystra/internal/plugins"
+	coreent "github.com/plystra/core/ent"
+	entauditeventtype "github.com/plystra/core/ent/auditeventtype"
+	entpermission "github.com/plystra/core/ent/permission"
+	entplugin "github.com/plystra/core/ent/plugin"
+	entpluginadminmenu "github.com/plystra/core/ent/pluginadminmenu"
+	entpluginsettingsdefinition "github.com/plystra/core/ent/pluginsettingsdefinition"
+	entpluginsettingsvalue "github.com/plystra/core/ent/pluginsettingsvalue"
+	entresourceaction "github.com/plystra/core/ent/resourceaction"
+	entresourcemapping "github.com/plystra/core/ent/resourcemapping"
+	entresourcetype "github.com/plystra/core/ent/resourcetype"
+	"github.com/plystra/core/internal/plugins"
 )
 
 func (s *Server) handlePluginManifestValidation(w http.ResponseWriter, r *http.Request) {
@@ -294,6 +295,9 @@ func (s *Server) installPluginManifestMetadata(ctx context.Context, pluginID str
 			return err
 		}
 	}
+	if err := s.prunePluginAdminMenus(ctx, pluginID, manifest); err != nil {
+		return err
+	}
 	for _, setting := range manifest.Settings {
 		scope := firstNonEmpty(setting.Scope, "space")
 		defaultValue := pluginSettingDefaultValueMap(setting)
@@ -329,6 +333,52 @@ func (s *Server) installPluginManifestMetadata(ctx context.Context, pluginID str
 			err = update.Exec(ctx)
 		}
 		if err != nil {
+			return err
+		}
+	}
+	if err := s.prunePluginSettingsDefinitions(ctx, pluginID, manifest); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Server) prunePluginAdminMenus(ctx context.Context, pluginID string, manifest plugins.Manifest) error {
+	ids := make([]string, 0, len(manifest.AdminMenus))
+	for _, menu := range manifest.AdminMenus {
+		ids = append(ids, "pam_"+safeIdentifier(manifest.ID+"_"+menu.Label))
+	}
+	deleteQuery := s.ent.PluginAdminMenu.Delete().Where(entpluginadminmenu.PluginID(pluginID))
+	if len(ids) > 0 {
+		deleteQuery = deleteQuery.Where(entpluginadminmenu.IDNotIn(ids...))
+	}
+	_, err := deleteQuery.Exec(ctx)
+	return err
+}
+
+func (s *Server) prunePluginSettingsDefinitions(ctx context.Context, pluginID string, manifest plugins.Manifest) error {
+	current := map[string]bool{}
+	keys := make([]string, 0, len(manifest.Settings))
+	for _, setting := range manifest.Settings {
+		scope := firstNonEmpty(setting.Scope, "space")
+		current[setting.Key+"\x00"+scope] = true
+		keys = append(keys, setting.Key)
+	}
+	valueDelete := s.ent.PluginSettingsValue.Delete().Where(entpluginsettingsvalue.PluginID(pluginID))
+	if len(keys) > 0 {
+		valueDelete = valueDelete.Where(entpluginsettingsvalue.KeyNotIn(keys...))
+	}
+	if _, err := valueDelete.Exec(ctx); err != nil {
+		return err
+	}
+	rows, err := s.ent.PluginSettingsDefinition.Query().Where(entpluginsettingsdefinition.PluginID(pluginID)).All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, row := range rows {
+		if current[row.Key+"\x00"+row.Scope] {
+			continue
+		}
+		if err := s.ent.PluginSettingsDefinition.DeleteOneID(row.ID).Exec(ctx); err != nil {
 			return err
 		}
 	}

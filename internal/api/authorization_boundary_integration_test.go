@@ -12,17 +12,17 @@ import (
 	"testing"
 	"time"
 
-	coreent "github.com/plystra/plystra/ent"
-	entadmingrant "github.com/plystra/plystra/ent/admingrant"
-	entapikey "github.com/plystra/plystra/ent/apikey"
-	entgroup "github.com/plystra/plystra/ent/group"
-	entmember "github.com/plystra/plystra/ent/member"
-	entresource "github.com/plystra/plystra/ent/resource"
-	entsession "github.com/plystra/plystra/ent/session"
-	entspace "github.com/plystra/plystra/ent/space"
-	entuser "github.com/plystra/plystra/ent/user"
-	entusermember "github.com/plystra/plystra/ent/usermember"
-	"github.com/plystra/plystra/internal/store/entstore"
+	coreent "github.com/plystra/core/ent"
+	entadmingrant "github.com/plystra/core/ent/admingrant"
+	entapikey "github.com/plystra/core/ent/apikey"
+	entgroup "github.com/plystra/core/ent/group"
+	entmember "github.com/plystra/core/ent/member"
+	entresource "github.com/plystra/core/ent/resource"
+	entsession "github.com/plystra/core/ent/session"
+	entspace "github.com/plystra/core/ent/space"
+	entuser "github.com/plystra/core/ent/user"
+	entusermember "github.com/plystra/core/ent/usermember"
+	"github.com/plystra/core/internal/store/entstore"
 )
 
 const (

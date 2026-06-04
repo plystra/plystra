@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	contractauthz "github.com/plystra/plystra/internal/kernel/contracts/authz"
+	contractauthz "github.com/plystra/core/internal/kernel/contracts/authz"
 )
 
 type engine struct {

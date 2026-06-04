@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/resourceaction"
+	"github.com/plystra/core/ent/resourceaction"
 )
 
 // ResourceActionCreate is the builder for creating a ResourceAction entity.

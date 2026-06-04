@@ -12,8 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/apikey"
-	"github.com/plystra/plystra/ent/predicate"
+	"github.com/plystra/core/ent/apikey"
+	"github.com/plystra/core/ent/predicate"
 )
 
 // ApiKeyUpdate is the builder for updating ApiKey entities.

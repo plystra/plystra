@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/plystra/plystra/internal/authz"
+	"github.com/plystra/core/internal/authz"
 )
 
 const (

@@ -12,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 
-	"github.com/plystra/plystra/ent"
+	"github.com/plystra/core/ent"
 )
 
 func runEnt(ctx context.Context, command string) error {

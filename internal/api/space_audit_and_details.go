@@ -6,13 +6,13 @@ import (
 	"time"
 
 	entsql "entgo.io/ent/dialect/sql"
-	entgroup "github.com/plystra/plystra/ent/group"
-	entrole "github.com/plystra/plystra/ent/role"
+	entgroup "github.com/plystra/core/ent/group"
+	entrole "github.com/plystra/core/ent/role"
 
-	coreent "github.com/plystra/plystra/ent"
-	"github.com/plystra/plystra/ent/auditlog"
-	entmember "github.com/plystra/plystra/ent/member"
-	entusermember "github.com/plystra/plystra/ent/usermember"
+	coreent "github.com/plystra/core/ent"
+	"github.com/plystra/core/ent/auditlog"
+	entmember "github.com/plystra/core/ent/member"
+	entusermember "github.com/plystra/core/ent/usermember"
 )
 
 func (s *Server) handleSpaceAuditLogs(w http.ResponseWriter, r *http.Request, spaceID string, parts []string) {

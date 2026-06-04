@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/user"
+	"github.com/plystra/core/ent/user"
 )
 
 // UserCreate is the builder for creating a User entity.

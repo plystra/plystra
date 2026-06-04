@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/predicate"
-	"github.com/plystra/plystra/ent/role"
+	"github.com/plystra/core/ent/predicate"
+	"github.com/plystra/core/ent/role"
 )
 
 // RoleUpdate is the builder for updating Role entities.

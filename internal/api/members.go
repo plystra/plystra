@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strings"
 
-	entmember "github.com/plystra/plystra/ent/member"
+	entmember "github.com/plystra/core/ent/member"
 
 	"github.com/jackc/pgx/v5"
-	coreent "github.com/plystra/plystra/ent"
-	"github.com/plystra/plystra/internal/authz"
+	coreent "github.com/plystra/core/ent"
+	"github.com/plystra/core/internal/authz"
 )
 
 type memberMutationRequest struct {

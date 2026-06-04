@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/group"
+	"github.com/plystra/core/ent/group"
 )
 
 // GroupCreate is the builder for creating a Group entity.

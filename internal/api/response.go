@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/plystra/plystra/internal/authz"
+	"github.com/plystra/core/internal/authz"
 )
 
 func writeData(w http.ResponseWriter, r *http.Request, status int, data any) {

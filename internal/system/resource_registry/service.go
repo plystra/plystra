@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/plystra/plystra/internal/authz"
-	"github.com/plystra/plystra/internal/resources"
+	"github.com/plystra/core/internal/authz"
+	"github.com/plystra/core/internal/resources"
 )
 
 type Service struct {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/plystra/plystra/internal/templates"
+	"github.com/plystra/core/internal/templates"
 )
 
 func TestCreateTemplateAppGeneratesInspectableAlphaScaffold(t *testing.T) {

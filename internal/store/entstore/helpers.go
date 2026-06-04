@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	coreent "github.com/plystra/plystra/ent"
+	coreent "github.com/plystra/core/ent"
 )
 
 func isNotFound(err error) bool {

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/plystra/plystra/internal/templates"
+	"github.com/plystra/core/internal/templates"
 )
 
 func runTemplates(command string, args []string) error {

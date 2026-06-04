@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/plystra/plystra/ent"
-	entadmingrant "github.com/plystra/plystra/ent/admingrant"
-	entuser "github.com/plystra/plystra/ent/user"
-	entusermember "github.com/plystra/plystra/ent/usermember"
+	"github.com/plystra/core/ent"
+	entadmingrant "github.com/plystra/core/ent/admingrant"
+	entuser "github.com/plystra/core/ent/user"
+	entusermember "github.com/plystra/core/ent/usermember"
 )
 
 func runAdmin(ctx context.Context, command string, args []string) error {

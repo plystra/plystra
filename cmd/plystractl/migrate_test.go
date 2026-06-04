@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"ariga.io/atlas/sql/migrate"
-	"github.com/plystra/plystra/ent/admingrant"
+	"github.com/plystra/core/ent/admingrant"
 )
 
 func TestMigrationRecordMatchesLegacyAndAtlasChecksums(t *testing.T) {

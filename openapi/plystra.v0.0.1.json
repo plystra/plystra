@@ -128,7 +128,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIActorContextResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActorContextResponse"
                 }
               }
             }
@@ -174,7 +174,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIActorContextResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActorContextResponse"
                 }
               }
             }
@@ -223,7 +223,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminGrant"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminGrant"
                 }
               }
             }
@@ -270,7 +270,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminGrant"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminGrant"
                 }
               }
             }
@@ -319,7 +319,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminGrant"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminGrant"
                 }
               }
             }
@@ -378,7 +378,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminGrant"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminGrant"
                 }
               }
             }
@@ -417,7 +417,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminMeResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminMeResponse"
                 }
               }
             }
@@ -469,7 +469,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAPIKey"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAPIKey"
                 }
               }
             }
@@ -516,7 +516,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAPIKey"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAPIKey"
                 }
               }
             }
@@ -565,7 +565,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAPIKey"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAPIKey"
                 }
               }
             }
@@ -624,7 +624,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAPIKey"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAPIKey"
                 }
               }
             }
@@ -681,7 +681,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordResponse"
                 }
               }
             }
@@ -731,7 +731,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin"
                 }
               }
             }
@@ -780,7 +780,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin"
                 }
               }
             }
@@ -829,7 +829,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginAdminMenu"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginAdminMenu"
                 }
               }
             }
@@ -878,7 +878,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditEventType"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditEventType"
                 }
               }
             }
@@ -927,7 +927,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin"
                 }
               }
             }
@@ -976,7 +976,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin"
                 }
               }
             }
@@ -1025,7 +1025,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission"
                 }
               }
             }
@@ -1074,7 +1074,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceType"
                 }
               }
             }
@@ -1130,7 +1130,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginSetting"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginSetting"
                 }
               }
             }
@@ -1187,7 +1187,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginSetting"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginSetting"
                 }
               }
             }
@@ -1236,7 +1236,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin"
                 }
               }
             }
@@ -1365,7 +1365,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditLog"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditLog"
                 }
               }
             }
@@ -1414,7 +1414,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditLog"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditLog"
                 }
               }
             }
@@ -1463,7 +1463,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPILoginResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPILoginResponse"
                 }
               }
             }
@@ -1504,7 +1504,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPILogoutResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPILogoutResponse"
                 }
               }
             }
@@ -1535,7 +1535,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthMeResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuthMeResponse"
                 }
               }
             }
@@ -1581,7 +1581,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRefreshResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRefreshResponse"
                 }
               }
             }
@@ -1623,7 +1623,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRegisterResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRegisterResponse"
                 }
               }
             }
@@ -1664,7 +1664,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthzCheckResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuthzCheckResponse"
                 }
               }
             }
@@ -1752,7 +1752,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilitiesResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilitiesResponse"
                 }
               }
             }
@@ -1802,7 +1802,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilityGrant"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityGrant"
                 }
               }
             }
@@ -1852,7 +1852,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilityGrant"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityGrant"
                 }
               }
             }
@@ -1891,7 +1891,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIOverviewResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIOverviewResponse"
                 }
               }
             }
@@ -1956,7 +1956,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource"
                 }
               }
             }
@@ -2013,7 +2013,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIDataRowMutationResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIDataRowMutationResponse"
                 }
               }
             }
@@ -2070,7 +2070,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIDataRowMutationResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIDataRowMutationResponse"
                 }
               }
             }
@@ -2125,7 +2125,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource"
                 }
               }
             }
@@ -2190,7 +2190,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIDataRowMutationResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIDataRowMutationResponse"
                 }
               }
             }
@@ -2242,7 +2242,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceMapping"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceMapping"
                 }
               }
             }
@@ -2292,7 +2292,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGrantIntrospectionResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGrantIntrospectionResponse"
                 }
               }
             }
@@ -2341,7 +2341,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup"
                 }
               }
             }
@@ -2380,7 +2380,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIHealth"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIHealth"
                 }
               }
             }
@@ -2421,7 +2421,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember"
                 }
               }
             }
@@ -2473,7 +2473,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission"
                 }
               }
             }
@@ -2520,7 +2520,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission"
                 }
               }
             }
@@ -2569,7 +2569,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission"
                 }
               }
             }
@@ -2626,7 +2626,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission"
                 }
               }
             }
@@ -2685,7 +2685,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission"
                 }
               }
             }
@@ -2738,7 +2738,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin"
                 }
               }
             }
@@ -2787,7 +2787,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin"
                 }
               }
             }
@@ -2836,7 +2836,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginValidationResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginValidationResponse"
                 }
               }
             }
@@ -2885,7 +2885,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin"
                 }
               }
             }
@@ -2934,7 +2934,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginAdminMenu"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginAdminMenu"
                 }
               }
             }
@@ -2983,7 +2983,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditEventType"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditEventType"
                 }
               }
             }
@@ -3032,7 +3032,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin"
                 }
               }
             }
@@ -3081,7 +3081,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin"
                 }
               }
             }
@@ -3130,7 +3130,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission"
                 }
               }
             }
@@ -3179,7 +3179,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceType"
                 }
               }
             }
@@ -3235,7 +3235,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginSetting"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginSetting"
                 }
               }
             }
@@ -3292,7 +3292,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginSetting"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginSetting"
                 }
               }
             }
@@ -3341,7 +3341,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin"
                 }
               }
             }
@@ -3380,7 +3380,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIReady"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIReady"
                 }
               }
             }
@@ -3424,7 +3424,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceType"
                 }
               }
             }
@@ -3471,7 +3471,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceType"
                 }
               }
             }
@@ -3520,7 +3520,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceType"
                 }
               }
             }
@@ -3569,7 +3569,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceAction"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceAction"
                 }
               }
             }
@@ -3626,7 +3626,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceAction"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceAction"
                 }
               }
             }
@@ -3675,7 +3675,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceMapping"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceMapping"
                 }
               }
             }
@@ -3732,7 +3732,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceMapping"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceMapping"
                 }
               }
             }
@@ -3800,7 +3800,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource"
                 }
               }
             }
@@ -3847,7 +3847,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource"
                 }
               }
             }
@@ -3904,7 +3904,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource"
                 }
               }
             }
@@ -3956,7 +3956,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission"
                 }
               }
             }
@@ -4003,7 +4003,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission"
                 }
               }
             }
@@ -4052,7 +4052,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission"
                 }
               }
             }
@@ -4099,7 +4099,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission"
                 }
               }
             }
@@ -4148,7 +4148,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole"
                 }
               }
             }
@@ -4200,7 +4200,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace"
                 }
               }
             }
@@ -4247,7 +4247,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace"
                 }
               }
             }
@@ -4296,7 +4296,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace"
                 }
               }
             }
@@ -4353,7 +4353,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace"
                 }
               }
             }
@@ -4411,7 +4411,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditLog"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditLog"
                 }
               }
             }
@@ -4468,7 +4468,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditLog"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditLog"
                 }
               }
             }
@@ -4582,7 +4582,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataModel"
                 }
               }
             }
@@ -4639,7 +4639,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataModel"
                 }
               }
             }
@@ -4696,7 +4696,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataModel"
                 }
               }
             }
@@ -4761,7 +4761,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataModel"
                 }
               }
             }
@@ -4895,7 +4895,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecord"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecord"
                 }
               }
             }
@@ -4957,7 +4957,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordResponse"
                 }
               }
             }
@@ -5019,7 +5019,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordResponse"
                 }
               }
             }
@@ -5079,7 +5079,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordResponse"
                 }
               }
             }
@@ -5149,7 +5149,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordResponse"
                 }
               }
             }
@@ -5221,7 +5221,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordResponse"
                 }
               }
             }
@@ -5292,7 +5292,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRevision"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRevision"
                 }
               }
             }
@@ -5349,7 +5349,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordBatchResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordBatchResponse"
                 }
               }
             }
@@ -5405,7 +5405,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace"
                 }
               }
             }
@@ -5463,7 +5463,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup"
                 }
               }
             }
@@ -5520,7 +5520,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup"
                 }
               }
             }
@@ -5569,7 +5569,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup"
                 }
               }
             }
@@ -5626,7 +5626,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup"
                 }
               }
             }
@@ -5691,7 +5691,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup"
                 }
               }
             }
@@ -5758,7 +5758,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup"
                 }
               }
             }
@@ -5837,7 +5837,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMemberRole"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIMemberRole"
                 }
               }
             }
@@ -5894,7 +5894,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMemberRole"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMemberRole"
                 }
               }
             }
@@ -5951,7 +5951,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMemberRole"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMemberRole"
                 }
               }
             }
@@ -6018,7 +6018,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMemberRole"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMemberRole"
                 }
               }
             }
@@ -6076,7 +6076,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember"
                 }
               }
             }
@@ -6133,7 +6133,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember"
                 }
               }
             }
@@ -6190,7 +6190,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember"
                 }
               }
             }
@@ -6255,7 +6255,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember"
                 }
               }
             }
@@ -6322,7 +6322,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember"
                 }
               }
             }
@@ -6387,7 +6387,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource"
                 }
               }
             }
@@ -6444,7 +6444,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource"
                 }
               }
             }
@@ -6501,7 +6501,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource"
                 }
               }
             }
@@ -6566,7 +6566,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource"
                 }
               }
             }
@@ -6633,7 +6633,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource"
                 }
               }
             }
@@ -6692,7 +6692,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace"
                 }
               }
             }
@@ -6750,7 +6750,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission"
                 }
               }
             }
@@ -6807,7 +6807,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission"
                 }
               }
             }
@@ -6864,7 +6864,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission"
                 }
               }
             }
@@ -6919,7 +6919,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission"
                 }
               }
             }
@@ -6977,7 +6977,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole"
                 }
               }
             }
@@ -7034,7 +7034,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole"
                 }
               }
             }
@@ -7091,7 +7091,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole"
                 }
               }
             }
@@ -7156,7 +7156,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole"
                 }
               }
             }
@@ -7223,7 +7223,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole"
                 }
               }
             }
@@ -7281,7 +7281,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember"
                 }
               }
             }
@@ -7338,7 +7338,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember"
                 }
               }
             }
@@ -7395,7 +7395,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember"
                 }
               }
             }
@@ -7460,7 +7460,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember"
                 }
               }
             }
@@ -7527,7 +7527,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember"
                 }
               }
             }
@@ -7579,7 +7579,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalTemplatesManifest"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalTemplatesManifest"
                 }
               }
             }
@@ -7628,7 +7628,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalTemplatesManifest"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalTemplatesManifest"
                 }
               }
             }
@@ -7687,7 +7687,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPITemplateInstallResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPITemplateInstallResponse"
                 }
               }
             }
@@ -7795,7 +7795,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember"
                 }
               }
             }
@@ -7847,7 +7847,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser"
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser"
                 }
               }
             }
@@ -7894,7 +7894,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser"
                 }
               }
             }
@@ -7943,7 +7943,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser"
                 }
               }
             }
@@ -8000,7 +8000,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser"
                 }
               }
             }
@@ -8059,7 +8059,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser"
                 }
               }
             }
@@ -8118,7 +8118,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser"
                 }
               }
             }
@@ -8157,7 +8157,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIVersionResponse"
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIVersionResponse"
                 }
               }
             }
@@ -9577,7 +9577,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAPIKey": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAPIKey": {
         "type": "object",
         "properties": {
           "data": {
@@ -9589,7 +9589,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIActorContextResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActorContextResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9601,7 +9601,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminGrant": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminGrant": {
         "type": "object",
         "properties": {
           "data": {
@@ -9613,7 +9613,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminMeResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminMeResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9625,7 +9625,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataModel": {
         "type": "object",
         "properties": {
           "data": {
@@ -9637,7 +9637,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordBatchResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordBatchResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9649,7 +9649,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9661,7 +9661,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditLog": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditLog": {
         "type": "object",
         "properties": {
           "data": {
@@ -9673,7 +9673,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthMeResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuthMeResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9685,7 +9685,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthzCheckResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuthzCheckResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9697,7 +9697,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilitiesResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilitiesResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9709,7 +9709,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilityGrant": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityGrant": {
         "type": "object",
         "properties": {
           "data": {
@@ -9721,7 +9721,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIDataRowMutationResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIDataRowMutationResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9733,7 +9733,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGrantIntrospectionResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGrantIntrospectionResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9745,7 +9745,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup": {
         "type": "object",
         "properties": {
           "data": {
@@ -9757,7 +9757,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIHealth": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIHealth": {
         "type": "object",
         "properties": {
           "data": {
@@ -9769,7 +9769,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPILoginResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPILoginResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9781,7 +9781,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPILogoutResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPILogoutResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9793,7 +9793,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember": {
         "type": "object",
         "properties": {
           "data": {
@@ -9805,7 +9805,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMemberRole": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMemberRole": {
         "type": "object",
         "properties": {
           "data": {
@@ -9817,7 +9817,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIOverviewResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIOverviewResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9829,7 +9829,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission": {
         "type": "object",
         "properties": {
           "data": {
@@ -9841,7 +9841,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin": {
         "type": "object",
         "properties": {
           "data": {
@@ -9853,7 +9853,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginValidationResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginValidationResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9865,7 +9865,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIReady": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIReady": {
         "type": "object",
         "properties": {
           "data": {
@@ -9877,7 +9877,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRefreshResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRefreshResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9889,7 +9889,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRegisterResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRegisterResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9901,7 +9901,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource": {
         "type": "object",
         "properties": {
           "data": {
@@ -9913,7 +9913,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceAction": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceAction": {
         "type": "object",
         "properties": {
           "data": {
@@ -9925,7 +9925,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceMapping": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceMapping": {
         "type": "object",
         "properties": {
           "data": {
@@ -9937,7 +9937,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceType": {
         "type": "object",
         "properties": {
           "data": {
@@ -9949,7 +9949,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole": {
         "type": "object",
         "properties": {
           "data": {
@@ -9961,7 +9961,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission": {
         "type": "object",
         "properties": {
           "data": {
@@ -9973,7 +9973,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace": {
         "type": "object",
         "properties": {
           "data": {
@@ -9985,7 +9985,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPITemplateInstallResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPITemplateInstallResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -9997,7 +9997,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser": {
         "type": "object",
         "properties": {
           "data": {
@@ -10009,7 +10009,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember": {
         "type": "object",
         "properties": {
           "data": {
@@ -10021,7 +10021,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIVersionResponse": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIVersionResponse": {
         "type": "object",
         "properties": {
           "data": {
@@ -10033,7 +10033,7 @@
           }
         }
       },
-      "ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalTemplatesManifest": {
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalTemplatesManifest": {
         "type": "object",
         "properties": {
           "data": {
@@ -10202,7 +10202,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAPIKey": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAPIKey": {
         "type": "object",
         "properties": {
           "data": {
@@ -10221,7 +10221,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminGrant": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminGrant": {
         "type": "object",
         "properties": {
           "data": {
@@ -10240,7 +10240,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataModel": {
         "type": "object",
         "properties": {
           "data": {
@@ -10259,7 +10259,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecord": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecord": {
         "type": "object",
         "properties": {
           "data": {
@@ -10278,7 +10278,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRevision": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRevision": {
         "type": "object",
         "properties": {
           "data": {
@@ -10297,7 +10297,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditEventType": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditEventType": {
         "type": "object",
         "properties": {
           "data": {
@@ -10316,7 +10316,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditLog": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditLog": {
         "type": "object",
         "properties": {
           "data": {
@@ -10335,7 +10335,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup": {
         "type": "object",
         "properties": {
           "data": {
@@ -10354,7 +10354,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember": {
         "type": "object",
         "properties": {
           "data": {
@@ -10373,7 +10373,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMemberRole": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIMemberRole": {
         "type": "object",
         "properties": {
           "data": {
@@ -10392,7 +10392,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission": {
         "type": "object",
         "properties": {
           "data": {
@@ -10411,7 +10411,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin": {
         "type": "object",
         "properties": {
           "data": {
@@ -10430,7 +10430,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginAdminMenu": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginAdminMenu": {
         "type": "object",
         "properties": {
           "data": {
@@ -10449,7 +10449,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginSetting": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginSetting": {
         "type": "object",
         "properties": {
           "data": {
@@ -10468,7 +10468,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource": {
         "type": "object",
         "properties": {
           "data": {
@@ -10487,7 +10487,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceAction": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceAction": {
         "type": "object",
         "properties": {
           "data": {
@@ -10506,7 +10506,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceMapping": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceMapping": {
         "type": "object",
         "properties": {
           "data": {
@@ -10525,7 +10525,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceType": {
         "type": "object",
         "properties": {
           "data": {
@@ -10544,7 +10544,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole": {
         "type": "object",
         "properties": {
           "data": {
@@ -10563,7 +10563,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission": {
         "type": "object",
         "properties": {
           "data": {
@@ -10582,7 +10582,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace": {
         "type": "object",
         "properties": {
           "data": {
@@ -10601,7 +10601,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser": {
         "type": "object",
         "properties": {
           "data": {
@@ -10620,7 +10620,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember": {
         "type": "object",
         "properties": {
           "data": {
@@ -10639,7 +10639,7 @@
           }
         }
       },
-      "ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalTemplatesManifest": {
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalTemplatesManifest": {
         "type": "object",
         "properties": {
           "data": {

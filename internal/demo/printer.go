@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/plystra/plystra/internal/authz"
+	"github.com/plystra/core/internal/authz"
 )
 
 func PrintDecision(w io.Writer, scenario Scenario, decision *authz.Decision) {

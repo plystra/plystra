@@ -10,17 +10,17 @@ import (
 	"strings"
 	"time"
 
-	entgroup "github.com/plystra/plystra/ent/group"
-	entpermission "github.com/plystra/plystra/ent/permission"
-	entplugin "github.com/plystra/plystra/ent/plugin"
-	entrole "github.com/plystra/plystra/ent/role"
-	entrolepermission "github.com/plystra/plystra/ent/rolepermission"
-	entusermember "github.com/plystra/plystra/ent/usermember"
+	entgroup "github.com/plystra/core/ent/group"
+	entpermission "github.com/plystra/core/ent/permission"
+	entplugin "github.com/plystra/core/ent/plugin"
+	entrole "github.com/plystra/core/ent/role"
+	entrolepermission "github.com/plystra/core/ent/rolepermission"
+	entusermember "github.com/plystra/core/ent/usermember"
 
-	coreent "github.com/plystra/plystra/ent"
-	entspace "github.com/plystra/plystra/ent/space"
-	"github.com/plystra/plystra/internal/plugins"
-	"github.com/plystra/plystra/internal/templates"
+	coreent "github.com/plystra/core/ent"
+	entspace "github.com/plystra/core/ent/space"
+	"github.com/plystra/core/internal/plugins"
+	"github.com/plystra/core/internal/templates"
 )
 
 func pluginSettingValueMap(value any) map[string]any {

@@ -949,7 +949,7 @@ components:
                 row:
                     $ref: '#/components/schemas/ApiOpenAPIResource'
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAPIKey:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAPIKey:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIAPIKey'
@@ -957,7 +957,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIActorContextResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActorContextResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIActorContextResponse'
@@ -965,7 +965,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminGrant:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminGrant:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIAdminGrant'
@@ -973,7 +973,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminMeResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminMeResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIAdminMeResponse'
@@ -981,7 +981,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataModel:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIAppDataModel'
@@ -989,7 +989,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordBatchResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordBatchResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIAppDataRecordBatchResponse'
@@ -997,7 +997,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIAppDataRecordResponse'
@@ -1005,7 +1005,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditLog:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditLog:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIAuditLog'
@@ -1013,7 +1013,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthMeResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuthMeResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIAuthMeResponse'
@@ -1021,7 +1021,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthzCheckResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuthzCheckResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIAuthzCheckResponse'
@@ -1029,7 +1029,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilitiesResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilitiesResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPICapabilitiesResponse'
@@ -1037,7 +1037,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilityGrant:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityGrant:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPICapabilityGrant'
@@ -1045,7 +1045,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIDataRowMutationResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIDataRowMutationResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIDataRowMutationResponse'
@@ -1053,7 +1053,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGrantIntrospectionResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGrantIntrospectionResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIGrantIntrospectionResponse'
@@ -1061,7 +1061,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIGroup'
@@ -1069,7 +1069,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIHealth:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIHealth:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIHealth'
@@ -1077,7 +1077,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPILoginResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPILoginResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPILoginResponse'
@@ -1085,7 +1085,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPILogoutResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPILogoutResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPILogoutResponse'
@@ -1093,7 +1093,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIMember'
@@ -1101,7 +1101,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMemberRole:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMemberRole:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIMemberRole'
@@ -1109,7 +1109,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIOverviewResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIOverviewResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIOverviewResponse'
@@ -1117,7 +1117,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIPermission'
@@ -1125,7 +1125,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIPlugin'
@@ -1133,7 +1133,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginValidationResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginValidationResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIPluginValidationResponse'
@@ -1141,7 +1141,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIReady:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIReady:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIReady'
@@ -1149,7 +1149,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRefreshResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRefreshResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIRefreshResponse'
@@ -1157,7 +1157,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRegisterResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRegisterResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIRegisterResponse'
@@ -1165,7 +1165,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIResource'
@@ -1173,7 +1173,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceAction:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceAction:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIResourceAction'
@@ -1181,7 +1181,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceMapping:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceMapping:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIResourceMapping'
@@ -1189,7 +1189,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceType:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIResourceType'
@@ -1197,7 +1197,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIRole'
@@ -1205,7 +1205,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIRolePermission'
@@ -1213,7 +1213,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPISpace'
@@ -1221,7 +1221,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPITemplateInstallResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPITemplateInstallResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPITemplateInstallResponse'
@@ -1229,7 +1229,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIUser'
@@ -1237,7 +1237,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIUserMember'
@@ -1245,7 +1245,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIVersionResponse:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIVersionResponse:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPIVersionResponse'
@@ -1253,7 +1253,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalTemplatesManifest:
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalTemplatesManifest:
             properties:
                 data:
                     $ref: '#/components/schemas/TemplatesManifest'
@@ -1370,7 +1370,7 @@ components:
                     example: ok
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAPIKey:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAPIKey:
             properties:
                 data:
                     items:
@@ -1383,7 +1383,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminGrant:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminGrant:
             properties:
                 data:
                     items:
@@ -1396,7 +1396,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataModel:
             properties:
                 data:
                     items:
@@ -1409,7 +1409,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecord:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecord:
             properties:
                 data:
                     items:
@@ -1422,7 +1422,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRevision:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRevision:
             properties:
                 data:
                     items:
@@ -1435,7 +1435,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditEventType:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditEventType:
             properties:
                 data:
                     items:
@@ -1448,7 +1448,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditLog:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditLog:
             properties:
                 data:
                     items:
@@ -1461,7 +1461,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup:
             properties:
                 data:
                     items:
@@ -1474,7 +1474,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember:
             properties:
                 data:
                     items:
@@ -1487,7 +1487,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMemberRole:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIMemberRole:
             properties:
                 data:
                     items:
@@ -1500,7 +1500,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission:
             properties:
                 data:
                     items:
@@ -1513,7 +1513,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin:
             properties:
                 data:
                     items:
@@ -1526,7 +1526,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginAdminMenu:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginAdminMenu:
             properties:
                 data:
                     items:
@@ -1539,7 +1539,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginSetting:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginSetting:
             properties:
                 data:
                     items:
@@ -1552,7 +1552,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource:
             properties:
                 data:
                     items:
@@ -1565,7 +1565,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceAction:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceAction:
             properties:
                 data:
                     items:
@@ -1578,7 +1578,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceMapping:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceMapping:
             properties:
                 data:
                     items:
@@ -1591,7 +1591,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceType:
             properties:
                 data:
                     items:
@@ -1604,7 +1604,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole:
             properties:
                 data:
                     items:
@@ -1617,7 +1617,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission:
             properties:
                 data:
                     items:
@@ -1630,7 +1630,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace:
             properties:
                 data:
                     items:
@@ -1643,7 +1643,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser:
             properties:
                 data:
                     items:
@@ -1656,7 +1656,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember:
             properties:
                 data:
                     items:
@@ -1669,7 +1669,7 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
-        ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalTemplatesManifest:
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalTemplatesManifest:
             properties:
                 data:
                     items:
@@ -3240,7 +3240,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIActorContextResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActorContextResponse'
                     description: OK
                 default:
                     content:
@@ -3267,7 +3267,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIActorContextResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActorContextResponse'
                     description: OK
                 default:
                     content:
@@ -3297,7 +3297,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminGrant'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminGrant'
                     description: OK
                 default:
                     content:
@@ -3324,7 +3324,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminGrant'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminGrant'
                     description: Created
                 default:
                     content:
@@ -3352,7 +3352,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminGrant'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminGrant'
                     description: OK
                 default:
                     content:
@@ -3386,7 +3386,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminGrant'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminGrant'
                     description: OK
                 default:
                     content:
@@ -3408,7 +3408,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAdminMeResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAdminMeResponse'
                     description: OK
                 default:
                     content:
@@ -3439,7 +3439,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAPIKey'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAPIKey'
                     description: OK
                 default:
                     content:
@@ -3466,7 +3466,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAPIKey'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAPIKey'
                     description: Created
                 default:
                     content:
@@ -3494,7 +3494,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAPIKey'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAPIKey'
                     description: OK
                 default:
                     content:
@@ -3528,7 +3528,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAPIKey'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAPIKey'
                     description: OK
                 default:
                     content:
@@ -3561,7 +3561,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordResponse'
                     description: OK
                 default:
                     content:
@@ -3592,7 +3592,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin'
                     description: OK
                 default:
                     content:
@@ -3620,7 +3620,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin'
                     description: OK
                 default:
                     content:
@@ -3648,7 +3648,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginAdminMenu'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginAdminMenu'
                     description: OK
                 default:
                     content:
@@ -3676,7 +3676,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditEventType'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditEventType'
                     description: OK
                 default:
                     content:
@@ -3704,7 +3704,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin'
                     description: OK
                 default:
                     content:
@@ -3732,7 +3732,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin'
                     description: OK
                 default:
                     content:
@@ -3760,7 +3760,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission'
                     description: OK
                 default:
                     content:
@@ -3788,7 +3788,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceType'
                     description: OK
                 default:
                     content:
@@ -3820,7 +3820,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginSetting'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginSetting'
                     description: OK
                 default:
                     content:
@@ -3853,7 +3853,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginSetting'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginSetting'
                     description: OK
                 default:
                     content:
@@ -3881,7 +3881,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin'
                     description: OK
                 default:
                     content:
@@ -3956,7 +3956,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditLog'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditLog'
                     description: OK
                 default:
                     content:
@@ -3984,7 +3984,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditLog'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditLog'
                     description: OK
                 default:
                     content:
@@ -4012,7 +4012,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPILoginResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPILoginResponse'
                     description: OK
                 default:
                     content:
@@ -4037,7 +4037,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPILogoutResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPILogoutResponse'
                     description: OK
                 default:
                     content:
@@ -4056,7 +4056,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthMeResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuthMeResponse'
                     description: OK
                 default:
                     content:
@@ -4083,7 +4083,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRefreshResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRefreshResponse'
                     description: OK
                 default:
                     content:
@@ -4109,7 +4109,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRegisterResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRegisterResponse'
                     description: Created
                 default:
                     content:
@@ -4134,7 +4134,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuthzCheckResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuthzCheckResponse'
                     description: OK
                 default:
                     content:
@@ -4184,7 +4184,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilitiesResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilitiesResponse'
                     description: OK
                 default:
                     content:
@@ -4213,7 +4213,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilityGrant'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityGrant'
                     description: Created
                 default:
                     content:
@@ -4242,7 +4242,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPICapabilityGrant'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityGrant'
                     description: OK
                 default:
                     content:
@@ -4264,7 +4264,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIOverviewResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIOverviewResponse'
                     description: OK
                 default:
                     content:
@@ -4302,7 +4302,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource'
                     description: OK
                 default:
                     content:
@@ -4335,7 +4335,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIDataRowMutationResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIDataRowMutationResponse'
                     description: Created
                 default:
                     content:
@@ -4368,7 +4368,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIDataRowMutationResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIDataRowMutationResponse'
                     description: OK
                 default:
                     content:
@@ -4400,7 +4400,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource'
                     description: OK
                 default:
                     content:
@@ -4438,7 +4438,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIDataRowMutationResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIDataRowMutationResponse'
                     description: OK
                 default:
                     content:
@@ -4469,7 +4469,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceMapping'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceMapping'
                     description: OK
                 default:
                     content:
@@ -4498,7 +4498,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGrantIntrospectionResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGrantIntrospectionResponse'
                     description: OK
                 default:
                     content:
@@ -4526,7 +4526,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup'
                     description: OK
                 default:
                     content:
@@ -4548,7 +4548,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIHealth'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIHealth'
                     description: OK
                 default:
                     content:
@@ -4573,7 +4573,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember'
                     description: OK
                 default:
                     content:
@@ -4604,7 +4604,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission'
                     description: OK
                 default:
                     content:
@@ -4631,7 +4631,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission'
                     description: Created
                 default:
                     content:
@@ -4659,7 +4659,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission'
                     description: OK
                 default:
                     content:
@@ -4692,7 +4692,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission'
                     description: OK
                 default:
                     content:
@@ -4726,7 +4726,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission'
                     description: OK
                 default:
                     content:
@@ -4758,7 +4758,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin'
                     description: OK
                 default:
                     content:
@@ -4786,7 +4786,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin'
                     description: OK
                 default:
                     content:
@@ -4814,7 +4814,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginAdminMenu'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginAdminMenu'
                     description: OK
                 default:
                     content:
@@ -4842,7 +4842,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditEventType'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditEventType'
                     description: OK
                 default:
                     content:
@@ -4870,7 +4870,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin'
                     description: OK
                 default:
                     content:
@@ -4898,7 +4898,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin'
                     description: OK
                 default:
                     content:
@@ -4926,7 +4926,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPermission'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPermission'
                     description: OK
                 default:
                     content:
@@ -4954,7 +4954,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceType'
                     description: OK
                 default:
                     content:
@@ -4986,7 +4986,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginSetting'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginSetting'
                     description: OK
                 default:
                     content:
@@ -5019,7 +5019,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginSetting'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginSetting'
                     description: OK
                 default:
                     content:
@@ -5047,7 +5047,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin'
                     description: OK
                 default:
                     content:
@@ -5075,7 +5075,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPlugin'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPlugin'
                     description: Created
                 default:
                     content:
@@ -5103,7 +5103,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIPluginValidationResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIPluginValidationResponse'
                     description: OK
                 default:
                     content:
@@ -5125,7 +5125,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIReady'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIReady'
                     description: OK
                 default:
                     content:
@@ -5153,7 +5153,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceType'
                     description: OK
                 default:
                     content:
@@ -5180,7 +5180,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceType'
                     description: Created
                 default:
                     content:
@@ -5208,7 +5208,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceType'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceType'
                     description: OK
                 default:
                     content:
@@ -5236,7 +5236,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceAction'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceAction'
                     description: OK
                 default:
                     content:
@@ -5269,7 +5269,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceAction'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceAction'
                     description: Created
                 default:
                     content:
@@ -5297,7 +5297,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceMapping'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceMapping'
                     description: OK
                 default:
                     content:
@@ -5330,7 +5330,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResourceMapping'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResourceMapping'
                     description: Created
                 default:
                     content:
@@ -5371,7 +5371,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource'
                     description: OK
                 default:
                     content:
@@ -5398,7 +5398,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource'
                     description: Created
                 default:
                     content:
@@ -5431,7 +5431,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource'
                     description: OK
                 default:
                     content:
@@ -5462,7 +5462,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission'
                     description: OK
                 default:
                     content:
@@ -5489,7 +5489,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission'
                     description: Created
                 default:
                     content:
@@ -5517,7 +5517,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission'
                     description: OK
                 default:
                     content:
@@ -5544,7 +5544,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission'
                     description: OK
                 default:
                     content:
@@ -5572,7 +5572,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole'
                     description: OK
                 default:
                     content:
@@ -5603,7 +5603,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace'
                     description: OK
                 default:
                     content:
@@ -5630,7 +5630,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace'
                     description: Created
                 default:
                     content:
@@ -5658,7 +5658,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace'
                     description: OK
                 default:
                     content:
@@ -5691,7 +5691,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace'
                     description: OK
                 default:
                     content:
@@ -5725,7 +5725,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditLog'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditLog'
                     description: OK
                 default:
                     content:
@@ -5758,7 +5758,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAuditLog'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAuditLog'
                     description: OK
                 default:
                     content:
@@ -5824,7 +5824,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataModel'
                     description: OK
                 default:
                     content:
@@ -5857,7 +5857,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataModel'
                     description: Created
                 default:
                     content:
@@ -5890,7 +5890,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataModel'
                     description: OK
                 default:
                     content:
@@ -5928,7 +5928,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataModel'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataModel'
                     description: OK
                 default:
                     content:
@@ -6009,7 +6009,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecord'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecord'
                     description: OK
                 default:
                     content:
@@ -6046,7 +6046,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordResponse'
                     description: Created
                 default:
                     content:
@@ -6083,7 +6083,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordResponse'
                     description: OK
                 default:
                     content:
@@ -6119,7 +6119,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordResponse'
                     description: OK
                 default:
                     content:
@@ -6161,7 +6161,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordResponse'
                     description: OK
                 default:
                     content:
@@ -6204,7 +6204,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordResponse'
                     description: OK
                 default:
                     content:
@@ -6247,7 +6247,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRevision'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRevision'
                     description: OK
                 default:
                     content:
@@ -6281,7 +6281,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIAppDataRecordBatchResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIAppDataRecordBatchResponse'
                     description: OK
                 default:
                     content:
@@ -6314,7 +6314,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace'
                     description: OK
                 default:
                     content:
@@ -6348,7 +6348,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup'
                     description: OK
                 default:
                     content:
@@ -6381,7 +6381,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup'
                     description: Created
                 default:
                     content:
@@ -6414,7 +6414,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup'
                     description: OK
                 default:
                     content:
@@ -6452,7 +6452,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup'
                     description: OK
                 default:
                     content:
@@ -6491,7 +6491,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup'
                     description: OK
                 default:
                     content:
@@ -6519,7 +6519,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIGroup'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup'
                     description: OK
                 default:
                     content:
@@ -6565,7 +6565,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMemberRole'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIMemberRole'
                     description: OK
                 default:
                     content:
@@ -6598,7 +6598,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMemberRole'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMemberRole'
                     description: Created
                 default:
                     content:
@@ -6631,7 +6631,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMemberRole'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMemberRole'
                     description: OK
                 default:
                     content:
@@ -6670,7 +6670,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMemberRole'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMemberRole'
                     description: OK
                 default:
                     content:
@@ -6704,7 +6704,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember'
                     description: OK
                 default:
                     content:
@@ -6737,7 +6737,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember'
                     description: Created
                 default:
                     content:
@@ -6770,7 +6770,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember'
                     description: OK
                 default:
                     content:
@@ -6808,7 +6808,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember'
                     description: OK
                 default:
                     content:
@@ -6847,7 +6847,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIMember'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIMember'
                     description: OK
                 default:
                     content:
@@ -6885,7 +6885,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource'
                     description: OK
                 default:
                     content:
@@ -6918,7 +6918,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource'
                     description: Created
                 default:
                     content:
@@ -6951,7 +6951,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource'
                     description: OK
                 default:
                     content:
@@ -6989,7 +6989,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource'
                     description: OK
                 default:
                     content:
@@ -7028,7 +7028,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIResource'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource'
                     description: OK
                 default:
                     content:
@@ -7062,7 +7062,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPISpace'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace'
                     description: OK
                 default:
                     content:
@@ -7096,7 +7096,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission'
                     description: OK
                 default:
                     content:
@@ -7129,7 +7129,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission'
                     description: Created
                 default:
                     content:
@@ -7162,7 +7162,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission'
                     description: OK
                 default:
                     content:
@@ -7194,7 +7194,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRolePermission'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRolePermission'
                     description: OK
                 default:
                     content:
@@ -7228,7 +7228,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole'
                     description: OK
                 default:
                     content:
@@ -7261,7 +7261,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole'
                     description: Created
                 default:
                     content:
@@ -7294,7 +7294,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole'
                     description: OK
                 default:
                     content:
@@ -7332,7 +7332,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole'
                     description: OK
                 default:
                     content:
@@ -7371,7 +7371,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIRole'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIRole'
                     description: OK
                 default:
                     content:
@@ -7405,7 +7405,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember'
                     description: OK
                 default:
                     content:
@@ -7438,7 +7438,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember'
                     description: Created
                 default:
                     content:
@@ -7471,7 +7471,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember'
                     description: OK
                 default:
                     content:
@@ -7509,7 +7509,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember'
                     description: OK
                 default:
                     content:
@@ -7548,7 +7548,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember'
                     description: OK
                 default:
                     content:
@@ -7579,7 +7579,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalTemplatesManifest'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalTemplatesManifest'
                     description: OK
                 default:
                     content:
@@ -7607,7 +7607,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalTemplatesManifest'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalTemplatesManifest'
                     description: OK
                 default:
                     content:
@@ -7641,7 +7641,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPITemplateInstallResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPITemplateInstallResponse'
                     description: Created
                 default:
                     content:
@@ -7703,7 +7703,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUserMember'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUserMember'
                     description: OK
                 default:
                     content:
@@ -7734,7 +7734,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser'
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser'
                     description: OK
                 default:
                     content:
@@ -7761,7 +7761,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser'
                     description: Created
                 default:
                     content:
@@ -7789,7 +7789,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser'
                     description: OK
                 default:
                     content:
@@ -7822,7 +7822,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser'
                     description: OK
                 default:
                     content:
@@ -7856,7 +7856,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser'
                     description: OK
                 default:
                     content:
@@ -7890,7 +7890,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIUser'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIUser'
                     description: OK
                 default:
                     content:
@@ -7912,7 +7912,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraPlystraInternalApiOpenAPIVersionResponse'
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIVersionResponse'
                     description: OK
                 default:
                     content:

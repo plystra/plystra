@@ -8,15 +8,15 @@ import (
 	"sort"
 	"strings"
 
-	entgroup "github.com/plystra/plystra/ent/group"
-	entmemberrole "github.com/plystra/plystra/ent/memberrole"
-	"github.com/plystra/plystra/ent/predicate"
-	entrole "github.com/plystra/plystra/ent/role"
+	entgroup "github.com/plystra/core/ent/group"
+	entmemberrole "github.com/plystra/core/ent/memberrole"
+	"github.com/plystra/core/ent/predicate"
+	entrole "github.com/plystra/core/ent/role"
 
 	"github.com/jackc/pgx/v5"
-	coreent "github.com/plystra/plystra/ent"
-	entmember "github.com/plystra/plystra/ent/member"
-	"github.com/plystra/plystra/internal/authz"
+	coreent "github.com/plystra/core/ent"
+	entmember "github.com/plystra/core/ent/member"
+	"github.com/plystra/core/internal/authz"
 )
 
 type roleMutationRequest struct {

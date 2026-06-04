@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/plystra/plystra/internal/authz"
+	"github.com/plystra/core/internal/authz"
 )
 
 func TestEngineFinanceReviewerScenarios(t *testing.T) {

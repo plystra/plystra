@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/plystra/plystra/internal/api"
+	"github.com/plystra/core/internal/api"
 )
 
 func main() {

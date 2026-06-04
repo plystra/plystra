@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/memberrole"
+	"github.com/plystra/core/ent/memberrole"
 )
 
 // MemberRoleCreate is the builder for creating a MemberRole entity.

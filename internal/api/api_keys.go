@@ -6,10 +6,10 @@ import (
 	"time"
 
 	entsql "entgo.io/ent/dialect/sql"
-	coreent "github.com/plystra/plystra/ent"
-	entapikey "github.com/plystra/plystra/ent/apikey"
-	entgroup "github.com/plystra/plystra/ent/group"
-	entspace "github.com/plystra/plystra/ent/space"
+	coreent "github.com/plystra/core/ent"
+	entapikey "github.com/plystra/core/ent/apikey"
+	entgroup "github.com/plystra/core/ent/group"
+	entspace "github.com/plystra/core/ent/space"
 )
 
 type apiKeyMutationRequest struct {

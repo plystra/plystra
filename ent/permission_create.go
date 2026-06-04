@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/permission"
+	"github.com/plystra/core/ent/permission"
 )
 
 // PermissionCreate is the builder for creating a Permission entity.

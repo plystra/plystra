@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	coreent "github.com/plystra/plystra/ent"
-	entapikey "github.com/plystra/plystra/ent/apikey"
+	coreent "github.com/plystra/core/ent"
+	entapikey "github.com/plystra/core/ent/apikey"
 
 	"github.com/jackc/pgx/v5"
 )

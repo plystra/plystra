@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/backgroundjob"
+	"github.com/plystra/core/ent/backgroundjob"
 )
 
 // BackgroundJob is the model entity for the BackgroundJob schema.

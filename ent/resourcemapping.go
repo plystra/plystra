@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/resourcemapping"
+	"github.com/plystra/core/ent/resourcemapping"
 )
 
 // ResourceMapping is the model entity for the ResourceMapping schema.

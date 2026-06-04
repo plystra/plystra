@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/resourcemapping"
+	"github.com/plystra/core/ent/resourcemapping"
 )
 
 // ResourceMappingCreate is the builder for creating a ResourceMapping entity.

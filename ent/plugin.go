@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/plugin"
+	"github.com/plystra/core/ent/plugin"
 )
 
 // Plugin is the model entity for the Plugin schema.

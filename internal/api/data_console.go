@@ -6,11 +6,11 @@ import (
 	"sort"
 	"strings"
 
-	entresource "github.com/plystra/plystra/ent/resource"
-	entresourcetype "github.com/plystra/plystra/ent/resourcetype"
+	entresource "github.com/plystra/core/ent/resource"
+	entresourcetype "github.com/plystra/core/ent/resourcetype"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/plystra/plystra/internal/authz"
+	"github.com/plystra/core/internal/authz"
 )
 
 func (s *Server) handleDataTables(w http.ResponseWriter, r *http.Request) {

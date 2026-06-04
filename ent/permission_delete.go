@@ -8,8 +8,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/permission"
-	"github.com/plystra/plystra/ent/predicate"
+	"github.com/plystra/core/ent/permission"
+	"github.com/plystra/core/ent/predicate"
 )
 
 // PermissionDelete is the builder for deleting a Permission entity.

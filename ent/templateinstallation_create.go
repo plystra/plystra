@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/templateinstallation"
+	"github.com/plystra/core/ent/templateinstallation"
 )
 
 // TemplateInstallationCreate is the builder for creating a TemplateInstallation entity.

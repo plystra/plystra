@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/apikey"
+	"github.com/plystra/core/ent/apikey"
 )
 
 // ApiKey is the model entity for the ApiKey schema.

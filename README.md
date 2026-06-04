@@ -1,6 +1,6 @@
 # Plystra Core
 
-[![CI](https://github.com/plystra/plystra/actions/workflows/ci.yml/badge.svg)](https://github.com/plystra/plystra/actions/workflows/ci.yml)
+[![CI](https://github.com/plystra/core/actions/workflows/ci.yml/badge.svg)](https://github.com/plystra/core/actions/workflows/ci.yml)
 
 Plystra Core is a self-hosted identity and authorization service for applications that need account-identity separation, scoped permissions, explainable decisions, and append-only audit trails.
 

@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/plystra/plystra/internal/authz"
-	kcap "github.com/plystra/plystra/internal/kernel/contracts/capability"
-	"github.com/plystra/plystra/internal/resources"
-	"github.com/plystra/plystra/internal/system"
+	"github.com/plystra/core/internal/authz"
+	kcap "github.com/plystra/core/internal/kernel/contracts/capability"
+	"github.com/plystra/core/internal/resources"
+	"github.com/plystra/core/internal/system"
 )
 
 func TestBootRegistersBuiltInSystemCapabilities(t *testing.T) {

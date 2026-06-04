@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/predicate"
-	"github.com/plystra/plystra/ent/usermember"
+	"github.com/plystra/core/ent/predicate"
+	"github.com/plystra/core/ent/usermember"
 )
 
 // UserMemberUpdate is the builder for updating UserMember entities.

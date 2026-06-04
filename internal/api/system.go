@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/plystra/plystra/ent/auditlog"
+	"github.com/plystra/core/ent/auditlog"
 )
 
 func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {

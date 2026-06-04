@@ -9,10 +9,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 
-	coreent "github.com/plystra/plystra/ent"
-	_ "github.com/plystra/plystra/ent/runtime"
-	"github.com/plystra/plystra/internal/authz"
-	"github.com/plystra/plystra/internal/resources"
+	coreent "github.com/plystra/core/ent"
+	_ "github.com/plystra/core/ent/runtime"
+	"github.com/plystra/core/internal/authz"
+	"github.com/plystra/core/internal/resources"
 )
 
 var _ authz.Store = (*Store)(nil)

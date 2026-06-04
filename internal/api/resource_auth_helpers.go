@@ -6,16 +6,16 @@ import (
 	"fmt"
 	"net/http"
 
-	entappdatarecord "github.com/plystra/plystra/ent/appdatarecord"
-	entgroup "github.com/plystra/plystra/ent/group"
-	entmember "github.com/plystra/plystra/ent/member"
-	entresource "github.com/plystra/plystra/ent/resource"
-	entresourcemapping "github.com/plystra/plystra/ent/resourcemapping"
+	entappdatarecord "github.com/plystra/core/ent/appdatarecord"
+	entgroup "github.com/plystra/core/ent/group"
+	entmember "github.com/plystra/core/ent/member"
+	entresource "github.com/plystra/core/ent/resource"
+	entresourcemapping "github.com/plystra/core/ent/resourcemapping"
 
 	"github.com/jackc/pgx/v5"
-	coreent "github.com/plystra/plystra/ent"
-	entspace "github.com/plystra/plystra/ent/space"
-	"github.com/plystra/plystra/internal/authz"
+	coreent "github.com/plystra/core/ent"
+	entspace "github.com/plystra/core/ent/space"
+	"github.com/plystra/core/internal/authz"
 )
 
 func (s *Server) authorizeTarget(w http.ResponseWriter, r *http.Request, actor authz.ActorContext, resourceType, resourceID, action string, target authz.TargetSnapshot) (*authz.Decision, bool) {

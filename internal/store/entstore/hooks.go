@@ -7,13 +7,13 @@ import (
 
 	entgo "entgo.io/ent"
 
-	coreent "github.com/plystra/plystra/ent"
-	"github.com/plystra/plystra/ent/group"
-	"github.com/plystra/plystra/ent/member"
-	"github.com/plystra/plystra/ent/memberrole"
-	"github.com/plystra/plystra/ent/resource"
-	"github.com/plystra/plystra/ent/role"
-	"github.com/plystra/plystra/ent/usermember"
+	coreent "github.com/plystra/core/ent"
+	"github.com/plystra/core/ent/group"
+	"github.com/plystra/core/ent/member"
+	"github.com/plystra/core/ent/memberrole"
+	"github.com/plystra/core/ent/resource"
+	"github.com/plystra/core/ent/role"
+	"github.com/plystra/core/ent/usermember"
 )
 
 func (s *Store) installHooks() {

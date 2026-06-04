@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strings"
 
-	entresource "github.com/plystra/plystra/ent/resource"
+	entresource "github.com/plystra/core/ent/resource"
 
-	coreent "github.com/plystra/plystra/ent"
+	coreent "github.com/plystra/core/ent"
 )
 
 func (s *Server) handleResources(w http.ResponseWriter, r *http.Request) {

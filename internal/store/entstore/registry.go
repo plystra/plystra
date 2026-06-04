@@ -3,12 +3,12 @@ package entstore
 import (
 	"context"
 
-	coreent "github.com/plystra/plystra/ent"
-	"github.com/plystra/plystra/ent/resourceaction"
-	"github.com/plystra/plystra/ent/resourcemapping"
-	"github.com/plystra/plystra/ent/resourcetype"
-	"github.com/plystra/plystra/internal/authz"
-	"github.com/plystra/plystra/internal/resources"
+	coreent "github.com/plystra/core/ent"
+	"github.com/plystra/core/ent/resourceaction"
+	"github.com/plystra/core/ent/resourcemapping"
+	"github.com/plystra/core/ent/resourcetype"
+	"github.com/plystra/core/internal/authz"
+	"github.com/plystra/core/internal/resources"
 )
 
 func (s *Store) UpsertResourceType(ctx context.Context, input resources.RegisterResourceTypeInput) (*resources.ResourceType, error) {

@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/pluginadminmenu"
+	"github.com/plystra/core/ent/pluginadminmenu"
 )
 
 // PluginAdminMenuCreate is the builder for creating a PluginAdminMenu entity.

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/plystra/plystra/internal/kernel/contracts"
-	kadmin "github.com/plystra/plystra/internal/kernel/contracts/admin"
+	"github.com/plystra/core/internal/kernel/contracts"
+	kadmin "github.com/plystra/core/internal/kernel/contracts/admin"
 )
 
 type Service struct {

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	coreent "github.com/plystra/plystra/ent"
+	coreent "github.com/plystra/core/ent"
 )
 
 func TestAppDataMutationPolicyViolation(t *testing.T) {

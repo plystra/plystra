@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/resourceaction"
+	"github.com/plystra/core/ent/resourceaction"
 )
 
 // ResourceAction is the model entity for the ResourceAction schema.

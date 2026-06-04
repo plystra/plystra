@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	coreent "github.com/plystra/plystra/ent"
+	coreent "github.com/plystra/core/ent"
 )
 
 func TestAdminGrantSpaceBoundaryRequiresMatchingScope(t *testing.T) {

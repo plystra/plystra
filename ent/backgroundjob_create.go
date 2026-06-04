@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/backgroundjob"
+	"github.com/plystra/core/ent/backgroundjob"
 )
 
 // BackgroundJobCreate is the builder for creating a BackgroundJob entity.

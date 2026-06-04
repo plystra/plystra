@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/member"
+	"github.com/plystra/core/ent/member"
 )
 
 // MemberCreate is the builder for creating a Member entity.

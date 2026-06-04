@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,10 +12,12 @@ import (
 	"testing"
 	"time"
 
-	coreent "github.com/plystra/plystra/ent"
-	entplugin "github.com/plystra/plystra/ent/plugin"
-	"github.com/plystra/plystra/internal/plugins"
-	"github.com/plystra/plystra/internal/store/entstore"
+	coreent "github.com/plystra/core/ent"
+	entplugin "github.com/plystra/core/ent/plugin"
+	entpluginadminmenu "github.com/plystra/core/ent/pluginadminmenu"
+	entpluginsettingsdefinition "github.com/plystra/core/ent/pluginsettingsdefinition"
+	"github.com/plystra/core/internal/plugins"
+	"github.com/plystra/core/internal/store/entstore"
 )
 
 func TestAppModulesAreSeparatedFromReusablePluginListing(t *testing.T) {
@@ -62,7 +65,7 @@ func TestAppModulesAreSeparatedFromReusablePluginListing(t *testing.T) {
 		PluginAPIVersion: "1.0",
 		RequiresCore:     ">=0.0.1",
 		LocalCapabilities: []plugins.CapabilityDefinition{{
-			ID:          "forge.operations_" + suffix,
+			ID:          "forge.operations.test" + suffix,
 			Version:     "1.0.0",
 			Level:       "declared",
 			Description: "test-only local capability",
@@ -106,6 +109,77 @@ func TestAppModulesAreSeparatedFromReusablePluginListing(t *testing.T) {
 	}
 }
 
+func TestPluginManifestInstallPrunesStaleAppModuleMetadata(t *testing.T) {
+	databaseURL := pluginTestDatabaseURL()
+	if databaseURL == "" {
+		t.Skip("set PLYSTRA_INTEGRATION_DATABASE_URL or PLYSTRA_DATABASE_URL to run plugin integration tests")
+	}
+	ctx := context.Background()
+	store, err := entstore.Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("open ent store: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = store.Close()
+	})
+
+	suffix := fmt.Sprintf("%d", time.Now().UTC().UnixNano())
+	appModuleID := "app.forge.converge_" + suffix
+	pluginRowID := "plugin_" + safeIdentifier(appModuleID)
+	t.Cleanup(func() {
+		cleanupPluginManifestMetadataRows(context.Background(), store.Client(), t, appModuleID, pluginRowID)
+	})
+
+	server := NewServer(nil, store, "1.0.0-test")
+	oldManifest := appModuleConvergenceManifest(appModuleID, suffix, "provider.endpoint", "Old Admin", "/apps/forge/old")
+	installPluginManifestForTest(t, server, oldManifest)
+	newManifest := appModuleConvergenceManifest(appModuleID, suffix, "runtime.endpoint", "New Admin", "/apps/forge/new")
+	installPluginManifestForTest(t, server, newManifest)
+
+	settingsRec := pluginListRequest(server, "/api/v1/app-modules/"+appModuleID+"/settings")
+	if settingsRec.Code != http.StatusOK {
+		t.Fatalf("settings status = %d body=%s", settingsRec.Code, settingsRec.Body.String())
+	}
+	settingKeys := pluginSettingsKeysFromListResponse(t, settingsRec)
+	if settingKeys["provider.endpoint"] {
+		t.Fatalf("stale provider.endpoint setting leaked after manifest update: %#v", settingKeys)
+	}
+	if !settingKeys["runtime.endpoint"] {
+		t.Fatalf("runtime.endpoint setting missing after manifest update: %#v", settingKeys)
+	}
+
+	menusRec := pluginListRequest(server, "/api/v1/app-modules/"+appModuleID+"/admin-menus")
+	if menusRec.Code != http.StatusOK {
+		t.Fatalf("admin-menus status = %d body=%s", menusRec.Code, menusRec.Body.String())
+	}
+	menuLabels := pluginMenuLabelsFromListResponse(t, menusRec)
+	if menuLabels["Old Admin"] {
+		t.Fatalf("stale admin menu leaked after manifest update: %#v", menuLabels)
+	}
+	if !menuLabels["New Admin"] {
+		t.Fatalf("new admin menu missing after manifest update: %#v", menuLabels)
+	}
+
+	staleSettings, err := store.Client().PluginSettingsDefinition.Query().
+		Where(entpluginsettingsdefinition.PluginID(pluginRowID), entpluginsettingsdefinition.Key("provider.endpoint")).
+		Count(ctx)
+	if err != nil {
+		t.Fatalf("count stale settings: %v", err)
+	}
+	if staleSettings != 0 {
+		t.Fatalf("stale provider.endpoint setting definitions = %d, want 0", staleSettings)
+	}
+	staleMenus, err := store.Client().PluginAdminMenu.Query().
+		Where(entpluginadminmenu.PluginID(pluginRowID), entpluginadminmenu.ID("pam_"+safeIdentifier(appModuleID+"_Old Admin"))).
+		Count(ctx)
+	if err != nil {
+		t.Fatalf("count stale admin menus: %v", err)
+	}
+	if staleMenus != 0 {
+		t.Fatalf("stale admin menus = %d, want 0", staleMenus)
+	}
+}
+
 func pluginTestDatabaseURL() string {
 	for _, key := range []string{"PLYSTRA_INTEGRATION_DATABASE_URL", "PLYSTRA_DATABASE_URL"} {
 		if value := strings.TrimSpace(os.Getenv(key)); value != "" {
@@ -122,6 +196,71 @@ func cleanupPluginIntegrationRows(ctx context.Context, client *coreent.Client, t
 	}
 	if _, err := client.Plugin.Delete().Where(entplugin.KeyIn(pluginKeys...)).Exec(ctx); err != nil {
 		t.Fatalf("cleanup plugins: %v", err)
+	}
+}
+
+func cleanupPluginManifestMetadataRows(ctx context.Context, client *coreent.Client, t *testing.T, pluginKey, pluginRowID string) {
+	t.Helper()
+	if _, err := client.PluginAdminMenu.Delete().Where(entpluginadminmenu.PluginID(pluginRowID)).Exec(ctx); err != nil {
+		t.Fatalf("cleanup plugin admin menus: %v", err)
+	}
+	if _, err := client.PluginSettingsDefinition.Delete().Where(entpluginsettingsdefinition.PluginID(pluginRowID)).Exec(ctx); err != nil {
+		t.Fatalf("cleanup plugin settings definitions: %v", err)
+	}
+	cleanupPluginIntegrationRows(ctx, client, t, pluginKey)
+}
+
+func appModuleConvergenceManifest(pluginID, suffix, endpointSettingKey, menuLabel, menuPath string) plugins.Manifest {
+	return plugins.Manifest{
+		ID:               pluginID,
+		Name:             "Forge App Module Convergence Test",
+		Version:          "1.0.0",
+		Type:             "app_module",
+		Scope:            "app",
+		AppID:            "forge",
+		Source:           "test",
+		Status:           "enabled",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1",
+		AdminMenus: []plugins.AdminMenuDefinition{{
+			Label: menuLabel,
+			Path:  menuPath,
+		}},
+		Settings: []plugins.SettingDefinition{{
+			Key:       endpointSettingKey,
+			ValueType: "string",
+			Scope:     "instance",
+			Default:   "https://forge-runtime.example",
+		}},
+		Runtime: plugins.ProviderRuntimeDefinition{
+			Type:               "external",
+			Protocol:           "http_json",
+			Version:            "1.0.0",
+			EndpointSettingKey: endpointSettingKey,
+		},
+		LocalCapabilities: []plugins.CapabilityDefinition{{
+			ID:          "forge.convergence.test" + suffix,
+			Version:     "1.0.0",
+			Level:       "declared",
+			Description: "test-only app-private capability",
+			Audit:       plugins.CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane:   plugins.CapabilityDataPlaneDefinition{Allowed: []string{"core_data_api"}},
+		}},
+	}
+}
+
+func installPluginManifestForTest(t *testing.T, server *Server, manifest plugins.Manifest) {
+	t.Helper()
+	raw, err := json.Marshal(pluginInstallRequest{Manifest: manifest, Source: "test"})
+	if err != nil {
+		t.Fatalf("encode install request: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/plugins/install", bytes.NewReader(raw))
+	rec := httptest.NewRecorder()
+	server.handlePluginInstall(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("install manifest status = %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
@@ -156,4 +295,34 @@ func pluginKeysFromListResponse(t *testing.T, rec *httptest.ResponseRecorder) ma
 		keys[stringAny(item["key"])] = true
 	}
 	return keys
+}
+
+func pluginSettingsKeysFromListResponse(t *testing.T, rec *httptest.ResponseRecorder) map[string]bool {
+	t.Helper()
+	var payload struct {
+		Data []map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode settings response: %v", err)
+	}
+	keys := map[string]bool{}
+	for _, item := range payload.Data {
+		keys[stringAny(item["key"])] = true
+	}
+	return keys
+}
+
+func pluginMenuLabelsFromListResponse(t *testing.T, rec *httptest.ResponseRecorder) map[string]bool {
+	t.Helper()
+	var payload struct {
+		Data []map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode admin menus response: %v", err)
+	}
+	labels := map[string]bool{}
+	for _, item := range payload.Data {
+		labels[stringAny(item["label"])] = true
+	}
+	return labels
 }

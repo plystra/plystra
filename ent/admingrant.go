@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/admingrant"
+	"github.com/plystra/core/ent/admingrant"
 )
 
 // AdminGrant is the model entity for the AdminGrant schema.

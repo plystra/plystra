@@ -10,8 +10,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/auditlog"
-	"github.com/plystra/plystra/ent/predicate"
+	"github.com/plystra/core/ent/auditlog"
+	"github.com/plystra/core/ent/predicate"
 )
 
 // AuditLogUpdate is the builder for updating AuditLog entities.

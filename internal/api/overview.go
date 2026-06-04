@@ -5,7 +5,7 @@ import (
 
 	entsql "entgo.io/ent/dialect/sql"
 
-	"github.com/plystra/plystra/ent/auditlog"
+	"github.com/plystra/core/ent/auditlog"
 )
 
 func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {

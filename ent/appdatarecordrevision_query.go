@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/appdatarecordrevision"
-	"github.com/plystra/plystra/ent/predicate"
+	"github.com/plystra/core/ent/appdatarecordrevision"
+	"github.com/plystra/core/ent/predicate"
 )
 
 // AppDataRecordRevisionQuery is the builder for querying AppDataRecordRevision entities.

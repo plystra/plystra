@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	coreent "github.com/plystra/plystra/ent"
-	"github.com/plystra/plystra/internal/plugins"
+	coreent "github.com/plystra/core/ent"
+	"github.com/plystra/core/internal/plugins"
 )
 
 func TestValidatePluginSettingValueRejectsSecretLikeKeys(t *testing.T) {

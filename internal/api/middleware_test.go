@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	coreent "github.com/plystra/plystra/ent"
-	"github.com/plystra/plystra/internal/authz"
+	coreent "github.com/plystra/core/ent"
+	"github.com/plystra/core/internal/authz"
 )
 
 func TestResponseEnvelopeIncludesOnlyTopLevelRequestID(t *testing.T) {

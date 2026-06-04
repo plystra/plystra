@@ -8,8 +8,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/predicate"
-	"github.com/plystra/plystra/ent/session"
+	"github.com/plystra/core/ent/predicate"
+	"github.com/plystra/core/ent/session"
 )
 
 // SessionDelete is the builder for deleting a Session entity.

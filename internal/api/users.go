@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	entsession "github.com/plystra/plystra/ent/session"
-	entuser "github.com/plystra/plystra/ent/user"
+	entsession "github.com/plystra/core/ent/session"
+	entuser "github.com/plystra/core/ent/user"
 
 	"github.com/jackc/pgx/v5"
-	coreent "github.com/plystra/plystra/ent"
-	"github.com/plystra/plystra/internal/authz"
+	coreent "github.com/plystra/core/ent"
+	"github.com/plystra/core/internal/authz"
 )
 
 type userMutationRequest struct {

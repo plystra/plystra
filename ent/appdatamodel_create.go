@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/appdatamodel"
+	"github.com/plystra/core/ent/appdatamodel"
 )
 
 // AppDataModelCreate is the builder for creating a AppDataModel entity.

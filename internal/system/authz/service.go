@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	coreauthz "github.com/plystra/plystra/internal/authz"
-	"github.com/plystra/plystra/internal/kernel/contracts"
+	coreauthz "github.com/plystra/core/internal/authz"
+	"github.com/plystra/core/internal/kernel/contracts"
 )
 
 type Service struct {

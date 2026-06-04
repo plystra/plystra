@@ -12,15 +12,15 @@ import (
 	"strings"
 	"time"
 
-	coreent "github.com/plystra/plystra/ent"
-	entmember "github.com/plystra/plystra/ent/member"
-	entsession "github.com/plystra/plystra/ent/session"
-	entspace "github.com/plystra/plystra/ent/space"
-	entusermember "github.com/plystra/plystra/ent/usermember"
+	coreent "github.com/plystra/core/ent"
+	entmember "github.com/plystra/core/ent/member"
+	entsession "github.com/plystra/core/ent/session"
+	entspace "github.com/plystra/core/ent/space"
+	entusermember "github.com/plystra/core/ent/usermember"
 
 	"github.com/jackc/pgx/v5"
-	entuser "github.com/plystra/plystra/ent/user"
-	contractidentity "github.com/plystra/plystra/internal/kernel/contracts/identity"
+	entuser "github.com/plystra/core/ent/user"
+	contractidentity "github.com/plystra/core/internal/kernel/contracts/identity"
 )
 
 func (s *Server) sessionFromRequest(ctx context.Context, r *http.Request) (sessionRecord, error) {

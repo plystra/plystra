@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/space"
+	"github.com/plystra/core/ent/space"
 )
 
 // Space is the model entity for the Space schema.

@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/auditeventtype"
-	"github.com/plystra/plystra/ent/predicate"
+	"github.com/plystra/core/ent/auditeventtype"
+	"github.com/plystra/core/ent/predicate"
 )
 
 // AuditEventTypeUpdate is the builder for updating AuditEventType entities.

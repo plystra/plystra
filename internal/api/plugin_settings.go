@@ -7,11 +7,11 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5"
-	coreent "github.com/plystra/plystra/ent"
-	entplugin "github.com/plystra/plystra/ent/plugin"
-	entpluginsettingsdefinition "github.com/plystra/plystra/ent/pluginsettingsdefinition"
-	entpluginsettingsvalue "github.com/plystra/plystra/ent/pluginsettingsvalue"
-	"github.com/plystra/plystra/internal/plugins"
+	coreent "github.com/plystra/core/ent"
+	entplugin "github.com/plystra/core/ent/plugin"
+	entpluginsettingsdefinition "github.com/plystra/core/ent/pluginsettingsdefinition"
+	entpluginsettingsvalue "github.com/plystra/core/ent/pluginsettingsvalue"
+	"github.com/plystra/core/internal/plugins"
 )
 
 type pluginSettingsUpdateRequest struct {

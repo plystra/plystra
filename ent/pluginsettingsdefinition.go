@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/pluginsettingsdefinition"
+	"github.com/plystra/core/ent/pluginsettingsdefinition"
 )
 
 // PluginSettingsDefinition is the model entity for the PluginSettingsDefinition schema.

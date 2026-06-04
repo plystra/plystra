@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	entpermission "github.com/plystra/plystra/ent/permission"
-	entrole "github.com/plystra/plystra/ent/role"
-	entrolepermission "github.com/plystra/plystra/ent/rolepermission"
+	entpermission "github.com/plystra/core/ent/permission"
+	entrole "github.com/plystra/core/ent/role"
+	entrolepermission "github.com/plystra/core/ent/rolepermission"
 
 	"github.com/jackc/pgx/v5"
-	coreent "github.com/plystra/plystra/ent"
-	"github.com/plystra/plystra/internal/authz"
+	coreent "github.com/plystra/core/ent"
+	"github.com/plystra/core/internal/authz"
 )
 
 func (s *Server) handlePermissions(w http.ResponseWriter, r *http.Request) {

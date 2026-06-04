@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/plystra/plystra/ent/apikey"
-	"github.com/plystra/plystra/ent/predicate"
+	"github.com/plystra/core/ent/apikey"
+	"github.com/plystra/core/ent/predicate"
 )
 
 // ApiKeyQuery is the builder for querying ApiKey entities.

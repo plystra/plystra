@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/rolepermission"
+	"github.com/plystra/core/ent/rolepermission"
 )
 
 // RolePermission is the model entity for the RolePermission schema.

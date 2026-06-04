@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/plystra/plystra/ent/pluginadminmenu"
+	"github.com/plystra/core/ent/pluginadminmenu"
 )
 
 // PluginAdminMenu is the model entity for the PluginAdminMenu schema.
