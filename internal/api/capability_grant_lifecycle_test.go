@@ -208,6 +208,17 @@ func TestCapabilityGrantRevocationAndReconciliation(t *testing.T) {
 		if state["reason"] != "grant_revoked" {
 			t.Fatalf("introspect reason = %#v, want grant_revoked", state["reason"])
 		}
+
+		// Revocation must be durable: re-requesting with the same idempotency
+		// key must not resurrect the revoked grant.
+		reissue := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-grants", fixture.SpaceID), fixture.APIKey, body)
+		if reissue.Code != http.StatusConflict {
+			t.Fatalf("reissue revoked grant status = %d, want 409, body=%s", reissue.Code, reissue.Body.String())
+		}
+		errorPayload := requireObjectField(t, decodeCapabilityGrantEnvelope(t, reissue), "error")
+		if errorPayload["code"] != "CAPABILITY_GRANT_REVOKED" {
+			t.Fatalf("reissue error code = %#v, want CAPABILITY_GRANT_REVOKED", errorPayload["code"])
+		}
 	})
 
 	t.Run("returns 404 for an unknown grant_id", func(t *testing.T) {

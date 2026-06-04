@@ -160,6 +160,16 @@ func (s *Server) handleCapabilityGrants(w http.ResponseWriter, r *http.Request) 
 		entcapabilitygrant.IdempotencyKey(req.IdempotencyKey),
 	).Only(r.Context())
 	if err == nil {
+		// Revocation must be durable: an idempotent re-request must never
+		// resurrect a grant Core deliberately revoked. The caller needs a fresh
+		// idempotency key (and will be re-authorized) to obtain a new grant.
+		if existing.RevokedAt != nil || existing.Status == "revoked" {
+			writeError(w, r, http.StatusConflict, "CAPABILITY_GRANT_REVOKED", "This idempotency key maps to a revoked grant; request a new grant with a fresh idempotency key.", map[string]any{
+				"grant_id":       existing.ID,
+				"revoked_reason": derefString(existing.RevokedReason),
+			})
+			return
+		}
 		grantToken, tokenErr := newCapabilityGrantToken()
 		if tokenErr != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to reissue capability grant token.", tokenErr.Error())
