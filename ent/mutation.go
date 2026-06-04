@@ -11,6 +11,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/plystra/core/ent/actionexecution"
 	"github.com/plystra/core/ent/admingrant"
 	"github.com/plystra/core/ent/apikey"
 	"github.com/plystra/core/ent/appdatamodel"
@@ -51,6 +52,7 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
+	TypeActionExecution          = "ActionExecution"
 	TypeAdminGrant               = "AdminGrant"
 	TypeApiKey                   = "ApiKey"
 	TypeAppDataModel             = "AppDataModel"
@@ -80,6 +82,1392 @@ const (
 	TypeUser                     = "User"
 	TypeUserMember               = "UserMember"
 )
+
+// ActionExecutionMutation represents an operation that mutates the ActionExecution nodes in the graph.
+type ActionExecutionMutation struct {
+	config
+	op                       Op
+	typ                      string
+	id                       *string
+	space_id                 *string
+	capability               *string
+	operation                *string
+	principal_user_id        *string
+	principal_member_id      *string
+	principal_user_member_id *string
+	caller_plugin_id         *string
+	target_provider_id       *string
+	parent_grant_id          *string
+	decision_id              *string
+	correlation_id           *string
+	idempotency_key          *string
+	status                   *string
+	handler_endpoint         *string
+	idempotency_expires_at   *time.Time
+	metadata                 *map[string]interface{}
+	created_at               *time.Time
+	updated_at               *time.Time
+	clearedFields            map[string]struct{}
+	done                     bool
+	oldValue                 func(context.Context) (*ActionExecution, error)
+	predicates               []predicate.ActionExecution
+}
+
+var _ ent.Mutation = (*ActionExecutionMutation)(nil)
+
+// actionexecutionOption allows management of the mutation configuration using functional options.
+type actionexecutionOption func(*ActionExecutionMutation)
+
+// newActionExecutionMutation creates new mutation for the ActionExecution entity.
+func newActionExecutionMutation(c config, op Op, opts ...actionexecutionOption) *ActionExecutionMutation {
+	m := &ActionExecutionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeActionExecution,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withActionExecutionID sets the ID field of the mutation.
+func withActionExecutionID(id string) actionexecutionOption {
+	return func(m *ActionExecutionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ActionExecution
+		)
+		m.oldValue = func(ctx context.Context) (*ActionExecution, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ActionExecution.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withActionExecution sets the old ActionExecution of the mutation.
+func withActionExecution(node *ActionExecution) actionexecutionOption {
+	return func(m *ActionExecutionMutation) {
+		m.oldValue = func(context.Context) (*ActionExecution, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ActionExecutionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ActionExecutionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ActionExecution entities.
+func (m *ActionExecutionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ActionExecutionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ActionExecutionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ActionExecution.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetSpaceID sets the "space_id" field.
+func (m *ActionExecutionMutation) SetSpaceID(s string) {
+	m.space_id = &s
+}
+
+// SpaceID returns the value of the "space_id" field in the mutation.
+func (m *ActionExecutionMutation) SpaceID() (r string, exists bool) {
+	v := m.space_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSpaceID returns the old "space_id" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldSpaceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSpaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSpaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSpaceID: %w", err)
+	}
+	return oldValue.SpaceID, nil
+}
+
+// ResetSpaceID resets all changes to the "space_id" field.
+func (m *ActionExecutionMutation) ResetSpaceID() {
+	m.space_id = nil
+}
+
+// SetCapability sets the "capability" field.
+func (m *ActionExecutionMutation) SetCapability(s string) {
+	m.capability = &s
+}
+
+// Capability returns the value of the "capability" field in the mutation.
+func (m *ActionExecutionMutation) Capability() (r string, exists bool) {
+	v := m.capability
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCapability returns the old "capability" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldCapability(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCapability is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCapability requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCapability: %w", err)
+	}
+	return oldValue.Capability, nil
+}
+
+// ResetCapability resets all changes to the "capability" field.
+func (m *ActionExecutionMutation) ResetCapability() {
+	m.capability = nil
+}
+
+// SetOperation sets the "operation" field.
+func (m *ActionExecutionMutation) SetOperation(s string) {
+	m.operation = &s
+}
+
+// Operation returns the value of the "operation" field in the mutation.
+func (m *ActionExecutionMutation) Operation() (r string, exists bool) {
+	v := m.operation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOperation returns the old "operation" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldOperation(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOperation is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOperation requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOperation: %w", err)
+	}
+	return oldValue.Operation, nil
+}
+
+// ResetOperation resets all changes to the "operation" field.
+func (m *ActionExecutionMutation) ResetOperation() {
+	m.operation = nil
+}
+
+// SetPrincipalUserID sets the "principal_user_id" field.
+func (m *ActionExecutionMutation) SetPrincipalUserID(s string) {
+	m.principal_user_id = &s
+}
+
+// PrincipalUserID returns the value of the "principal_user_id" field in the mutation.
+func (m *ActionExecutionMutation) PrincipalUserID() (r string, exists bool) {
+	v := m.principal_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrincipalUserID returns the old "principal_user_id" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldPrincipalUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrincipalUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrincipalUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrincipalUserID: %w", err)
+	}
+	return oldValue.PrincipalUserID, nil
+}
+
+// ClearPrincipalUserID clears the value of the "principal_user_id" field.
+func (m *ActionExecutionMutation) ClearPrincipalUserID() {
+	m.principal_user_id = nil
+	m.clearedFields[actionexecution.FieldPrincipalUserID] = struct{}{}
+}
+
+// PrincipalUserIDCleared returns if the "principal_user_id" field was cleared in this mutation.
+func (m *ActionExecutionMutation) PrincipalUserIDCleared() bool {
+	_, ok := m.clearedFields[actionexecution.FieldPrincipalUserID]
+	return ok
+}
+
+// ResetPrincipalUserID resets all changes to the "principal_user_id" field.
+func (m *ActionExecutionMutation) ResetPrincipalUserID() {
+	m.principal_user_id = nil
+	delete(m.clearedFields, actionexecution.FieldPrincipalUserID)
+}
+
+// SetPrincipalMemberID sets the "principal_member_id" field.
+func (m *ActionExecutionMutation) SetPrincipalMemberID(s string) {
+	m.principal_member_id = &s
+}
+
+// PrincipalMemberID returns the value of the "principal_member_id" field in the mutation.
+func (m *ActionExecutionMutation) PrincipalMemberID() (r string, exists bool) {
+	v := m.principal_member_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrincipalMemberID returns the old "principal_member_id" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldPrincipalMemberID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrincipalMemberID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrincipalMemberID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrincipalMemberID: %w", err)
+	}
+	return oldValue.PrincipalMemberID, nil
+}
+
+// ClearPrincipalMemberID clears the value of the "principal_member_id" field.
+func (m *ActionExecutionMutation) ClearPrincipalMemberID() {
+	m.principal_member_id = nil
+	m.clearedFields[actionexecution.FieldPrincipalMemberID] = struct{}{}
+}
+
+// PrincipalMemberIDCleared returns if the "principal_member_id" field was cleared in this mutation.
+func (m *ActionExecutionMutation) PrincipalMemberIDCleared() bool {
+	_, ok := m.clearedFields[actionexecution.FieldPrincipalMemberID]
+	return ok
+}
+
+// ResetPrincipalMemberID resets all changes to the "principal_member_id" field.
+func (m *ActionExecutionMutation) ResetPrincipalMemberID() {
+	m.principal_member_id = nil
+	delete(m.clearedFields, actionexecution.FieldPrincipalMemberID)
+}
+
+// SetPrincipalUserMemberID sets the "principal_user_member_id" field.
+func (m *ActionExecutionMutation) SetPrincipalUserMemberID(s string) {
+	m.principal_user_member_id = &s
+}
+
+// PrincipalUserMemberID returns the value of the "principal_user_member_id" field in the mutation.
+func (m *ActionExecutionMutation) PrincipalUserMemberID() (r string, exists bool) {
+	v := m.principal_user_member_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrincipalUserMemberID returns the old "principal_user_member_id" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldPrincipalUserMemberID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrincipalUserMemberID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrincipalUserMemberID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrincipalUserMemberID: %w", err)
+	}
+	return oldValue.PrincipalUserMemberID, nil
+}
+
+// ClearPrincipalUserMemberID clears the value of the "principal_user_member_id" field.
+func (m *ActionExecutionMutation) ClearPrincipalUserMemberID() {
+	m.principal_user_member_id = nil
+	m.clearedFields[actionexecution.FieldPrincipalUserMemberID] = struct{}{}
+}
+
+// PrincipalUserMemberIDCleared returns if the "principal_user_member_id" field was cleared in this mutation.
+func (m *ActionExecutionMutation) PrincipalUserMemberIDCleared() bool {
+	_, ok := m.clearedFields[actionexecution.FieldPrincipalUserMemberID]
+	return ok
+}
+
+// ResetPrincipalUserMemberID resets all changes to the "principal_user_member_id" field.
+func (m *ActionExecutionMutation) ResetPrincipalUserMemberID() {
+	m.principal_user_member_id = nil
+	delete(m.clearedFields, actionexecution.FieldPrincipalUserMemberID)
+}
+
+// SetCallerPluginID sets the "caller_plugin_id" field.
+func (m *ActionExecutionMutation) SetCallerPluginID(s string) {
+	m.caller_plugin_id = &s
+}
+
+// CallerPluginID returns the value of the "caller_plugin_id" field in the mutation.
+func (m *ActionExecutionMutation) CallerPluginID() (r string, exists bool) {
+	v := m.caller_plugin_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCallerPluginID returns the old "caller_plugin_id" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldCallerPluginID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCallerPluginID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCallerPluginID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCallerPluginID: %w", err)
+	}
+	return oldValue.CallerPluginID, nil
+}
+
+// ResetCallerPluginID resets all changes to the "caller_plugin_id" field.
+func (m *ActionExecutionMutation) ResetCallerPluginID() {
+	m.caller_plugin_id = nil
+}
+
+// SetTargetProviderID sets the "target_provider_id" field.
+func (m *ActionExecutionMutation) SetTargetProviderID(s string) {
+	m.target_provider_id = &s
+}
+
+// TargetProviderID returns the value of the "target_provider_id" field in the mutation.
+func (m *ActionExecutionMutation) TargetProviderID() (r string, exists bool) {
+	v := m.target_provider_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTargetProviderID returns the old "target_provider_id" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldTargetProviderID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTargetProviderID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTargetProviderID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTargetProviderID: %w", err)
+	}
+	return oldValue.TargetProviderID, nil
+}
+
+// ResetTargetProviderID resets all changes to the "target_provider_id" field.
+func (m *ActionExecutionMutation) ResetTargetProviderID() {
+	m.target_provider_id = nil
+}
+
+// SetParentGrantID sets the "parent_grant_id" field.
+func (m *ActionExecutionMutation) SetParentGrantID(s string) {
+	m.parent_grant_id = &s
+}
+
+// ParentGrantID returns the value of the "parent_grant_id" field in the mutation.
+func (m *ActionExecutionMutation) ParentGrantID() (r string, exists bool) {
+	v := m.parent_grant_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldParentGrantID returns the old "parent_grant_id" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldParentGrantID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldParentGrantID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldParentGrantID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldParentGrantID: %w", err)
+	}
+	return oldValue.ParentGrantID, nil
+}
+
+// ClearParentGrantID clears the value of the "parent_grant_id" field.
+func (m *ActionExecutionMutation) ClearParentGrantID() {
+	m.parent_grant_id = nil
+	m.clearedFields[actionexecution.FieldParentGrantID] = struct{}{}
+}
+
+// ParentGrantIDCleared returns if the "parent_grant_id" field was cleared in this mutation.
+func (m *ActionExecutionMutation) ParentGrantIDCleared() bool {
+	_, ok := m.clearedFields[actionexecution.FieldParentGrantID]
+	return ok
+}
+
+// ResetParentGrantID resets all changes to the "parent_grant_id" field.
+func (m *ActionExecutionMutation) ResetParentGrantID() {
+	m.parent_grant_id = nil
+	delete(m.clearedFields, actionexecution.FieldParentGrantID)
+}
+
+// SetDecisionID sets the "decision_id" field.
+func (m *ActionExecutionMutation) SetDecisionID(s string) {
+	m.decision_id = &s
+}
+
+// DecisionID returns the value of the "decision_id" field in the mutation.
+func (m *ActionExecutionMutation) DecisionID() (r string, exists bool) {
+	v := m.decision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDecisionID returns the old "decision_id" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldDecisionID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDecisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDecisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDecisionID: %w", err)
+	}
+	return oldValue.DecisionID, nil
+}
+
+// ClearDecisionID clears the value of the "decision_id" field.
+func (m *ActionExecutionMutation) ClearDecisionID() {
+	m.decision_id = nil
+	m.clearedFields[actionexecution.FieldDecisionID] = struct{}{}
+}
+
+// DecisionIDCleared returns if the "decision_id" field was cleared in this mutation.
+func (m *ActionExecutionMutation) DecisionIDCleared() bool {
+	_, ok := m.clearedFields[actionexecution.FieldDecisionID]
+	return ok
+}
+
+// ResetDecisionID resets all changes to the "decision_id" field.
+func (m *ActionExecutionMutation) ResetDecisionID() {
+	m.decision_id = nil
+	delete(m.clearedFields, actionexecution.FieldDecisionID)
+}
+
+// SetCorrelationID sets the "correlation_id" field.
+func (m *ActionExecutionMutation) SetCorrelationID(s string) {
+	m.correlation_id = &s
+}
+
+// CorrelationID returns the value of the "correlation_id" field in the mutation.
+func (m *ActionExecutionMutation) CorrelationID() (r string, exists bool) {
+	v := m.correlation_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCorrelationID returns the old "correlation_id" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldCorrelationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCorrelationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCorrelationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCorrelationID: %w", err)
+	}
+	return oldValue.CorrelationID, nil
+}
+
+// ResetCorrelationID resets all changes to the "correlation_id" field.
+func (m *ActionExecutionMutation) ResetCorrelationID() {
+	m.correlation_id = nil
+}
+
+// SetIdempotencyKey sets the "idempotency_key" field.
+func (m *ActionExecutionMutation) SetIdempotencyKey(s string) {
+	m.idempotency_key = &s
+}
+
+// IdempotencyKey returns the value of the "idempotency_key" field in the mutation.
+func (m *ActionExecutionMutation) IdempotencyKey() (r string, exists bool) {
+	v := m.idempotency_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdempotencyKey returns the old "idempotency_key" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldIdempotencyKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdempotencyKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdempotencyKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdempotencyKey: %w", err)
+	}
+	return oldValue.IdempotencyKey, nil
+}
+
+// ResetIdempotencyKey resets all changes to the "idempotency_key" field.
+func (m *ActionExecutionMutation) ResetIdempotencyKey() {
+	m.idempotency_key = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *ActionExecutionMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *ActionExecutionMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *ActionExecutionMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetHandlerEndpoint sets the "handler_endpoint" field.
+func (m *ActionExecutionMutation) SetHandlerEndpoint(s string) {
+	m.handler_endpoint = &s
+}
+
+// HandlerEndpoint returns the value of the "handler_endpoint" field in the mutation.
+func (m *ActionExecutionMutation) HandlerEndpoint() (r string, exists bool) {
+	v := m.handler_endpoint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHandlerEndpoint returns the old "handler_endpoint" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldHandlerEndpoint(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHandlerEndpoint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHandlerEndpoint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHandlerEndpoint: %w", err)
+	}
+	return oldValue.HandlerEndpoint, nil
+}
+
+// ClearHandlerEndpoint clears the value of the "handler_endpoint" field.
+func (m *ActionExecutionMutation) ClearHandlerEndpoint() {
+	m.handler_endpoint = nil
+	m.clearedFields[actionexecution.FieldHandlerEndpoint] = struct{}{}
+}
+
+// HandlerEndpointCleared returns if the "handler_endpoint" field was cleared in this mutation.
+func (m *ActionExecutionMutation) HandlerEndpointCleared() bool {
+	_, ok := m.clearedFields[actionexecution.FieldHandlerEndpoint]
+	return ok
+}
+
+// ResetHandlerEndpoint resets all changes to the "handler_endpoint" field.
+func (m *ActionExecutionMutation) ResetHandlerEndpoint() {
+	m.handler_endpoint = nil
+	delete(m.clearedFields, actionexecution.FieldHandlerEndpoint)
+}
+
+// SetIdempotencyExpiresAt sets the "idempotency_expires_at" field.
+func (m *ActionExecutionMutation) SetIdempotencyExpiresAt(t time.Time) {
+	m.idempotency_expires_at = &t
+}
+
+// IdempotencyExpiresAt returns the value of the "idempotency_expires_at" field in the mutation.
+func (m *ActionExecutionMutation) IdempotencyExpiresAt() (r time.Time, exists bool) {
+	v := m.idempotency_expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdempotencyExpiresAt returns the old "idempotency_expires_at" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldIdempotencyExpiresAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdempotencyExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdempotencyExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdempotencyExpiresAt: %w", err)
+	}
+	return oldValue.IdempotencyExpiresAt, nil
+}
+
+// ResetIdempotencyExpiresAt resets all changes to the "idempotency_expires_at" field.
+func (m *ActionExecutionMutation) ResetIdempotencyExpiresAt() {
+	m.idempotency_expires_at = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *ActionExecutionMutation) SetMetadata(value map[string]interface{}) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *ActionExecutionMutation) Metadata() (r map[string]interface{}, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldMetadata(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *ActionExecutionMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[actionexecution.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *ActionExecutionMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[actionexecution.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *ActionExecutionMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, actionexecution.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ActionExecutionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ActionExecutionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ActionExecutionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ActionExecutionMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ActionExecutionMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ActionExecutionMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the ActionExecutionMutation builder.
+func (m *ActionExecutionMutation) Where(ps ...predicate.ActionExecution) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ActionExecutionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ActionExecutionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ActionExecution, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ActionExecutionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ActionExecutionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ActionExecution).
+func (m *ActionExecutionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ActionExecutionMutation) Fields() []string {
+	fields := make([]string, 0, 18)
+	if m.space_id != nil {
+		fields = append(fields, actionexecution.FieldSpaceID)
+	}
+	if m.capability != nil {
+		fields = append(fields, actionexecution.FieldCapability)
+	}
+	if m.operation != nil {
+		fields = append(fields, actionexecution.FieldOperation)
+	}
+	if m.principal_user_id != nil {
+		fields = append(fields, actionexecution.FieldPrincipalUserID)
+	}
+	if m.principal_member_id != nil {
+		fields = append(fields, actionexecution.FieldPrincipalMemberID)
+	}
+	if m.principal_user_member_id != nil {
+		fields = append(fields, actionexecution.FieldPrincipalUserMemberID)
+	}
+	if m.caller_plugin_id != nil {
+		fields = append(fields, actionexecution.FieldCallerPluginID)
+	}
+	if m.target_provider_id != nil {
+		fields = append(fields, actionexecution.FieldTargetProviderID)
+	}
+	if m.parent_grant_id != nil {
+		fields = append(fields, actionexecution.FieldParentGrantID)
+	}
+	if m.decision_id != nil {
+		fields = append(fields, actionexecution.FieldDecisionID)
+	}
+	if m.correlation_id != nil {
+		fields = append(fields, actionexecution.FieldCorrelationID)
+	}
+	if m.idempotency_key != nil {
+		fields = append(fields, actionexecution.FieldIdempotencyKey)
+	}
+	if m.status != nil {
+		fields = append(fields, actionexecution.FieldStatus)
+	}
+	if m.handler_endpoint != nil {
+		fields = append(fields, actionexecution.FieldHandlerEndpoint)
+	}
+	if m.idempotency_expires_at != nil {
+		fields = append(fields, actionexecution.FieldIdempotencyExpiresAt)
+	}
+	if m.metadata != nil {
+		fields = append(fields, actionexecution.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, actionexecution.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, actionexecution.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ActionExecutionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case actionexecution.FieldSpaceID:
+		return m.SpaceID()
+	case actionexecution.FieldCapability:
+		return m.Capability()
+	case actionexecution.FieldOperation:
+		return m.Operation()
+	case actionexecution.FieldPrincipalUserID:
+		return m.PrincipalUserID()
+	case actionexecution.FieldPrincipalMemberID:
+		return m.PrincipalMemberID()
+	case actionexecution.FieldPrincipalUserMemberID:
+		return m.PrincipalUserMemberID()
+	case actionexecution.FieldCallerPluginID:
+		return m.CallerPluginID()
+	case actionexecution.FieldTargetProviderID:
+		return m.TargetProviderID()
+	case actionexecution.FieldParentGrantID:
+		return m.ParentGrantID()
+	case actionexecution.FieldDecisionID:
+		return m.DecisionID()
+	case actionexecution.FieldCorrelationID:
+		return m.CorrelationID()
+	case actionexecution.FieldIdempotencyKey:
+		return m.IdempotencyKey()
+	case actionexecution.FieldStatus:
+		return m.Status()
+	case actionexecution.FieldHandlerEndpoint:
+		return m.HandlerEndpoint()
+	case actionexecution.FieldIdempotencyExpiresAt:
+		return m.IdempotencyExpiresAt()
+	case actionexecution.FieldMetadata:
+		return m.Metadata()
+	case actionexecution.FieldCreatedAt:
+		return m.CreatedAt()
+	case actionexecution.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ActionExecutionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case actionexecution.FieldSpaceID:
+		return m.OldSpaceID(ctx)
+	case actionexecution.FieldCapability:
+		return m.OldCapability(ctx)
+	case actionexecution.FieldOperation:
+		return m.OldOperation(ctx)
+	case actionexecution.FieldPrincipalUserID:
+		return m.OldPrincipalUserID(ctx)
+	case actionexecution.FieldPrincipalMemberID:
+		return m.OldPrincipalMemberID(ctx)
+	case actionexecution.FieldPrincipalUserMemberID:
+		return m.OldPrincipalUserMemberID(ctx)
+	case actionexecution.FieldCallerPluginID:
+		return m.OldCallerPluginID(ctx)
+	case actionexecution.FieldTargetProviderID:
+		return m.OldTargetProviderID(ctx)
+	case actionexecution.FieldParentGrantID:
+		return m.OldParentGrantID(ctx)
+	case actionexecution.FieldDecisionID:
+		return m.OldDecisionID(ctx)
+	case actionexecution.FieldCorrelationID:
+		return m.OldCorrelationID(ctx)
+	case actionexecution.FieldIdempotencyKey:
+		return m.OldIdempotencyKey(ctx)
+	case actionexecution.FieldStatus:
+		return m.OldStatus(ctx)
+	case actionexecution.FieldHandlerEndpoint:
+		return m.OldHandlerEndpoint(ctx)
+	case actionexecution.FieldIdempotencyExpiresAt:
+		return m.OldIdempotencyExpiresAt(ctx)
+	case actionexecution.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case actionexecution.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case actionexecution.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ActionExecution field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ActionExecutionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case actionexecution.FieldSpaceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSpaceID(v)
+		return nil
+	case actionexecution.FieldCapability:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCapability(v)
+		return nil
+	case actionexecution.FieldOperation:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOperation(v)
+		return nil
+	case actionexecution.FieldPrincipalUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrincipalUserID(v)
+		return nil
+	case actionexecution.FieldPrincipalMemberID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrincipalMemberID(v)
+		return nil
+	case actionexecution.FieldPrincipalUserMemberID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrincipalUserMemberID(v)
+		return nil
+	case actionexecution.FieldCallerPluginID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCallerPluginID(v)
+		return nil
+	case actionexecution.FieldTargetProviderID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTargetProviderID(v)
+		return nil
+	case actionexecution.FieldParentGrantID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetParentGrantID(v)
+		return nil
+	case actionexecution.FieldDecisionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDecisionID(v)
+		return nil
+	case actionexecution.FieldCorrelationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCorrelationID(v)
+		return nil
+	case actionexecution.FieldIdempotencyKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdempotencyKey(v)
+		return nil
+	case actionexecution.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case actionexecution.FieldHandlerEndpoint:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHandlerEndpoint(v)
+		return nil
+	case actionexecution.FieldIdempotencyExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdempotencyExpiresAt(v)
+		return nil
+	case actionexecution.FieldMetadata:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case actionexecution.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case actionexecution.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ActionExecution field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ActionExecutionMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ActionExecutionMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ActionExecutionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ActionExecution numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ActionExecutionMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(actionexecution.FieldPrincipalUserID) {
+		fields = append(fields, actionexecution.FieldPrincipalUserID)
+	}
+	if m.FieldCleared(actionexecution.FieldPrincipalMemberID) {
+		fields = append(fields, actionexecution.FieldPrincipalMemberID)
+	}
+	if m.FieldCleared(actionexecution.FieldPrincipalUserMemberID) {
+		fields = append(fields, actionexecution.FieldPrincipalUserMemberID)
+	}
+	if m.FieldCleared(actionexecution.FieldParentGrantID) {
+		fields = append(fields, actionexecution.FieldParentGrantID)
+	}
+	if m.FieldCleared(actionexecution.FieldDecisionID) {
+		fields = append(fields, actionexecution.FieldDecisionID)
+	}
+	if m.FieldCleared(actionexecution.FieldHandlerEndpoint) {
+		fields = append(fields, actionexecution.FieldHandlerEndpoint)
+	}
+	if m.FieldCleared(actionexecution.FieldMetadata) {
+		fields = append(fields, actionexecution.FieldMetadata)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ActionExecutionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ActionExecutionMutation) ClearField(name string) error {
+	switch name {
+	case actionexecution.FieldPrincipalUserID:
+		m.ClearPrincipalUserID()
+		return nil
+	case actionexecution.FieldPrincipalMemberID:
+		m.ClearPrincipalMemberID()
+		return nil
+	case actionexecution.FieldPrincipalUserMemberID:
+		m.ClearPrincipalUserMemberID()
+		return nil
+	case actionexecution.FieldParentGrantID:
+		m.ClearParentGrantID()
+		return nil
+	case actionexecution.FieldDecisionID:
+		m.ClearDecisionID()
+		return nil
+	case actionexecution.FieldHandlerEndpoint:
+		m.ClearHandlerEndpoint()
+		return nil
+	case actionexecution.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	}
+	return fmt.Errorf("unknown ActionExecution nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ActionExecutionMutation) ResetField(name string) error {
+	switch name {
+	case actionexecution.FieldSpaceID:
+		m.ResetSpaceID()
+		return nil
+	case actionexecution.FieldCapability:
+		m.ResetCapability()
+		return nil
+	case actionexecution.FieldOperation:
+		m.ResetOperation()
+		return nil
+	case actionexecution.FieldPrincipalUserID:
+		m.ResetPrincipalUserID()
+		return nil
+	case actionexecution.FieldPrincipalMemberID:
+		m.ResetPrincipalMemberID()
+		return nil
+	case actionexecution.FieldPrincipalUserMemberID:
+		m.ResetPrincipalUserMemberID()
+		return nil
+	case actionexecution.FieldCallerPluginID:
+		m.ResetCallerPluginID()
+		return nil
+	case actionexecution.FieldTargetProviderID:
+		m.ResetTargetProviderID()
+		return nil
+	case actionexecution.FieldParentGrantID:
+		m.ResetParentGrantID()
+		return nil
+	case actionexecution.FieldDecisionID:
+		m.ResetDecisionID()
+		return nil
+	case actionexecution.FieldCorrelationID:
+		m.ResetCorrelationID()
+		return nil
+	case actionexecution.FieldIdempotencyKey:
+		m.ResetIdempotencyKey()
+		return nil
+	case actionexecution.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case actionexecution.FieldHandlerEndpoint:
+		m.ResetHandlerEndpoint()
+		return nil
+	case actionexecution.FieldIdempotencyExpiresAt:
+		m.ResetIdempotencyExpiresAt()
+		return nil
+	case actionexecution.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case actionexecution.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case actionexecution.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ActionExecution field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ActionExecutionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ActionExecutionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ActionExecutionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ActionExecutionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ActionExecutionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ActionExecutionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ActionExecutionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ActionExecution unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ActionExecutionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ActionExecution edge %s", name)
+}
 
 // AdminGrantMutation represents an operation that mutates the AdminGrant nodes in the graph.
 type AdminGrantMutation struct {

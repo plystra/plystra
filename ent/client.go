@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"github.com/plystra/core/ent/actionexecution"
 	"github.com/plystra/core/ent/admingrant"
 	"github.com/plystra/core/ent/apikey"
 	"github.com/plystra/core/ent/appdatamodel"
@@ -49,6 +50,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// ActionExecution is the client for interacting with the ActionExecution builders.
+	ActionExecution *ActionExecutionClient
 	// AdminGrant is the client for interacting with the AdminGrant builders.
 	AdminGrant *AdminGrantClient
 	// ApiKey is the client for interacting with the ApiKey builders.
@@ -116,6 +119,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.ActionExecution = NewActionExecutionClient(c.config)
 	c.AdminGrant = NewAdminGrantClient(c.config)
 	c.ApiKey = NewApiKeyClient(c.config)
 	c.AppDataModel = NewAppDataModelClient(c.config)
@@ -236,6 +240,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:                      ctx,
 		config:                   cfg,
+		ActionExecution:          NewActionExecutionClient(cfg),
 		AdminGrant:               NewAdminGrantClient(cfg),
 		ApiKey:                   NewApiKeyClient(cfg),
 		AppDataModel:             NewAppDataModelClient(cfg),
@@ -283,6 +288,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:                      ctx,
 		config:                   cfg,
+		ActionExecution:          NewActionExecutionClient(cfg),
 		AdminGrant:               NewAdminGrantClient(cfg),
 		ApiKey:                   NewApiKeyClient(cfg),
 		AppDataModel:             NewAppDataModelClient(cfg),
@@ -317,7 +323,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		AdminGrant.
+//		ActionExecution.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -340,7 +346,7 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.AdminGrant, c.ApiKey, c.AppDataModel, c.AppDataRecord,
+		c.ActionExecution, c.AdminGrant, c.ApiKey, c.AppDataModel, c.AppDataRecord,
 		c.AppDataRecordRevision, c.AuditEventType, c.AuditLog, c.BackgroundJob,
 		c.CapabilityGrant, c.Group, c.Member, c.MemberRole, c.Permission, c.Plugin,
 		c.PluginAdminMenu, c.PluginSettingsDefinition, c.PluginSettingsValue,
@@ -356,7 +362,7 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.AdminGrant, c.ApiKey, c.AppDataModel, c.AppDataRecord,
+		c.ActionExecution, c.AdminGrant, c.ApiKey, c.AppDataModel, c.AppDataRecord,
 		c.AppDataRecordRevision, c.AuditEventType, c.AuditLog, c.BackgroundJob,
 		c.CapabilityGrant, c.Group, c.Member, c.MemberRole, c.Permission, c.Plugin,
 		c.PluginAdminMenu, c.PluginSettingsDefinition, c.PluginSettingsValue,
@@ -371,6 +377,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *ActionExecutionMutation:
+		return c.ActionExecution.mutate(ctx, m)
 	case *AdminGrantMutation:
 		return c.AdminGrant.mutate(ctx, m)
 	case *ApiKeyMutation:
@@ -429,6 +437,139 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.UserMember.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// ActionExecutionClient is a client for the ActionExecution schema.
+type ActionExecutionClient struct {
+	config
+}
+
+// NewActionExecutionClient returns a client for the ActionExecution from the given config.
+func NewActionExecutionClient(c config) *ActionExecutionClient {
+	return &ActionExecutionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `actionexecution.Hooks(f(g(h())))`.
+func (c *ActionExecutionClient) Use(hooks ...Hook) {
+	c.hooks.ActionExecution = append(c.hooks.ActionExecution, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `actionexecution.Intercept(f(g(h())))`.
+func (c *ActionExecutionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ActionExecution = append(c.inters.ActionExecution, interceptors...)
+}
+
+// Create returns a builder for creating a ActionExecution entity.
+func (c *ActionExecutionClient) Create() *ActionExecutionCreate {
+	mutation := newActionExecutionMutation(c.config, OpCreate)
+	return &ActionExecutionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ActionExecution entities.
+func (c *ActionExecutionClient) CreateBulk(builders ...*ActionExecutionCreate) *ActionExecutionCreateBulk {
+	return &ActionExecutionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ActionExecutionClient) MapCreateBulk(slice any, setFunc func(*ActionExecutionCreate, int)) *ActionExecutionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ActionExecutionCreateBulk{err: fmt.Errorf("calling to ActionExecutionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ActionExecutionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ActionExecutionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ActionExecution.
+func (c *ActionExecutionClient) Update() *ActionExecutionUpdate {
+	mutation := newActionExecutionMutation(c.config, OpUpdate)
+	return &ActionExecutionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ActionExecutionClient) UpdateOne(_m *ActionExecution) *ActionExecutionUpdateOne {
+	mutation := newActionExecutionMutation(c.config, OpUpdateOne, withActionExecution(_m))
+	return &ActionExecutionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ActionExecutionClient) UpdateOneID(id string) *ActionExecutionUpdateOne {
+	mutation := newActionExecutionMutation(c.config, OpUpdateOne, withActionExecutionID(id))
+	return &ActionExecutionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ActionExecution.
+func (c *ActionExecutionClient) Delete() *ActionExecutionDelete {
+	mutation := newActionExecutionMutation(c.config, OpDelete)
+	return &ActionExecutionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ActionExecutionClient) DeleteOne(_m *ActionExecution) *ActionExecutionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ActionExecutionClient) DeleteOneID(id string) *ActionExecutionDeleteOne {
+	builder := c.Delete().Where(actionexecution.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ActionExecutionDeleteOne{builder}
+}
+
+// Query returns a query builder for ActionExecution.
+func (c *ActionExecutionClient) Query() *ActionExecutionQuery {
+	return &ActionExecutionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeActionExecution},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ActionExecution entity by its id.
+func (c *ActionExecutionClient) Get(ctx context.Context, id string) (*ActionExecution, error) {
+	return c.Query().Where(actionexecution.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ActionExecutionClient) GetX(ctx context.Context, id string) *ActionExecution {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ActionExecutionClient) Hooks() []Hook {
+	return c.hooks.ActionExecution
+}
+
+// Interceptors returns the client interceptors.
+func (c *ActionExecutionClient) Interceptors() []Interceptor {
+	return c.inters.ActionExecution
+}
+
+func (c *ActionExecutionClient) mutate(ctx context.Context, m *ActionExecutionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ActionExecutionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ActionExecutionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ActionExecutionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ActionExecutionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ActionExecution mutation op: %q", m.Op())
 	}
 }
 
@@ -4160,19 +4301,19 @@ func (c *UserMemberClient) mutate(ctx context.Context, m *UserMemberMutation) (V
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AdminGrant, ApiKey, AppDataModel, AppDataRecord, AppDataRecordRevision,
-		AuditEventType, AuditLog, BackgroundJob, CapabilityGrant, Group, Member,
-		MemberRole, Permission, Plugin, PluginAdminMenu, PluginSettingsDefinition,
-		PluginSettingsValue, Resource, ResourceAction, ResourceMapping, ResourceType,
-		Role, RolePermission, Session, Space, TemplateInstallation, User,
-		UserMember []ent.Hook
+		ActionExecution, AdminGrant, ApiKey, AppDataModel, AppDataRecord,
+		AppDataRecordRevision, AuditEventType, AuditLog, BackgroundJob,
+		CapabilityGrant, Group, Member, MemberRole, Permission, Plugin,
+		PluginAdminMenu, PluginSettingsDefinition, PluginSettingsValue, Resource,
+		ResourceAction, ResourceMapping, ResourceType, Role, RolePermission, Session,
+		Space, TemplateInstallation, User, UserMember []ent.Hook
 	}
 	inters struct {
-		AdminGrant, ApiKey, AppDataModel, AppDataRecord, AppDataRecordRevision,
-		AuditEventType, AuditLog, BackgroundJob, CapabilityGrant, Group, Member,
-		MemberRole, Permission, Plugin, PluginAdminMenu, PluginSettingsDefinition,
-		PluginSettingsValue, Resource, ResourceAction, ResourceMapping, ResourceType,
-		Role, RolePermission, Session, Space, TemplateInstallation, User,
-		UserMember []ent.Interceptor
+		ActionExecution, AdminGrant, ApiKey, AppDataModel, AppDataRecord,
+		AppDataRecordRevision, AuditEventType, AuditLog, BackgroundJob,
+		CapabilityGrant, Group, Member, MemberRole, Permission, Plugin,
+		PluginAdminMenu, PluginSettingsDefinition, PluginSettingsValue, Resource,
+		ResourceAction, ResourceMapping, ResourceType, Role, RolePermission, Session,
+		Space, TemplateInstallation, User, UserMember []ent.Interceptor
 	}
 )

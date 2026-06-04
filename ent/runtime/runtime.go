@@ -5,6 +5,7 @@ package runtime
 import (
 	"time"
 
+	"github.com/plystra/core/ent/actionexecution"
 	"github.com/plystra/core/ent/admingrant"
 	"github.com/plystra/core/ent/apikey"
 	"github.com/plystra/core/ent/appdatamodel"
@@ -40,6 +41,54 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	actionexecutionFields := schema.ActionExecution{}.Fields()
+	_ = actionexecutionFields
+	// actionexecutionDescSpaceID is the schema descriptor for space_id field.
+	actionexecutionDescSpaceID := actionexecutionFields[1].Descriptor()
+	// actionexecution.SpaceIDValidator is a validator for the "space_id" field. It is called by the builders before save.
+	actionexecution.SpaceIDValidator = actionexecutionDescSpaceID.Validators[0].(func(string) error)
+	// actionexecutionDescCapability is the schema descriptor for capability field.
+	actionexecutionDescCapability := actionexecutionFields[2].Descriptor()
+	// actionexecution.CapabilityValidator is a validator for the "capability" field. It is called by the builders before save.
+	actionexecution.CapabilityValidator = actionexecutionDescCapability.Validators[0].(func(string) error)
+	// actionexecutionDescOperation is the schema descriptor for operation field.
+	actionexecutionDescOperation := actionexecutionFields[3].Descriptor()
+	// actionexecution.OperationValidator is a validator for the "operation" field. It is called by the builders before save.
+	actionexecution.OperationValidator = actionexecutionDescOperation.Validators[0].(func(string) error)
+	// actionexecutionDescCallerPluginID is the schema descriptor for caller_plugin_id field.
+	actionexecutionDescCallerPluginID := actionexecutionFields[7].Descriptor()
+	// actionexecution.CallerPluginIDValidator is a validator for the "caller_plugin_id" field. It is called by the builders before save.
+	actionexecution.CallerPluginIDValidator = actionexecutionDescCallerPluginID.Validators[0].(func(string) error)
+	// actionexecutionDescTargetProviderID is the schema descriptor for target_provider_id field.
+	actionexecutionDescTargetProviderID := actionexecutionFields[8].Descriptor()
+	// actionexecution.TargetProviderIDValidator is a validator for the "target_provider_id" field. It is called by the builders before save.
+	actionexecution.TargetProviderIDValidator = actionexecutionDescTargetProviderID.Validators[0].(func(string) error)
+	// actionexecutionDescCorrelationID is the schema descriptor for correlation_id field.
+	actionexecutionDescCorrelationID := actionexecutionFields[11].Descriptor()
+	// actionexecution.CorrelationIDValidator is a validator for the "correlation_id" field. It is called by the builders before save.
+	actionexecution.CorrelationIDValidator = actionexecutionDescCorrelationID.Validators[0].(func(string) error)
+	// actionexecutionDescIdempotencyKey is the schema descriptor for idempotency_key field.
+	actionexecutionDescIdempotencyKey := actionexecutionFields[12].Descriptor()
+	// actionexecution.IdempotencyKeyValidator is a validator for the "idempotency_key" field. It is called by the builders before save.
+	actionexecution.IdempotencyKeyValidator = actionexecutionDescIdempotencyKey.Validators[0].(func(string) error)
+	// actionexecutionDescStatus is the schema descriptor for status field.
+	actionexecutionDescStatus := actionexecutionFields[13].Descriptor()
+	// actionexecution.DefaultStatus holds the default value on creation for the status field.
+	actionexecution.DefaultStatus = actionexecutionDescStatus.Default.(string)
+	// actionexecutionDescCreatedAt is the schema descriptor for created_at field.
+	actionexecutionDescCreatedAt := actionexecutionFields[17].Descriptor()
+	// actionexecution.DefaultCreatedAt holds the default value on creation for the created_at field.
+	actionexecution.DefaultCreatedAt = actionexecutionDescCreatedAt.Default.(func() time.Time)
+	// actionexecutionDescUpdatedAt is the schema descriptor for updated_at field.
+	actionexecutionDescUpdatedAt := actionexecutionFields[18].Descriptor()
+	// actionexecution.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	actionexecution.DefaultUpdatedAt = actionexecutionDescUpdatedAt.Default.(func() time.Time)
+	// actionexecution.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	actionexecution.UpdateDefaultUpdatedAt = actionexecutionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// actionexecutionDescID is the schema descriptor for id field.
+	actionexecutionDescID := actionexecutionFields[0].Descriptor()
+	// actionexecution.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	actionexecution.IDValidator = actionexecutionDescID.Validators[0].(func(string) error)
 	admingrantFields := schema.AdminGrant{}.Fields()
 	_ = admingrantFields
 	// admingrantDescUserID is the schema descriptor for user_id field.

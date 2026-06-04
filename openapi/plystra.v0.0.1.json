@@ -105,6 +105,56 @@
     }
   ],
   "paths": {
+    "/api/v1/action-gateway": {
+      "post": {
+        "tags": [
+          "Capability Grants"
+        ],
+        "summary": "Invoke a controlled action through the Action Gateway",
+        "description": "Brokered A3 path for controlled_action capabilities (payments, settlement, irreversible operations). Core owns the action entrypoint: it authorizes (principal AND caller AND scope AND call graph), records a separate authorization_decision and action_execution, signs and invokes the provider handler with an idempotency key, and classifies the outcome as succeeded, rejected, failed, or result_unknown (allow does not mean executed).",
+        "operationId": "invokeControlledAction",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiActionGatewayRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeMapStringInterface"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/actor/context": {
       "get": {
         "tags": [
@@ -8210,6 +8260,50 @@
   },
   "components": {
     "schemas": {
+      "ApiActionGatewayRequest": {
+        "type": "object",
+        "properties": {
+          "capability": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "executor": {
+            "$ref": "#/components/schemas/ApiCapabilityGrantExecutor"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "input": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "operation": {
+            "type": "string"
+          },
+          "parent_grant_id": {
+            "type": "string"
+          },
+          "principal": {
+            "$ref": "#/components/schemas/ApiCapabilityGrantPrincipal"
+          },
+          "resource": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "space_id": {
+            "type": "string"
+          }
+        }
+      },
       "ApiAdminGrantMutationRequest": {
         "type": "object",
         "properties": {

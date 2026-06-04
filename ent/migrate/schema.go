@@ -9,6 +9,56 @@ import (
 )
 
 var (
+	// ActionExecutionsColumns holds the columns for the "action_executions" table.
+	ActionExecutionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "space_id", Type: field.TypeString},
+		{Name: "capability", Type: field.TypeString},
+		{Name: "operation", Type: field.TypeString},
+		{Name: "principal_user_id", Type: field.TypeString, Nullable: true},
+		{Name: "principal_member_id", Type: field.TypeString, Nullable: true},
+		{Name: "principal_user_member_id", Type: field.TypeString, Nullable: true},
+		{Name: "caller_plugin_id", Type: field.TypeString},
+		{Name: "target_provider_id", Type: field.TypeString},
+		{Name: "parent_grant_id", Type: field.TypeString, Nullable: true},
+		{Name: "decision_id", Type: field.TypeString, Nullable: true},
+		{Name: "correlation_id", Type: field.TypeString},
+		{Name: "idempotency_key", Type: field.TypeString},
+		{Name: "status", Type: field.TypeString, Default: schema.Expr("'invoking'")},
+		{Name: "handler_endpoint", Type: field.TypeString, Nullable: true},
+		{Name: "idempotency_expires_at", Type: field.TypeTime},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, Default: schema.Expr("'{}'::jsonb")},
+		{Name: "created_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+		{Name: "updated_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+	}
+	// ActionExecutionsTable holds the schema information for the "action_executions" table.
+	ActionExecutionsTable = &schema.Table{
+		Name:       "action_executions",
+		Columns:    ActionExecutionsColumns,
+		PrimaryKey: []*schema.Column{ActionExecutionsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "actionexecution_space_id_capability_operation_idempotency_key",
+				Unique:  true,
+				Columns: []*schema.Column{ActionExecutionsColumns[1], ActionExecutionsColumns[2], ActionExecutionsColumns[3], ActionExecutionsColumns[12]},
+			},
+			{
+				Name:    "actionexecution_space_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{ActionExecutionsColumns[1], ActionExecutionsColumns[13]},
+			},
+			{
+				Name:    "actionexecution_correlation_id",
+				Unique:  false,
+				Columns: []*schema.Column{ActionExecutionsColumns[11]},
+			},
+			{
+				Name:    "actionexecution_status_idempotency_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{ActionExecutionsColumns[13], ActionExecutionsColumns[15]},
+			},
+		},
+	}
 	// AdminGrantsColumns holds the columns for the "admin_grants" table.
 	AdminGrantsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -953,6 +1003,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		ActionExecutionsTable,
 		AdminGrantsTable,
 		APIKeysTable,
 		AppDataModelsTable,

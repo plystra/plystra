@@ -51,6 +51,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/v1/capability-grants", s.handleCapabilityGrants)
 	mux.HandleFunc("/api/v1/grants/introspect", s.handleGrantIntrospect)
 	mux.HandleFunc("/api/v1/capability-outcomes", s.handleCapabilityOutcomes)
+	mux.HandleFunc("/api/v1/action-gateway", s.handleActionGateway)
 	mux.HandleFunc("/metrics", s.handleMetrics)
 	mux.HandleFunc("/api/v1/console/overview", s.handleOverview)
 	mux.HandleFunc("/api/v1/auth/register", s.handleAuthRegister)

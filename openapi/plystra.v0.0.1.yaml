@@ -1,5 +1,36 @@
 components:
     schemas:
+        ApiActionGatewayRequest:
+            properties:
+                capability:
+                    type: string
+                correlation_id:
+                    type: string
+                executor:
+                    $ref: '#/components/schemas/ApiCapabilityGrantExecutor'
+                idempotency_key:
+                    type: string
+                input:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                operation:
+                    type: string
+                parent_grant_id:
+                    type: string
+                principal:
+                    $ref: '#/components/schemas/ApiCapabilityGrantPrincipal'
+                resource:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                space_id:
+                    type: string
+            type: object
         ApiAdminGrantMutationRequest:
             properties:
                 expires_at:
@@ -3232,6 +3263,35 @@ info:
     version: 0.0.1
 openapi: 3.0.3
 paths:
+    /api/v1/action-gateway:
+        post:
+            description: 'Brokered A3 path for controlled_action capabilities (payments, settlement, irreversible operations). Core owns the action entrypoint: it authorizes (principal AND caller AND scope AND call graph), records a separate authorization_decision and action_execution, signs and invokes the provider handler with an idempotency key, and classifies the outcome as succeeded, rejected, failed, or result_unknown (allow does not mean executed).'
+            operationId: invokeControlledAction
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiActionGatewayRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeMapStringInterface'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Invoke a controlled action through the Action Gateway
+            tags:
+                - Capability Grants
     /api/v1/actor/context:
         get:
             operationId: getActorContext
