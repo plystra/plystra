@@ -115,6 +115,13 @@ func (s *Server) handleCapabilityGrants(w http.ResponseWriter, r *http.Request) 
 		writeError(w, r, http.StatusNotFound, "CAPABILITY_PROVIDER_NOT_FOUND", "No enabled provider is installed for this capability operation.", nil)
 		return
 	}
+	if errors.Is(err, errCapabilityRequiresActionGateway) {
+		writeError(w, r, http.StatusUnprocessableEntity, "CAPABILITY_REQUIRES_ACTION_GATEWAY", "This capability operation is a controlled action and must be invoked through the Action Gateway, not the mediated grant endpoint.", map[string]any{
+			"capability": req.Capability,
+			"operation":  req.Operation,
+		})
+		return
+	}
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to resolve capability provider.", err.Error())
 		return
@@ -429,6 +436,8 @@ func validateCapabilityGrantRequest(req capabilityGrantRequest) error {
 
 var errCapabilityProviderNotFound = errors.New("capability provider not found")
 
+var errCapabilityRequiresActionGateway = errors.New("capability operation requires the action gateway")
+
 func (s *Server) resolveCapabilityProvider(r *http.Request, capabilityID, operationName string) (capabilityProviderBinding, error) {
 	spaceID := strings.TrimSpace(r.URL.Query().Get("space_id"))
 	rows, err := s.ent.Plugin.Query().Where(entplugin.Status("enabled")).All(r.Context())
@@ -453,7 +462,7 @@ func (s *Server) resolveCapabilityProvider(r *http.Request, capabilityID, operat
 				continue
 			}
 			if operation.Invocation.Mode == "brokered_action_gateway" {
-				return capabilityProviderBinding{}, fmt.Errorf("capability %s operation %s requires Action Gateway, not mediated grant issuance", capabilityID, operationName)
+				return capabilityProviderBinding{}, errCapabilityRequiresActionGateway
 			}
 			if operation.Invocation.Mode != "revocable_mediated_grant" && operation.Invocation.Mode != "ephemeral_signed_grant" && operation.Invocation.Mode != "query" {
 				continue

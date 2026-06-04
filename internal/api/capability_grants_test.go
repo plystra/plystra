@@ -334,8 +334,12 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		body["capability"] = fixture.BrokeredCapabilityID
 		body["operation"] = "charge"
 		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-grants", fixture.SpaceID), fixture.APIKey, body)
-		if rec.Code < http.StatusBadRequest || rec.Code == http.StatusCreated {
-			t.Fatalf("brokered operation status = %d, want rejection, body=%s", rec.Code, rec.Body.String())
+		if rec.Code != http.StatusUnprocessableEntity {
+			t.Fatalf("brokered operation status = %d, want 422, body=%s", rec.Code, rec.Body.String())
+		}
+		errorPayload := requireObjectField(t, decodeCapabilityGrantEnvelope(t, rec), "error")
+		if errorPayload["code"] != "CAPABILITY_REQUIRES_ACTION_GATEWAY" {
+			t.Fatalf("brokered rejection code = %#v, want CAPABILITY_REQUIRES_ACTION_GATEWAY", errorPayload["code"])
 		}
 		assertNoGrantForIdempotencyKey(t, ctx, store.Client(), fixture.SpaceID, fixture.CallerPluginID, "payment.pay_123.charge.v1")
 	})
