@@ -301,6 +301,17 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("uses manifest governance when row metadata still has defaults", func(t *testing.T) {
+		body := capabilityGrantIssueBody(fixture, "local.row_defaults.v1")
+		body["capability"] = fixture.LocalCapabilityID
+		body["operation"] = "execute"
+		body["executor"] = map[string]any{"plugin_id": fixture.LocalCallerPluginID}
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-grants", fixture.SpaceID), fixture.APIKey, body)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("same-app local capability with row defaults status = %d, want 201, body=%s", rec.Code, rec.Body.String())
+		}
+	})
+
 	t.Run("denies foreign app module caller for local capability", func(t *testing.T) {
 		body := capabilityGrantIssueBody(fixture, "local.foreign_app.v1")
 		body["capability"] = fixture.LocalCapabilityID

@@ -111,11 +111,42 @@ func TestValidateManifestAcceptsAppModuleWithLocalCapability(t *testing.T) {
 			Audit:     CapabilityAuditDefinition{Enforcement: "reported_event"},
 			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"core_data_api"}},
 		}},
-		Requires: []CapabilityRequirement{{ID: "email.transactional", Version: ">=0.0.1 <0.1.0", MinLevel: "standard", Optional: true}},
+		AdminMenus: []AdminMenuDefinition{{Label: "Delivery", Path: "/apps/delivery"}},
+		Requires:   []CapabilityRequirement{{ID: "email.transactional", Version: ">=0.0.1 <0.1.0", MinLevel: "standard", Optional: true}},
 	}
 	if errors := ValidateManifestForCore(manifest, "0.0.1"); len(errors) > 0 {
 		t.Fatalf("ValidateManifestForCore returned errors: %#v", errors)
 	}
+}
+
+func TestValidateManifestRejectsAppModulePluginMenuPath(t *testing.T) {
+	manifest := Manifest{
+		ID:               "app.delivery.operations",
+		Type:             "app_module",
+		Scope:            "app",
+		AppID:            "delivery",
+		Name:             "Delivery Operations",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "delivery_task",
+			DisplayName: "Delivery Task",
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "delivery_task", Action: "read", Scopes: []string{"space"}}},
+		LocalCapabilities: []CapabilityDefinition{{
+			ID:        "delivery.operations",
+			Version:   "0.0.1",
+			Level:     "declared",
+			Audit:     CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"core_data_api"}},
+		}},
+		AdminMenus: []AdminMenuDefinition{{Label: "Delivery", Path: "/plugins/delivery"}},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, "path must start with /plugins/ for plugins or /apps/ for app_module")
 }
 
 func TestValidateManifestRejectsAppModulePublicCapability(t *testing.T) {

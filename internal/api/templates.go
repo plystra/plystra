@@ -430,11 +430,15 @@ func (s *Server) resolveTemplateCapabilities(ctx context.Context, tpl templates.
 			continue
 		}
 		for _, pluginRow := range pluginRows {
-			manifest, ok := pluginRow.Manifest["capabilities"].([]any)
+			manifest := pluginManifestFromMap(pluginRow.Manifest)
+			if pluginType, pluginScope, _ := normalizedPluginGovernance(pluginRow, manifest); pluginType == "app_module" || pluginScope == "app" {
+				continue
+			}
+			capabilities, ok := pluginRow.Manifest["capabilities"].([]any)
 			if !ok {
 				continue
 			}
-			for _, raw := range manifest {
+			for _, raw := range capabilities {
 				item, ok := raw.(map[string]any)
 				if !ok {
 					continue

@@ -530,15 +530,39 @@ func (s *Server) governedPluginManifestByKey(ctx context.Context, pluginKey stri
 	if err := json.Unmarshal(raw, &manifest); err != nil {
 		return governedPluginManifest{}, err
 	}
-	manifestType := firstNonEmpty(row.Type, manifest.Type, "plugin")
-	manifestScope := firstNonEmpty(row.Scope, manifest.Scope, "public")
-	appID := strings.TrimSpace(firstNonEmpty(derefString(row.AppID), manifest.AppID))
+	manifestType, manifestScope, appID := normalizedPluginGovernance(row, manifest)
 	return governedPluginManifest{
 		Manifest: manifest,
 		Type:     manifestType,
 		Scope:    manifestScope,
 		AppID:    appID,
 	}, nil
+}
+
+func normalizedPluginGovernance(row *coreent.Plugin, manifest plugins.Manifest) (string, string, string) {
+	manifestType := strings.TrimSpace(manifest.Type)
+	manifestScope := strings.TrimSpace(manifest.Scope)
+	manifestAppID := strings.TrimSpace(manifest.AppID)
+	rowType := ""
+	rowScope := ""
+	rowAppID := ""
+	if row != nil {
+		rowType = strings.TrimSpace(row.Type)
+		rowScope = strings.TrimSpace(row.Scope)
+		rowAppID = strings.TrimSpace(derefString(row.AppID))
+	}
+	pluginType := firstNonEmpty(rowType, manifestType, "plugin")
+	pluginScope := firstNonEmpty(rowScope, manifestScope, "public")
+	appID := firstNonEmpty(rowAppID, manifestAppID)
+	if manifestType == "app_module" || manifestScope == "app" || manifestAppID != "" {
+		pluginType = "app_module"
+		pluginScope = "app"
+		appID = manifestAppID
+		if appID == "" {
+			appID = rowAppID
+		}
+	}
+	return pluginType, pluginScope, appID
 }
 
 func (s *Server) providerEndpointSetting(r *http.Request, pluginID, settingKey string) string {
@@ -728,6 +752,21 @@ func manifestProvidedCapabilities(manifest plugins.Manifest) []plugins.Capabilit
 	capabilities = append(capabilities, manifest.Capabilities...)
 	capabilities = append(capabilities, manifest.LocalCapabilities...)
 	return capabilities
+}
+
+func pluginManifestFromMap(values map[string]any) plugins.Manifest {
+	if values == nil {
+		return plugins.Manifest{}
+	}
+	raw, err := json.Marshal(values)
+	if err != nil {
+		return plugins.Manifest{}
+	}
+	var manifest plugins.Manifest
+	if err := json.Unmarshal(raw, &manifest); err != nil {
+		return plugins.Manifest{}
+	}
+	return manifest
 }
 
 func capabilityLocalToManifest(manifest plugins.Manifest, capabilityID string) bool {

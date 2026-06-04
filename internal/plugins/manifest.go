@@ -339,8 +339,8 @@ func ValidateManifest(manifest Manifest) []string {
 		if strings.TrimSpace(menu.Label) == "" {
 			errors = append(errors, fmt.Sprintf("admin_menu[%d].label is required", i))
 		}
-		if !strings.HasPrefix(menu.Path, "/plugins/") {
-			errors = append(errors, fmt.Sprintf("admin_menu[%d].path must start with /plugins/", i))
+		if !validAdminMenuPath(manifestType, menu.Path) {
+			errors = append(errors, fmt.Sprintf("admin_menu[%d].path must start with /plugins/ for plugins or /apps/ for app_module", i))
 		}
 	}
 
@@ -953,6 +953,14 @@ func validManifestScope(scope string) bool {
 	default:
 		return false
 	}
+}
+
+func validAdminMenuPath(manifestType, path string) bool {
+	path = strings.TrimSpace(path)
+	if manifestType == "app_module" {
+		return strings.HasPrefix(path, "/apps/")
+	}
+	return strings.HasPrefix(path, "/plugins/")
 }
 
 func validRiskLevel(level string) bool {
