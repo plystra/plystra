@@ -37,6 +37,8 @@ const (
 	FieldCreatedByUserID = "created_by_user_id"
 	// FieldCreatedByMemberID holds the string denoting the created_by_member_id field in the database.
 	FieldCreatedByMemberID = "created_by_member_id"
+	// FieldProviderRuntimePluginID holds the string denoting the provider_runtime_plugin_id field in the database.
+	FieldProviderRuntimePluginID = "provider_runtime_plugin_id"
 	// FieldRevokedAt holds the string denoting the revoked_at field in the database.
 	FieldRevokedAt = "revoked_at"
 	// FieldRevokedByUserID holds the string denoting the revoked_by_user_id field in the database.
@@ -70,6 +72,7 @@ var Columns = []string{
 	FieldLastUsedAt,
 	FieldCreatedByUserID,
 	FieldCreatedByMemberID,
+	FieldProviderRuntimePluginID,
 	FieldRevokedAt,
 	FieldRevokedByUserID,
 	FieldRevokedReason,
@@ -171,6 +174,11 @@ func ByCreatedByUserID(opts ...sql.OrderTermOption) OrderOption {
 // ByCreatedByMemberID orders the results by the created_by_member_id field.
 func ByCreatedByMemberID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedByMemberID, opts...).ToFunc()
+}
+
+// ByProviderRuntimePluginID orders the results by the provider_runtime_plugin_id field.
+func ByProviderRuntimePluginID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldProviderRuntimePluginID, opts...).ToFunc()
 }
 
 // ByRevokedAt orders the results by the revoked_at field.

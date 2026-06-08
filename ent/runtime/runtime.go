@@ -157,11 +157,11 @@ func init() {
 	// apikey.DefaultStatus holds the default value on creation for the status field.
 	apikey.DefaultStatus = apikeyDescStatus.Default.(string)
 	// apikeyDescCreatedAt is the schema descriptor for created_at field.
-	apikeyDescCreatedAt := apikeyFields[17].Descriptor()
+	apikeyDescCreatedAt := apikeyFields[18].Descriptor()
 	// apikey.DefaultCreatedAt holds the default value on creation for the created_at field.
 	apikey.DefaultCreatedAt = apikeyDescCreatedAt.Default.(func() time.Time)
 	// apikeyDescUpdatedAt is the schema descriptor for updated_at field.
-	apikeyDescUpdatedAt := apikeyFields[18].Descriptor()
+	apikeyDescUpdatedAt := apikeyFields[19].Descriptor()
 	// apikey.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	apikey.DefaultUpdatedAt = apikeyDescUpdatedAt.Default.(func() time.Time)
 	// apikey.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

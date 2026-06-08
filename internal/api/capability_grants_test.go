@@ -189,6 +189,53 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("provider runtime calls fail closed when provider is disabled", func(t *testing.T) {
+		if issuedGrantToken == "" || issuedGrantID == "" || issuedTargetIdempotencyKey == "" {
+			t.Fatalf("grant was not issued")
+		}
+		if err := store.Client().Plugin.UpdateOneID(fixture.ProviderRowID).SetStatus("disabled").Exec(ctx); err != nil {
+			t.Fatalf("disable provider plugin: %v", err)
+		}
+		t.Cleanup(func() {
+			_ = store.Client().Plugin.UpdateOneID(fixture.ProviderRowID).SetStatus("enabled").Exec(context.Background())
+		})
+
+		introspect := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/introspect", fixture.SpaceID), fixture.ProviderAPIKey, map[string]any{
+			"grant":              issuedGrantToken,
+			"target_provider_id": fixture.ProviderPluginID,
+			"capability":         fixture.MediatedCapabilityID,
+			"operation":          "create_request",
+		})
+		if introspect.Code != http.StatusForbidden {
+			t.Fatalf("disabled provider introspect status = %d, want 403, body=%s", introspect.Code, introspect.Body.String())
+		}
+		payload := decodeCapabilityGrantEnvelope(t, introspect)
+		errorPayload := requireObjectField(t, payload, "error")
+		if errorPayload["code"] != "CAPABILITY_PROVIDER_INACTIVE" {
+			t.Fatalf("disabled provider introspect code = %#v, want CAPABILITY_PROVIDER_INACTIVE", errorPayload["code"])
+		}
+
+		outcome := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-outcomes", fixture.SpaceID), fixture.ProviderAPIKey, map[string]any{
+			"grant_id":               issuedGrantID,
+			"target_idempotency_key": issuedTargetIdempotencyKey,
+			"target_provider_id":     fixture.ProviderPluginID,
+			"status":                 "failed",
+			"outcome_event_id":       "evt_disabled_provider_" + fixture.Suffix,
+		})
+		if outcome.Code != http.StatusForbidden {
+			t.Fatalf("disabled provider outcome status = %d, want 403, body=%s", outcome.Code, outcome.Body.String())
+		}
+		payload = decodeCapabilityGrantEnvelope(t, outcome)
+		errorPayload = requireObjectField(t, payload, "error")
+		if errorPayload["code"] != "CAPABILITY_PROVIDER_INACTIVE" {
+			t.Fatalf("disabled provider outcome code = %#v, want CAPABILITY_PROVIDER_INACTIVE", errorPayload["code"])
+		}
+
+		if err := store.Client().Plugin.UpdateOneID(fixture.ProviderRowID).SetStatus("enabled").Exec(ctx); err != nil {
+			t.Fatalf("re-enable provider plugin: %v", err)
+		}
+	})
+
 	t.Run("records outcome receipt in grant ledger", func(t *testing.T) {
 		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-outcomes", fixture.SpaceID), fixture.APIKey, map[string]any{
 			"grant_id":               issuedGrantID,
@@ -834,6 +881,16 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 	})
 }
 
+func TestAPIKeyProviderRuntimeIDIgnoresMetadataAliases(t *testing.T) {
+	pluginID := "test.workflow_provider"
+	if got := apiKeyProviderRuntimeID(&coreent.ApiKey{Metadata: map[string]any{"provider_plugin_id": pluginID}}); got != "" {
+		t.Fatalf("metadata provider alias must not bind runtime identity, got %q", got)
+	}
+	if got := apiKeyProviderRuntimeID(&coreent.ApiKey{ProviderRuntimePluginID: &pluginID, Metadata: map[string]any{"provider_plugin_id": "other.provider"}}); got != pluginID {
+		t.Fatalf("provider_runtime_plugin_id should be the only trusted runtime identity, got %q", got)
+	}
+}
+
 func capabilityGrantTestDatabaseURL() string {
 	for _, key := range []string{"PLYSTRA_INTEGRATION_DATABASE_URL", "PLYSTRA_DATABASE_URL"} {
 		if value := strings.TrimSpace(os.Getenv(key)); value != "" {
@@ -1032,7 +1089,7 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 		SetKeyHash(apiKeyHash(providerAPIKey)).
 		SetLevel("instance").
 		SetPermissionKeys([]string{"capabilities:manage"}).
-		SetMetadata(map[string]any{"provider_plugin_id": fixture.ProviderPluginID}).
+		SetProviderRuntimePluginID(fixture.ProviderPluginID).
 		Save(ctx); err != nil {
 		t.Fatalf("create provider api key: %v", err)
 	}

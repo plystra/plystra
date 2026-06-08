@@ -200,26 +200,27 @@ type openAPIAdminGrant struct {
 }
 
 type openAPIAPIKey struct {
-	ID                string         `json:"id"`
-	Name              string         `json:"name"`
-	KeyPrefix         string         `json:"key_prefix"`
-	Key               string         `json:"key,omitempty" description:"Only returned once by POST /api/v1/api-keys."`
-	Level             string         `json:"level" example:"space"`
-	SpaceID           string         `json:"space_id,omitempty"`
-	GroupID           string         `json:"group_id,omitempty"`
-	PermissionKeys    []string       `json:"permission_keys"`
-	Status            string         `json:"status" example:"active"`
-	ExpiresAt         *time.Time     `json:"expires_at,omitempty"`
-	LastUsedAt        *time.Time     `json:"last_used_at,omitempty"`
-	CreatedByUserID   string         `json:"created_by_user_id,omitempty"`
-	CreatedByMemberID string         `json:"created_by_member_id,omitempty"`
-	RevokedAt         *time.Time     `json:"revoked_at,omitempty"`
-	RevokedByUserID   string         `json:"revoked_by_user_id,omitempty"`
-	RevokedReason     string         `json:"revoked_reason,omitempty"`
-	Metadata          map[string]any `json:"metadata"`
-	CreatedAt         string         `json:"created_at" format:"date-time"`
-	UpdatedAt         string         `json:"updated_at" format:"date-time"`
-	DeletedAt         *time.Time     `json:"deleted_at,omitempty"`
+	ID                      string         `json:"id"`
+	Name                    string         `json:"name"`
+	KeyPrefix               string         `json:"key_prefix"`
+	Key                     string         `json:"key,omitempty" description:"Only returned once by POST /api/v1/api-keys."`
+	Level                   string         `json:"level" example:"space"`
+	SpaceID                 string         `json:"space_id,omitempty"`
+	GroupID                 string         `json:"group_id,omitempty"`
+	PermissionKeys          []string       `json:"permission_keys"`
+	Status                  string         `json:"status" example:"active"`
+	ProviderRuntimePluginID string         `json:"provider_runtime_plugin_id,omitempty"`
+	ExpiresAt               *time.Time     `json:"expires_at,omitempty"`
+	LastUsedAt              *time.Time     `json:"last_used_at,omitempty"`
+	CreatedByUserID         string         `json:"created_by_user_id,omitempty"`
+	CreatedByMemberID       string         `json:"created_by_member_id,omitempty"`
+	RevokedAt               *time.Time     `json:"revoked_at,omitempty"`
+	RevokedByUserID         string         `json:"revoked_by_user_id,omitempty"`
+	RevokedReason           string         `json:"revoked_reason,omitempty"`
+	Metadata                map[string]any `json:"metadata"`
+	CreatedAt               string         `json:"created_at" format:"date-time"`
+	UpdatedAt               string         `json:"updated_at" format:"date-time"`
+	DeletedAt               *time.Time     `json:"deleted_at,omitempty"`
 }
 
 type openAPIAuthzCheckResponse struct {

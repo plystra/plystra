@@ -119,6 +119,11 @@ func CreatedByMemberID(v string) predicate.ApiKey {
 	return predicate.ApiKey(sql.FieldEQ(FieldCreatedByMemberID, v))
 }
 
+// ProviderRuntimePluginID applies equality check predicate on the "provider_runtime_plugin_id" field. It's identical to ProviderRuntimePluginIDEQ.
+func ProviderRuntimePluginID(v string) predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldEQ(FieldProviderRuntimePluginID, v))
+}
+
 // RevokedAt applies equality check predicate on the "revoked_at" field. It's identical to RevokedAtEQ.
 func RevokedAt(v time.Time) predicate.ApiKey {
 	return predicate.ApiKey(sql.FieldEQ(FieldRevokedAt, v))
@@ -872,6 +877,81 @@ func CreatedByMemberIDEqualFold(v string) predicate.ApiKey {
 // CreatedByMemberIDContainsFold applies the ContainsFold predicate on the "created_by_member_id" field.
 func CreatedByMemberIDContainsFold(v string) predicate.ApiKey {
 	return predicate.ApiKey(sql.FieldContainsFold(FieldCreatedByMemberID, v))
+}
+
+// ProviderRuntimePluginIDEQ applies the EQ predicate on the "provider_runtime_plugin_id" field.
+func ProviderRuntimePluginIDEQ(v string) predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldEQ(FieldProviderRuntimePluginID, v))
+}
+
+// ProviderRuntimePluginIDNEQ applies the NEQ predicate on the "provider_runtime_plugin_id" field.
+func ProviderRuntimePluginIDNEQ(v string) predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldNEQ(FieldProviderRuntimePluginID, v))
+}
+
+// ProviderRuntimePluginIDIn applies the In predicate on the "provider_runtime_plugin_id" field.
+func ProviderRuntimePluginIDIn(vs ...string) predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldIn(FieldProviderRuntimePluginID, vs...))
+}
+
+// ProviderRuntimePluginIDNotIn applies the NotIn predicate on the "provider_runtime_plugin_id" field.
+func ProviderRuntimePluginIDNotIn(vs ...string) predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldNotIn(FieldProviderRuntimePluginID, vs...))
+}
+
+// ProviderRuntimePluginIDGT applies the GT predicate on the "provider_runtime_plugin_id" field.
+func ProviderRuntimePluginIDGT(v string) predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldGT(FieldProviderRuntimePluginID, v))
+}
+
+// ProviderRuntimePluginIDGTE applies the GTE predicate on the "provider_runtime_plugin_id" field.
+func ProviderRuntimePluginIDGTE(v string) predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldGTE(FieldProviderRuntimePluginID, v))
+}
+
+// ProviderRuntimePluginIDLT applies the LT predicate on the "provider_runtime_plugin_id" field.
+func ProviderRuntimePluginIDLT(v string) predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldLT(FieldProviderRuntimePluginID, v))
+}
+
+// ProviderRuntimePluginIDLTE applies the LTE predicate on the "provider_runtime_plugin_id" field.
+func ProviderRuntimePluginIDLTE(v string) predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldLTE(FieldProviderRuntimePluginID, v))
+}
+
+// ProviderRuntimePluginIDContains applies the Contains predicate on the "provider_runtime_plugin_id" field.
+func ProviderRuntimePluginIDContains(v string) predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldContains(FieldProviderRuntimePluginID, v))
+}
+
+// ProviderRuntimePluginIDHasPrefix applies the HasPrefix predicate on the "provider_runtime_plugin_id" field.
+func ProviderRuntimePluginIDHasPrefix(v string) predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldHasPrefix(FieldProviderRuntimePluginID, v))
+}
+
+// ProviderRuntimePluginIDHasSuffix applies the HasSuffix predicate on the "provider_runtime_plugin_id" field.
+func ProviderRuntimePluginIDHasSuffix(v string) predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldHasSuffix(FieldProviderRuntimePluginID, v))
+}
+
+// ProviderRuntimePluginIDIsNil applies the IsNil predicate on the "provider_runtime_plugin_id" field.
+func ProviderRuntimePluginIDIsNil() predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldIsNull(FieldProviderRuntimePluginID))
+}
+
+// ProviderRuntimePluginIDNotNil applies the NotNil predicate on the "provider_runtime_plugin_id" field.
+func ProviderRuntimePluginIDNotNil() predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldNotNull(FieldProviderRuntimePluginID))
+}
+
+// ProviderRuntimePluginIDEqualFold applies the EqualFold predicate on the "provider_runtime_plugin_id" field.
+func ProviderRuntimePluginIDEqualFold(v string) predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldEqualFold(FieldProviderRuntimePluginID, v))
+}
+
+// ProviderRuntimePluginIDContainsFold applies the ContainsFold predicate on the "provider_runtime_plugin_id" field.
+func ProviderRuntimePluginIDContainsFold(v string) predicate.ApiKey {
+	return predicate.ApiKey(sql.FieldContainsFold(FieldProviderRuntimePluginID, v))
 }
 
 // RevokedAtEQ applies the EQ predicate on the "revoked_at" field.

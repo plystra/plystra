@@ -148,6 +148,20 @@ func (_c *ApiKeyCreate) SetNillableCreatedByMemberID(v *string) *ApiKeyCreate {
 	return _c
 }
 
+// SetProviderRuntimePluginID sets the "provider_runtime_plugin_id" field.
+func (_c *ApiKeyCreate) SetProviderRuntimePluginID(v string) *ApiKeyCreate {
+	_c.mutation.SetProviderRuntimePluginID(v)
+	return _c
+}
+
+// SetNillableProviderRuntimePluginID sets the "provider_runtime_plugin_id" field if the given value is not nil.
+func (_c *ApiKeyCreate) SetNillableProviderRuntimePluginID(v *string) *ApiKeyCreate {
+	if v != nil {
+		_c.SetProviderRuntimePluginID(*v)
+	}
+	return _c
+}
+
 // SetRevokedAt sets the "revoked_at" field.
 func (_c *ApiKeyCreate) SetRevokedAt(v time.Time) *ApiKeyCreate {
 	_c.mutation.SetRevokedAt(v)
@@ -414,6 +428,10 @@ func (_c *ApiKeyCreate) createSpec() (*ApiKey, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.CreatedByMemberID(); ok {
 		_spec.SetField(apikey.FieldCreatedByMemberID, field.TypeString, value)
 		_node.CreatedByMemberID = &value
+	}
+	if value, ok := _c.mutation.ProviderRuntimePluginID(); ok {
+		_spec.SetField(apikey.FieldProviderRuntimePluginID, field.TypeString, value)
+		_node.ProviderRuntimePluginID = &value
 	}
 	if value, ok := _c.mutation.RevokedAt(); ok {
 		_spec.SetField(apikey.FieldRevokedAt, field.TypeTime, value)

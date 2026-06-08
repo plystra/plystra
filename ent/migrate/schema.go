@@ -149,6 +149,7 @@ var (
 		{Name: "last_used_at", Type: field.TypeTime, Nullable: true},
 		{Name: "created_by_user_id", Type: field.TypeString, Nullable: true},
 		{Name: "created_by_member_id", Type: field.TypeString, Nullable: true},
+		{Name: "provider_runtime_plugin_id", Type: field.TypeString, Nullable: true},
 		{Name: "revoked_at", Type: field.TypeTime, Nullable: true},
 		{Name: "revoked_by_user_id", Type: field.TypeString, Nullable: true},
 		{Name: "revoked_reason", Type: field.TypeString, Nullable: true},
@@ -197,6 +198,11 @@ var (
 				Name:    "apikey_created_by_user_id",
 				Unique:  false,
 				Columns: []*schema.Column{APIKeysColumns[11]},
+			},
+			{
+				Name:    "apikey_provider_runtime_plugin_id",
+				Unique:  false,
+				Columns: []*schema.Column{APIKeysColumns[13]},
 			},
 		},
 	}

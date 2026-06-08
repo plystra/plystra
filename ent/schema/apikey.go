@@ -26,6 +26,7 @@ func (ApiKey) Fields() []ent.Field {
 		field.Time("last_used_at").Optional().Nillable(),
 		field.String("created_by_user_id").Optional().Nillable(),
 		field.String("created_by_member_id").Optional().Nillable(),
+		field.String("provider_runtime_plugin_id").Optional().Nillable(),
 		field.Time("revoked_at").Optional().Nillable(),
 		field.String("revoked_by_user_id").Optional().Nillable(),
 		field.String("revoked_reason").Optional().Nillable(),
@@ -45,5 +46,6 @@ func (ApiKey) Indexes() []ent.Index {
 		index.Fields("space_id"),
 		index.Fields("group_id"),
 		index.Fields("created_by_user_id"),
+		index.Fields("provider_runtime_plugin_id"),
 	}
 }

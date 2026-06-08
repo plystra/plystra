@@ -107,6 +107,8 @@ components:
                         type: string
                     nullable: true
                     type: array
+                provider_runtime_plugin_id:
+                    type: string
                 revoked_reason:
                     type: string
                 space_id:
@@ -536,6 +538,8 @@ components:
                         type: string
                     nullable: true
                     type: array
+                provider_runtime_plugin_id:
+                    type: string
                 revoked_at:
                     format: date-time
                     nullable: true

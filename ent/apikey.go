@@ -42,6 +42,8 @@ type ApiKey struct {
 	CreatedByUserID *string `json:"created_by_user_id,omitempty"`
 	// CreatedByMemberID holds the value of the "created_by_member_id" field.
 	CreatedByMemberID *string `json:"created_by_member_id,omitempty"`
+	// ProviderRuntimePluginID holds the value of the "provider_runtime_plugin_id" field.
+	ProviderRuntimePluginID *string `json:"provider_runtime_plugin_id,omitempty"`
 	// RevokedAt holds the value of the "revoked_at" field.
 	RevokedAt *time.Time `json:"revoked_at,omitempty"`
 	// RevokedByUserID holds the value of the "revoked_by_user_id" field.
@@ -66,7 +68,7 @@ func (*ApiKey) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case apikey.FieldPermissionKeys, apikey.FieldMetadata:
 			values[i] = new([]byte)
-		case apikey.FieldID, apikey.FieldName, apikey.FieldKeyPrefix, apikey.FieldKeyHash, apikey.FieldLevel, apikey.FieldSpaceID, apikey.FieldGroupID, apikey.FieldStatus, apikey.FieldCreatedByUserID, apikey.FieldCreatedByMemberID, apikey.FieldRevokedByUserID, apikey.FieldRevokedReason:
+		case apikey.FieldID, apikey.FieldName, apikey.FieldKeyPrefix, apikey.FieldKeyHash, apikey.FieldLevel, apikey.FieldSpaceID, apikey.FieldGroupID, apikey.FieldStatus, apikey.FieldCreatedByUserID, apikey.FieldCreatedByMemberID, apikey.FieldProviderRuntimePluginID, apikey.FieldRevokedByUserID, apikey.FieldRevokedReason:
 			values[i] = new(sql.NullString)
 		case apikey.FieldExpiresAt, apikey.FieldLastUsedAt, apikey.FieldRevokedAt, apikey.FieldCreatedAt, apikey.FieldUpdatedAt, apikey.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -170,6 +172,13 @@ func (_m *ApiKey) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.CreatedByMemberID = new(string)
 				*_m.CreatedByMemberID = value.String
+			}
+		case apikey.FieldProviderRuntimePluginID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field provider_runtime_plugin_id", values[i])
+			} else if value.Valid {
+				_m.ProviderRuntimePluginID = new(string)
+				*_m.ProviderRuntimePluginID = value.String
 			}
 		case apikey.FieldRevokedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -299,6 +308,11 @@ func (_m *ApiKey) String() string {
 	builder.WriteString(", ")
 	if v := _m.CreatedByMemberID; v != nil {
 		builder.WriteString("created_by_member_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.ProviderRuntimePluginID; v != nil {
+		builder.WriteString("provider_runtime_plugin_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

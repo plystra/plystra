@@ -1,6 +1,8 @@
 package api
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -9,20 +11,22 @@ import (
 	coreent "github.com/plystra/core/ent"
 	entapikey "github.com/plystra/core/ent/apikey"
 	entgroup "github.com/plystra/core/ent/group"
+	entplugin "github.com/plystra/core/ent/plugin"
 	entspace "github.com/plystra/core/ent/space"
 )
 
 type apiKeyMutationRequest struct {
-	ID             string         `json:"id"`
-	Name           string         `json:"name"`
-	Level          string         `json:"level"`
-	SpaceID        string         `json:"space_id"`
-	GroupID        string         `json:"group_id"`
-	PermissionKeys []string       `json:"permission_keys"`
-	Status         string         `json:"status"`
-	ExpiresAt      *time.Time     `json:"expires_at"`
-	RevokedReason  string         `json:"revoked_reason"`
-	Metadata       map[string]any `json:"metadata"`
+	ID                      string         `json:"id"`
+	Name                    string         `json:"name"`
+	Level                   string         `json:"level"`
+	SpaceID                 string         `json:"space_id"`
+	GroupID                 string         `json:"group_id"`
+	PermissionKeys          []string       `json:"permission_keys"`
+	Status                  string         `json:"status"`
+	ExpiresAt               *time.Time     `json:"expires_at"`
+	ProviderRuntimePluginID string         `json:"provider_runtime_plugin_id"`
+	RevokedReason           string         `json:"revoked_reason"`
+	Metadata                map[string]any `json:"metadata"`
 }
 
 func (s *Server) handleAPIKeys(w http.ResponseWriter, r *http.Request) {
@@ -139,6 +143,13 @@ func (s *Server) createAPIKey(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "The current credential cannot delegate one or more API key permissions.", map[string]any{"permission": deniedPermission})
 		return
 	}
+	if allowed, err := s.principalCanBindProviderRuntime(r.Context(), principal, req); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate provider runtime API key binding.", err.Error())
+		return
+	} else if !allowed {
+		writeError(w, r, http.StatusForbidden, "ADMIN_PERMISSION_REQUIRED", "Only an instance plugin administrator can bind an API key to a provider runtime identity.", map[string]any{"permission": "plugins:manage"})
+		return
+	}
 	if req.ID == "" {
 		req.ID = newEntityID("ak")
 	}
@@ -157,6 +168,7 @@ func (s *Server) createAPIKey(w http.ResponseWriter, r *http.Request) {
 		SetStatus(firstNonEmpty(req.Status, "active")).
 		SetNillableSpaceID(optionalString(req.SpaceID)).
 		SetNillableGroupID(optionalString(req.GroupID)).
+		SetNillableProviderRuntimePluginID(optionalString(req.ProviderRuntimePluginID)).
 		SetNillableExpiresAt(req.ExpiresAt).
 		SetMetadata(nonNilMap(req.Metadata))
 	if principal.CredentialType == "session" {
@@ -235,6 +247,7 @@ func (req *apiKeyMutationRequest) normalize() {
 	req.SpaceID = strings.TrimSpace(req.SpaceID)
 	req.GroupID = strings.TrimSpace(req.GroupID)
 	req.Status = strings.TrimSpace(req.Status)
+	req.ProviderRuntimePluginID = strings.TrimSpace(req.ProviderRuntimePluginID)
 	req.PermissionKeys = normalizePermissionKeys(req.PermissionKeys)
 }
 
@@ -255,6 +268,9 @@ func (s *Server) validateAPIKeyRequest(r *http.Request, req *apiKeyMutationReque
 	}
 	if len(apiKeySecrets()) == 0 {
 		return validationError("PLYSTRA_API_KEY_SECRET is required before API keys can be created")
+	}
+	if err := validateAPIKeyMetadata(req.Metadata); err != nil {
+		return err
 	}
 	if req.Status != "" && req.Status != "active" && req.Status != "disabled" {
 		return validationError("status must be active or disabled")
@@ -304,6 +320,11 @@ func (s *Server) validateAPIKeyRequest(r *http.Request, req *apiKeyMutationReque
 	default:
 		return validationError("level must be instance, space, or group")
 	}
+	if req.ProviderRuntimePluginID != "" {
+		if err := validateProviderRuntimeAPIKeyBinding(r.Context(), client, req.ProviderRuntimePluginID); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -332,6 +353,75 @@ func (s *Server) principalCanUseAPIKeyScope(r *http.Request, principal adminPrin
 		SpaceID:       derefString(key.SpaceID),
 		GroupID:       derefString(key.GroupID),
 	})
+}
+
+func validateAPIKeyMetadata(metadata map[string]any) error {
+	if err := validateGovernedMetadata("metadata", metadata); err != nil {
+		return err
+	}
+	for _, key := range providerRuntimeMetadataKeys {
+		if _, ok := nonNilMap(metadata)[key]; ok {
+			return validationError("provider runtime identity must use provider_runtime_plugin_id, not metadata." + key)
+		}
+	}
+	return nil
+}
+
+func validateProviderRuntimeAPIKeyBinding(ctx context.Context, client *coreent.Client, pluginKey string) error {
+	if !pluginsCapabilityIDValid(pluginKey) {
+		return validationError("provider_runtime_plugin_id must be a dotted plugin or app module id")
+	}
+	row, err := client.Plugin.Query().Where(entplugin.Key(pluginKey)).Only(ctx)
+	if err != nil {
+		if coreent.IsNotFound(err) {
+			return validationError("provider_runtime_plugin_id does not reference an installed plugin or app module")
+		}
+		return err
+	}
+	if !providerRuntimePluginStatusActive(row.Status) {
+		return validationError("provider_runtime_plugin_id must reference an enabled governed plugin or app module")
+	}
+	manifest := pluginManifestFromMap(row.Manifest)
+	if strings.TrimSpace(manifest.ID) != "" && strings.TrimSpace(manifest.ID) != pluginKey {
+		return validationError("provider_runtime_plugin_id does not match the plugin manifest id")
+	}
+	return nil
+}
+
+func (s *Server) principalCanBindProviderRuntime(ctx context.Context, principal adminPrincipal, req apiKeyMutationRequest) (bool, error) {
+	if req.ProviderRuntimePluginID == "" {
+		return true, nil
+	}
+	allowed, err := s.principalCanDelegatePermission(ctx, principal, "plugins:manage", "", "")
+	if err != nil {
+		if errors.Is(err, errAdminEntNotConfigured) {
+			return false, err
+		}
+		return false, err
+	}
+	return allowed, nil
+}
+
+func (s *Server) providerRuntimePluginActive(ctx context.Context, pluginKey string) (bool, error) {
+	pluginKey = strings.TrimSpace(pluginKey)
+	if pluginKey == "" {
+		return false, nil
+	}
+	if s.ent == nil {
+		return false, errAdminEntNotConfigured
+	}
+	row, err := s.ent.Plugin.Query().Where(entplugin.Key(pluginKey)).Only(ctx)
+	if err != nil {
+		if coreent.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return providerRuntimePluginStatusActive(row.Status), nil
+}
+
+func providerRuntimePluginStatusActive(status string) bool {
+	return strings.TrimSpace(status) == "enabled"
 }
 
 func normalizePermissionKeys(keys []string) []string {

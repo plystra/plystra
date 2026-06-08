@@ -217,6 +217,26 @@ func (_u *ApiKeyUpdate) ClearCreatedByMemberID() *ApiKeyUpdate {
 	return _u
 }
 
+// SetProviderRuntimePluginID sets the "provider_runtime_plugin_id" field.
+func (_u *ApiKeyUpdate) SetProviderRuntimePluginID(v string) *ApiKeyUpdate {
+	_u.mutation.SetProviderRuntimePluginID(v)
+	return _u
+}
+
+// SetNillableProviderRuntimePluginID sets the "provider_runtime_plugin_id" field if the given value is not nil.
+func (_u *ApiKeyUpdate) SetNillableProviderRuntimePluginID(v *string) *ApiKeyUpdate {
+	if v != nil {
+		_u.SetProviderRuntimePluginID(*v)
+	}
+	return _u
+}
+
+// ClearProviderRuntimePluginID clears the value of the "provider_runtime_plugin_id" field.
+func (_u *ApiKeyUpdate) ClearProviderRuntimePluginID() *ApiKeyUpdate {
+	_u.mutation.ClearProviderRuntimePluginID()
+	return _u
+}
+
 // SetRevokedAt sets the "revoked_at" field.
 func (_u *ApiKeyUpdate) SetRevokedAt(v time.Time) *ApiKeyUpdate {
 	_u.mutation.SetRevokedAt(v)
@@ -443,6 +463,12 @@ func (_u *ApiKeyUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.CreatedByMemberIDCleared() {
 		_spec.ClearField(apikey.FieldCreatedByMemberID, field.TypeString)
+	}
+	if value, ok := _u.mutation.ProviderRuntimePluginID(); ok {
+		_spec.SetField(apikey.FieldProviderRuntimePluginID, field.TypeString, value)
+	}
+	if _u.mutation.ProviderRuntimePluginIDCleared() {
+		_spec.ClearField(apikey.FieldProviderRuntimePluginID, field.TypeString)
 	}
 	if value, ok := _u.mutation.RevokedAt(); ok {
 		_spec.SetField(apikey.FieldRevokedAt, field.TypeTime, value)
@@ -682,6 +708,26 @@ func (_u *ApiKeyUpdateOne) SetNillableCreatedByMemberID(v *string) *ApiKeyUpdate
 // ClearCreatedByMemberID clears the value of the "created_by_member_id" field.
 func (_u *ApiKeyUpdateOne) ClearCreatedByMemberID() *ApiKeyUpdateOne {
 	_u.mutation.ClearCreatedByMemberID()
+	return _u
+}
+
+// SetProviderRuntimePluginID sets the "provider_runtime_plugin_id" field.
+func (_u *ApiKeyUpdateOne) SetProviderRuntimePluginID(v string) *ApiKeyUpdateOne {
+	_u.mutation.SetProviderRuntimePluginID(v)
+	return _u
+}
+
+// SetNillableProviderRuntimePluginID sets the "provider_runtime_plugin_id" field if the given value is not nil.
+func (_u *ApiKeyUpdateOne) SetNillableProviderRuntimePluginID(v *string) *ApiKeyUpdateOne {
+	if v != nil {
+		_u.SetProviderRuntimePluginID(*v)
+	}
+	return _u
+}
+
+// ClearProviderRuntimePluginID clears the value of the "provider_runtime_plugin_id" field.
+func (_u *ApiKeyUpdateOne) ClearProviderRuntimePluginID() *ApiKeyUpdateOne {
+	_u.mutation.ClearProviderRuntimePluginID()
 	return _u
 }
 
@@ -941,6 +987,12 @@ func (_u *ApiKeyUpdateOne) sqlSave(ctx context.Context) (_node *ApiKey, err erro
 	}
 	if _u.mutation.CreatedByMemberIDCleared() {
 		_spec.ClearField(apikey.FieldCreatedByMemberID, field.TypeString)
+	}
+	if value, ok := _u.mutation.ProviderRuntimePluginID(); ok {
+		_spec.SetField(apikey.FieldProviderRuntimePluginID, field.TypeString, value)
+	}
+	if _u.mutation.ProviderRuntimePluginIDCleared() {
+		_spec.ClearField(apikey.FieldProviderRuntimePluginID, field.TypeString)
 	}
 	if value, ok := _u.mutation.RevokedAt(); ok {
 		_spec.SetField(apikey.FieldRevokedAt, field.TypeTime, value)

@@ -1,4 +1,4 @@
-h1:WB/FrhgR0CG4DxE9I7w1/odOE6SwCR2GKcjvWb1zh6E=
+h1:6EbOSwe0dE0lPwSQEQ/ibumWclN/ifGSghTLI+T+Afo=
 001_finance_demo.sql h1:6yv3CJVVhS9V3T9oB0dXmay0Y9tLgD46s7WQEn4dgz4=
 002_resource_registry.sql h1:SIovsOobXzfbuq0nUqzNgqt51zHRkhSDu3g247VkQa4=
 003_plugin_api_preview.sql h1:hz7SfVSTZ6EbNoyKV0F+C6vAYvsmpTBdfQe0PgntORk=
@@ -29,3 +29,4 @@ h1:WB/FrhgR0CG4DxE9I7w1/odOE6SwCR2GKcjvWb1zh6E=
 028_backend_os_alpha_capability_provider_bindings.sql h1:pan0F1QYpua/1QfuVPAoIXOLqM+pSch2BK25KaLK4rw=
 029_backend_os_alpha_action_executions.sql h1:1gpQX6t//XgasrdabDnUNUQdpukoxIitIoauz6+AtUA=
 030_backend_os_alpha_app_data_model_ownership.sql h1:78Xv/pX2hnY+HaOw01SZDBDoTIYg3hnKSrC0LpdyuA0=
+031_provider_runtime_api_key_identity.sql h1:LwWz+cQx8UpHETqfM1SCnBaZLVU8Huo6MSBFP1RC/hw=

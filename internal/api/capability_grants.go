@@ -29,6 +29,8 @@ const (
 	defaultCapabilityProviderResolverCacheTTL = 30 * time.Second
 )
 
+var providerRuntimeMetadataKeys = []string{"provider_plugin_id", "plugin_id", "provider_id"}
+
 type capabilityGrantRequest struct {
 	SpaceID        string                   `json:"space_id"`
 	Capability     string                   `json:"capability"`
@@ -1181,6 +1183,18 @@ func (s *Server) requireProviderRuntimePrincipal(w http.ResponseWriter, r *http.
 		})
 		return false
 	}
+	active, err := s.providerRuntimePluginActive(r.Context(), providerID)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to validate capability provider runtime status.", err.Error())
+		return false
+	}
+	if !active {
+		writeError(w, r, http.StatusForbidden, "CAPABILITY_PROVIDER_INACTIVE", "Capability provider runtime is not enabled.", map[string]any{
+			"target_provider_id": targetProviderID,
+			"api_key_provider":   providerID,
+		})
+		return false
+	}
 	return true
 }
 
@@ -1188,8 +1202,7 @@ func apiKeyProviderRuntimeID(key *coreent.ApiKey) string {
 	if key == nil {
 		return ""
 	}
-	metadata := nonNilMap(key.Metadata)
-	return firstNonEmpty(stringFromMap(metadata, "provider_plugin_id"), stringFromMap(metadata, "plugin_id"), stringFromMap(metadata, "provider_id"))
+	return strings.TrimSpace(derefString(key.ProviderRuntimePluginID))
 }
 
 func capabilityGrantActive(row *coreent.CapabilityGrant, targetProviderID, capabilityID, operationName string, now time.Time) (bool, string) {

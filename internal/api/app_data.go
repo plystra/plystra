@@ -2302,6 +2302,10 @@ func (s *Server) appDataServicePrincipalAllowedForModel(ctx context.Context, pri
 	if pluginKey == "" {
 		return !appDataModelOwnedByPlugin(model), nil
 	}
+	active, err := s.providerRuntimePluginActive(ctx, pluginKey)
+	if err != nil || !active {
+		return false, err
+	}
 	return s.pluginServiceOwnsAppDataModel(ctx, pluginKey, model)
 }
 
@@ -2439,6 +2443,11 @@ func (s *Server) resolveAppDataModelMutationOwnership(ctx context.Context, r *ht
 			return ownership, errors.New("plugin-owned app data declarations require a provider-bound API key")
 		}
 		return ownership, nil
+	}
+	if active, err := s.providerRuntimePluginActive(ctx, pluginKey); err != nil {
+		return ownership, err
+	} else if !active {
+		return ownership, fmt.Errorf("plugin %s is not enabled", pluginKey)
 	}
 	modelKey := strings.ToLower(strings.TrimSpace(req.Key))
 	if current != nil {

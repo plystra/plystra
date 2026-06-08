@@ -8946,6 +8946,9 @@
             },
             "nullable": true
           },
+          "provider_runtime_plugin_id": {
+            "type": "string"
+          },
           "revoked_reason": {
             "type": "string"
           },
@@ -9561,6 +9564,9 @@
               "type": "string"
             },
             "nullable": true
+          },
+          "provider_runtime_plugin_id": {
+            "type": "string"
           },
           "revoked_at": {
             "type": "string",

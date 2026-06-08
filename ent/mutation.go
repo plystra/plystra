@@ -3244,33 +3244,34 @@ func (m *AdminGrantMutation) ResetEdge(name string) error {
 // ApiKeyMutation represents an operation that mutates the ApiKey nodes in the graph.
 type ApiKeyMutation struct {
 	config
-	op                    Op
-	typ                   string
-	id                    *string
-	name                  *string
-	key_prefix            *string
-	key_hash              *string
-	level                 *string
-	space_id              *string
-	group_id              *string
-	permission_keys       *[]string
-	appendpermission_keys []string
-	status                *string
-	expires_at            *time.Time
-	last_used_at          *time.Time
-	created_by_user_id    *string
-	created_by_member_id  *string
-	revoked_at            *time.Time
-	revoked_by_user_id    *string
-	revoked_reason        *string
-	metadata              *map[string]interface{}
-	created_at            *time.Time
-	updated_at            *time.Time
-	deleted_at            *time.Time
-	clearedFields         map[string]struct{}
-	done                  bool
-	oldValue              func(context.Context) (*ApiKey, error)
-	predicates            []predicate.ApiKey
+	op                         Op
+	typ                        string
+	id                         *string
+	name                       *string
+	key_prefix                 *string
+	key_hash                   *string
+	level                      *string
+	space_id                   *string
+	group_id                   *string
+	permission_keys            *[]string
+	appendpermission_keys      []string
+	status                     *string
+	expires_at                 *time.Time
+	last_used_at               *time.Time
+	created_by_user_id         *string
+	created_by_member_id       *string
+	provider_runtime_plugin_id *string
+	revoked_at                 *time.Time
+	revoked_by_user_id         *string
+	revoked_reason             *string
+	metadata                   *map[string]interface{}
+	created_at                 *time.Time
+	updated_at                 *time.Time
+	deleted_at                 *time.Time
+	clearedFields              map[string]struct{}
+	done                       bool
+	oldValue                   func(context.Context) (*ApiKey, error)
+	predicates                 []predicate.ApiKey
 }
 
 var _ ent.Mutation = (*ApiKeyMutation)(nil)
@@ -3902,6 +3903,55 @@ func (m *ApiKeyMutation) ResetCreatedByMemberID() {
 	delete(m.clearedFields, apikey.FieldCreatedByMemberID)
 }
 
+// SetProviderRuntimePluginID sets the "provider_runtime_plugin_id" field.
+func (m *ApiKeyMutation) SetProviderRuntimePluginID(s string) {
+	m.provider_runtime_plugin_id = &s
+}
+
+// ProviderRuntimePluginID returns the value of the "provider_runtime_plugin_id" field in the mutation.
+func (m *ApiKeyMutation) ProviderRuntimePluginID() (r string, exists bool) {
+	v := m.provider_runtime_plugin_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderRuntimePluginID returns the old "provider_runtime_plugin_id" field's value of the ApiKey entity.
+// If the ApiKey object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ApiKeyMutation) OldProviderRuntimePluginID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderRuntimePluginID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderRuntimePluginID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderRuntimePluginID: %w", err)
+	}
+	return oldValue.ProviderRuntimePluginID, nil
+}
+
+// ClearProviderRuntimePluginID clears the value of the "provider_runtime_plugin_id" field.
+func (m *ApiKeyMutation) ClearProviderRuntimePluginID() {
+	m.provider_runtime_plugin_id = nil
+	m.clearedFields[apikey.FieldProviderRuntimePluginID] = struct{}{}
+}
+
+// ProviderRuntimePluginIDCleared returns if the "provider_runtime_plugin_id" field was cleared in this mutation.
+func (m *ApiKeyMutation) ProviderRuntimePluginIDCleared() bool {
+	_, ok := m.clearedFields[apikey.FieldProviderRuntimePluginID]
+	return ok
+}
+
+// ResetProviderRuntimePluginID resets all changes to the "provider_runtime_plugin_id" field.
+func (m *ApiKeyMutation) ResetProviderRuntimePluginID() {
+	m.provider_runtime_plugin_id = nil
+	delete(m.clearedFields, apikey.FieldProviderRuntimePluginID)
+}
+
 // SetRevokedAt sets the "revoked_at" field.
 func (m *ApiKeyMutation) SetRevokedAt(t time.Time) {
 	m.revoked_at = &t
@@ -4253,7 +4303,7 @@ func (m *ApiKeyMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ApiKeyMutation) Fields() []string {
-	fields := make([]string, 0, 19)
+	fields := make([]string, 0, 20)
 	if m.name != nil {
 		fields = append(fields, apikey.FieldName)
 	}
@@ -4289,6 +4339,9 @@ func (m *ApiKeyMutation) Fields() []string {
 	}
 	if m.created_by_member_id != nil {
 		fields = append(fields, apikey.FieldCreatedByMemberID)
+	}
+	if m.provider_runtime_plugin_id != nil {
+		fields = append(fields, apikey.FieldProviderRuntimePluginID)
 	}
 	if m.revoked_at != nil {
 		fields = append(fields, apikey.FieldRevokedAt)
@@ -4343,6 +4396,8 @@ func (m *ApiKeyMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedByUserID()
 	case apikey.FieldCreatedByMemberID:
 		return m.CreatedByMemberID()
+	case apikey.FieldProviderRuntimePluginID:
+		return m.ProviderRuntimePluginID()
 	case apikey.FieldRevokedAt:
 		return m.RevokedAt()
 	case apikey.FieldRevokedByUserID:
@@ -4390,6 +4445,8 @@ func (m *ApiKeyMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldCreatedByUserID(ctx)
 	case apikey.FieldCreatedByMemberID:
 		return m.OldCreatedByMemberID(ctx)
+	case apikey.FieldProviderRuntimePluginID:
+		return m.OldProviderRuntimePluginID(ctx)
 	case apikey.FieldRevokedAt:
 		return m.OldRevokedAt(ctx)
 	case apikey.FieldRevokedByUserID:
@@ -4497,6 +4554,13 @@ func (m *ApiKeyMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCreatedByMemberID(v)
 		return nil
+	case apikey.FieldProviderRuntimePluginID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderRuntimePluginID(v)
+		return nil
 	case apikey.FieldRevokedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -4594,6 +4658,9 @@ func (m *ApiKeyMutation) ClearedFields() []string {
 	if m.FieldCleared(apikey.FieldCreatedByMemberID) {
 		fields = append(fields, apikey.FieldCreatedByMemberID)
 	}
+	if m.FieldCleared(apikey.FieldProviderRuntimePluginID) {
+		fields = append(fields, apikey.FieldProviderRuntimePluginID)
+	}
 	if m.FieldCleared(apikey.FieldRevokedAt) {
 		fields = append(fields, apikey.FieldRevokedAt)
 	}
@@ -4640,6 +4707,9 @@ func (m *ApiKeyMutation) ClearField(name string) error {
 		return nil
 	case apikey.FieldCreatedByMemberID:
 		m.ClearCreatedByMemberID()
+		return nil
+	case apikey.FieldProviderRuntimePluginID:
+		m.ClearProviderRuntimePluginID()
 		return nil
 	case apikey.FieldRevokedAt:
 		m.ClearRevokedAt()
@@ -4699,6 +4769,9 @@ func (m *ApiKeyMutation) ResetField(name string) error {
 		return nil
 	case apikey.FieldCreatedByMemberID:
 		m.ResetCreatedByMemberID()
+		return nil
+	case apikey.FieldProviderRuntimePluginID:
+		m.ResetProviderRuntimePluginID()
 		return nil
 	case apikey.FieldRevokedAt:
 		m.ResetRevokedAt()
