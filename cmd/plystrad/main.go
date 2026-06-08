@@ -71,6 +71,10 @@ func main() {
 	defer func() { _ = kernelApp.Stop(context.Background()) }()
 
 	apiServer := api.NewServer(pool, authzStore, coreVersion).WithKernel(kernelApp)
+	reconcilerCtx, stopReconciler := context.WithCancel(ctx)
+	defer stopReconciler()
+	startCapabilityGrantReconciler(reconcilerCtx, apiServer)
+
 	addr := ":" + port
 	if host != "" {
 		addr = net.JoinHostPort(host, port)

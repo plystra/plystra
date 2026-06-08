@@ -95,7 +95,8 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 	fixture := createCapabilityGrantFixture(t, ctx, store.Client())
 	defer cleanupCapabilityGrantFixture(context.Background(), t, store.Client(), fixture)
 
-	handler := NewServer(nil, store, "1.0.0-test").Routes()
+	server := NewServer(nil, store, "1.0.0-test")
+	handler := server.Routes()
 
 	var issuedGrantID string
 	var issuedGrantToken string
@@ -286,6 +287,88 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		}
 		if inactive["reason"] != "grant_inactive" {
 			t.Fatalf("used grant reason = %#v, want grant_inactive", inactive["reason"])
+		}
+	})
+
+	t.Run("reconciles overdue pending outcomes as missing", func(t *testing.T) {
+		body := capabilityGrantIssueBody(fixture, "invoice.outcome_missing.v1")
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-grants", fixture.SpaceID), fixture.APIKey, body)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("issue missing outcome grant status = %d, body=%s", rec.Code, rec.Body.String())
+		}
+		data := decodeCapabilityGrantData(t, rec)
+		grantID := requireStringField(t, data, "grant_id")
+		past := time.Now().UTC().Add(-time.Minute)
+		if err := store.Client().CapabilityGrant.UpdateOneID(grantID).
+			SetExpectedOutcomeBy(past).
+			SetExpiresAt(past.Add(time.Minute)).
+			Exec(ctx); err != nil {
+			t.Fatalf("age grant outcome window: %v", err)
+		}
+		result, err := server.ReconcileCapabilityGrantOutcomes(ctx, time.Now().UTC(), 10)
+		if err != nil {
+			t.Fatalf("reconcile outcomes: %v", err)
+		}
+		if result.Marked != 1 {
+			t.Fatalf("marked = %d, want 1; result=%#v", result.Marked, result)
+		}
+		row, err := store.Client().CapabilityGrant.Query().Where(entcapabilitygrant.ID(grantID)).Only(ctx)
+		if err != nil {
+			t.Fatalf("load reconciled grant: %v", err)
+		}
+		if row.Status != "expired" || row.OutcomeStatus != "missing" {
+			t.Fatalf("reconciled status=%q outcome_status=%q, want expired/missing", row.Status, row.OutcomeStatus)
+		}
+		outcome := requireObjectFromAny(t, row.Metadata["outcome"], "outcome metadata")
+		if outcome["status"] != "missing" || outcome["reconciled_by"] != "core_capability_grant_reconciler" {
+			t.Fatalf("missing outcome metadata mismatch: %#v", outcome)
+		}
+		exists, err := store.Client().AuditLog.Query().
+			Where(entauditlog.Action("capability.outcome.missing"), entauditlog.ResourceID(grantID)).
+			Exist(ctx)
+		if err != nil {
+			t.Fatalf("query missing outcome audit: %v", err)
+		}
+		if !exists {
+			t.Fatalf("missing outcome audit was not written for grant %s", grantID)
+		}
+		replay, err := server.ReconcileCapabilityGrantOutcomes(ctx, time.Now().UTC(), 10)
+		if err != nil {
+			t.Fatalf("reconcile outcomes replay: %v", err)
+		}
+		if replay.Marked != 0 {
+			t.Fatalf("replay marked = %d, want 0; result=%#v", replay.Marked, replay)
+		}
+	})
+
+	t.Run("does not mark revoked pending grants as missing", func(t *testing.T) {
+		body := capabilityGrantIssueBody(fixture, "invoice.outcome_revoked_before_missing.v1")
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-grants", fixture.SpaceID), fixture.APIKey, body)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("issue revoked pending grant status = %d, body=%s", rec.Code, rec.Body.String())
+		}
+		grantID := requireStringField(t, decodeCapabilityGrantData(t, rec), "grant_id")
+		past := time.Now().UTC().Add(-time.Minute)
+		if err := store.Client().CapabilityGrant.UpdateOneID(grantID).
+			SetStatus("revoked").
+			SetRevokedAt(past).
+			SetExpectedOutcomeBy(past).
+			Exec(ctx); err != nil {
+			t.Fatalf("revoke overdue grant: %v", err)
+		}
+		result, err := server.ReconcileCapabilityGrantOutcomes(ctx, time.Now().UTC(), 10)
+		if err != nil {
+			t.Fatalf("reconcile revoked pending grant: %v", err)
+		}
+		if result.Marked != 0 {
+			t.Fatalf("revoked grant marked = %d, want 0; result=%#v", result.Marked, result)
+		}
+		row, err := store.Client().CapabilityGrant.Query().Where(entcapabilitygrant.ID(grantID)).Only(ctx)
+		if err != nil {
+			t.Fatalf("load revoked grant: %v", err)
+		}
+		if row.OutcomeStatus != "pending" {
+			t.Fatalf("revoked grant outcome_status = %q, want pending", row.OutcomeStatus)
 		}
 	})
 
@@ -1342,6 +1425,15 @@ func requireObjectField(t *testing.T, values map[string]any, key string) map[str
 	object, ok := values[key].(map[string]any)
 	if !ok {
 		t.Fatalf("%s is not an object: %#v", key, values[key])
+	}
+	return object
+}
+
+func requireObjectFromAny(t *testing.T, value any, label string) map[string]any {
+	t.Helper()
+	object, ok := value.(map[string]any)
+	if !ok {
+		t.Fatalf("%s is not an object: %#v", label, value)
 	}
 	return object
 }
