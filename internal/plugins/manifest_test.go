@@ -750,6 +750,40 @@ func TestValidateManifestRejectsGovernanceDataPlaneMismatch(t *testing.T) {
 	assertContainsError(t, errors, "controlled_action")
 }
 
+func TestValidateManifestRequiresResultUnknownReconciliationForBrokeredGateway(t *testing.T) {
+	manifest := Manifest{
+		ID:               "plystra.payment",
+		Name:             "Payment",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "payment",
+			DisplayName: "Payment",
+			Actions:     []ActionDefinition{{Key: "approve", RiskLevel: "high"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "payment", Action: "approve", Scopes: []string{"space"}}},
+		Capabilities: []CapabilityDefinition{{
+			ID:        "payment.charge",
+			Version:   "0.0.1",
+			Level:     "standard",
+			Audit:     CapabilityAuditDefinition{Enforcement: "controlled_action"},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"action_gateway"}},
+			Operations: []CapabilityOperationDefinition{{
+				Name: "create",
+				Invocation: CapabilityInvocationDefinition{
+					Mode:        "brokered_action_gateway",
+					Idempotency: "required",
+				},
+				Delegation: CapabilityDelegationDefinition{Mode: "preserve_principal"},
+			}},
+		}},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, "result_unknown_reconciliation=required")
+}
+
 func standardSendEmailOperation() CapabilityOperationDefinition {
 	return CapabilityOperationDefinition{
 		Name: "send",

@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/plystra/core/ent/actionexecution"
 	"github.com/plystra/core/ent/admingrant"
 	"github.com/plystra/core/ent/apikey"
 	"github.com/plystra/core/ent/appdatamodel"
@@ -101,6 +102,7 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			actionexecution.Table:           actionexecution.ValidColumn,
 			admingrant.Table:                admingrant.ValidColumn,
 			apikey.Table:                    apikey.ValidColumn,
 			appdatamodel.Table:              appdatamodel.ValidColumn,

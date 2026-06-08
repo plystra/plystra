@@ -664,6 +664,36 @@ type openAPIGrantIntrospectionResponse struct {
 	ExpiresAt            string                          `json:"expires_at,omitempty" format:"date-time"`
 }
 
+type openAPIActionExecution struct {
+	ActionExecutionID           string         `json:"action_execution_id"`
+	SpaceID                     string         `json:"space_id"`
+	Capability                  string         `json:"capability"`
+	Operation                   string         `json:"operation"`
+	ResourceType                string         `json:"resource_type"`
+	ResourceID                  string         `json:"resource_id"`
+	ResourceAction              string         `json:"resource_action"`
+	PrincipalUserID             string         `json:"principal_user_id,omitempty"`
+	PrincipalMemberID           string         `json:"principal_member_id,omitempty"`
+	PrincipalUserMemberID       string         `json:"principal_user_member_id,omitempty"`
+	ExecutorPluginID            string         `json:"executor_plugin_id"`
+	ProviderPluginID            string         `json:"provider_plugin_id"`
+	DecisionID                  string         `json:"decision_id,omitempty"`
+	CorrelationID               string         `json:"correlation_id"`
+	IdempotencyKey              string         `json:"idempotency_key"`
+	IdempotencyRetentionSeconds int            `json:"idempotency_retention_seconds"`
+	Status                      string         `json:"status" example:"running"`
+	StartedAt                   string         `json:"started_at" format:"date-time"`
+	CompletedAt                 *time.Time     `json:"completed_at,omitempty"`
+	Resource                    map[string]any `json:"resource"`
+	InputSummary                map[string]any `json:"input_summary"`
+	ResultRef                   map[string]any `json:"result_ref"`
+	ErrorCode                   string         `json:"error_code,omitempty"`
+	ErrorMessage                string         `json:"error_message,omitempty"`
+	Metadata                    map[string]any `json:"metadata"`
+	CreatedAt                   string         `json:"created_at" format:"date-time"`
+	UpdatedAt                   string         `json:"updated_at" format:"date-time"`
+}
+
 type openAPIOverviewResponse struct {
 	Counts          map[string]int    `json:"counts"`
 	RecentAuditLogs []openAPIAuditLog `json:"recent_audit_logs"`
@@ -946,6 +976,22 @@ func openAPIRoutes() []openAPIRoute {
 		{Method: http.MethodDelete, Path: "/api/v1/capability-provider-bindings/{binding_id}", Tag: "Capability Grants", ID: "disableCapabilityProviderBinding", Summary: "Disable a capability provider binding", Params: new(struct {
 			BindingID string `path:"binding_id"`
 		}), Response: new(openAPIEnvelope[openAPICapabilityProviderBinding]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/action-executions", Tag: "Action Gateway", ID: "listActionExecutions", Summary: "List Action Gateway executions", Description: "Lists Core-owned controlled_action execution ledger rows for a Space without exposing business request payloads.", Params: new(struct {
+			SpaceID      string `query:"space_id"`
+			Capability   string `query:"capability"`
+			Operation    string `query:"operation"`
+			Status       string `query:"status"`
+			ResourceType string `query:"resource_type"`
+			ResourceID   string `query:"resource_id"`
+			Limit        int    `query:"limit" minimum:"1" maximum:"200"`
+		}), Response: new(openAPIListEnvelope[openAPIActionExecution]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/action-executions", Tag: "Action Gateway", ID: "beginActionExecution", Summary: "Begin a controlled Action Gateway execution", Description: "Creates or replays a brokered Action Gateway execution for a controlled_action capability operation. Core records authorization and lifecycle metadata; the provider owns business execution.", Body: new(actionExecutionRequest), Response: new(openAPIEnvelope[openAPIActionExecution]), Status: http.StatusCreated, Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/action-executions/{action_execution_id}", Tag: "Action Gateway", ID: "getActionExecution", Summary: "Get an Action Gateway execution", Params: new(struct {
+			ActionExecutionID string `path:"action_execution_id"`
+		}), Response: new(openAPIEnvelope[openAPIActionExecution]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/action-executions/{action_execution_id}/complete", Tag: "Action Gateway", ID: "completeActionExecution", Summary: "Complete a controlled Action Gateway execution", Description: "Provider runtimes idempotently report terminal Action Gateway results, including result_unknown for reconciliation.", Params: new(struct {
+			ActionExecutionID string `path:"action_execution_id"`
+		}), Body: new(actionExecutionCompleteRequest), Response: new(openAPIEnvelope[openAPIActionExecution]), Security: openAPIAdmin},
 
 		{Method: http.MethodGet, Path: "/api/v1/users", Tag: "Users", ID: "listUsers", Summary: "List users", Params: new(openAPILimitQuery), Response: new(openAPIListEnvelope[openAPIUser]), Security: openAPIAdmin},
 		{Method: http.MethodPost, Path: "/api/v1/users", Tag: "Users", ID: "createUser", Summary: "Create a user", Body: new(userMutationRequest), Response: new(openAPIEnvelope[openAPIUser]), Status: http.StatusCreated, Security: openAPIAdmin},

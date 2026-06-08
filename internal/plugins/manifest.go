@@ -764,6 +764,9 @@ func validateCapabilityInvocation(i, j int, capability CapabilityDefinition, inv
 		if invocation.Idempotency != "required" {
 			errors = append(errors, fmt.Sprintf("capabilities[%d].operations[%d].invocation.idempotency=required is mandatory for brokered_action_gateway", i, j))
 		}
+		if invocation.ResultUnknownReconciliation != "required" {
+			errors = append(errors, fmt.Sprintf("capabilities[%d].operations[%d].invocation.result_unknown_reconciliation=required is mandatory for brokered_action_gateway", i, j))
+		}
 		if capability.Audit.Enforcement != "controlled_action" {
 			errors = append(errors, fmt.Sprintf("capabilities[%d].operations[%d].invocation.mode brokered_action_gateway requires controlled_action audit enforcement", i, j))
 		}

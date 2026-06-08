@@ -105,6 +105,256 @@
     }
   ],
   "paths": {
+    "/api/v1/action-executions": {
+      "get": {
+        "tags": [
+          "Action Gateway"
+        ],
+        "summary": "List Action Gateway executions",
+        "description": "Lists Core-owned controlled_action execution ledger rows for a Space without exposing business request payloads.",
+        "operationId": "listActionExecutions",
+        "parameters": [
+          {
+            "name": "space_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "capability",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "operation",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource_type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIActionExecution"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Action Gateway"
+        ],
+        "summary": "Begin a controlled Action Gateway execution",
+        "description": "Creates or replays a brokered Action Gateway execution for a controlled_action capability operation. Core records authorization and lifecycle metadata; the provider owns business execution.",
+        "operationId": "beginActionExecution",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiActionExecutionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActionExecution"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/action-executions/{action_execution_id}": {
+      "get": {
+        "tags": [
+          "Action Gateway"
+        ],
+        "summary": "Get an Action Gateway execution",
+        "operationId": "getActionExecution",
+        "parameters": [
+          {
+            "name": "action_execution_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActionExecution"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/action-executions/{action_execution_id}/complete": {
+      "post": {
+        "tags": [
+          "Action Gateway"
+        ],
+        "summary": "Complete a controlled Action Gateway execution",
+        "description": "Provider runtimes idempotently report terminal Action Gateway results, including result_unknown for reconciliation.",
+        "operationId": "completeActionExecution",
+        "parameters": [
+          {
+            "name": "action_execution_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiActionExecutionCompleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActionExecution"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/actor/context": {
       "get": {
         "tags": [
@@ -8543,6 +8793,85 @@
   },
   "components": {
     "schemas": {
+      "ApiActionExecutionCompleteRequest": {
+        "type": "object",
+        "properties": {
+          "error_code": {
+            "type": "string"
+          },
+          "error_message": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "provider_plugin_id": {
+            "type": "string"
+          },
+          "result_ref": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiActionExecutionProvider": {
+        "type": "object",
+        "properties": {
+          "plugin_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiActionExecutionRequest": {
+        "type": "object",
+        "properties": {
+          "capability": {
+            "type": "string"
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "executor": {
+            "$ref": "#/components/schemas/ApiCapabilityGrantExecutor"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "input_summary": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "operation": {
+            "type": "string"
+          },
+          "principal": {
+            "$ref": "#/components/schemas/ApiCapabilityGrantPrincipal"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ApiActionExecutionProvider"
+          },
+          "resource": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "space_id": {
+            "type": "string"
+          }
+        }
+      },
       "ApiAdminGrantMutationRequest": {
         "type": "object",
         "properties": {
@@ -9250,6 +9579,106 @@
           "status": {
             "type": "string",
             "example": "active"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiOpenAPIActionExecution": {
+        "type": "object",
+        "properties": {
+          "action_execution_id": {
+            "type": "string"
+          },
+          "capability": {
+            "type": "string"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "correlation_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decision_id": {
+            "type": "string"
+          },
+          "error_code": {
+            "type": "string"
+          },
+          "error_message": {
+            "type": "string"
+          },
+          "executor_plugin_id": {
+            "type": "string"
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "idempotency_retention_seconds": {
+            "type": "integer"
+          },
+          "input_summary": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "operation": {
+            "type": "string"
+          },
+          "principal_member_id": {
+            "type": "string"
+          },
+          "principal_user_id": {
+            "type": "string"
+          },
+          "principal_user_member_id": {
+            "type": "string"
+          },
+          "provider_plugin_id": {
+            "type": "string"
+          },
+          "resource": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "resource_action": {
+            "type": "string"
+          },
+          "resource_id": {
+            "type": "string"
+          },
+          "resource_type": {
+            "type": "string"
+          },
+          "result_ref": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "example": "running"
           },
           "updated_at": {
             "type": "string",
@@ -10020,6 +10449,18 @@
           }
         }
       },
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActionExecution": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ApiOpenAPIActionExecution"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req_01hzyj6b6q8"
+          }
+        }
+      },
       "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActorContextResponse": {
         "type": "object",
         "properties": {
@@ -10652,6 +11093,25 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApiOpenAPIAPIKey"
+            },
+            "nullable": true
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/ApiOpenAPIPagination"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req_01hzyj6b6q8"
+          }
+        }
+      },
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIActionExecution": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiOpenAPIActionExecution"
             },
             "nullable": true
           },

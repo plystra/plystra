@@ -5,6 +5,7 @@ package runtime
 import (
 	"time"
 
+	"github.com/plystra/core/ent/actionexecution"
 	"github.com/plystra/core/ent/admingrant"
 	"github.com/plystra/core/ent/apikey"
 	"github.com/plystra/core/ent/appdatamodel"
@@ -41,6 +42,66 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	actionexecutionFields := schema.ActionExecution{}.Fields()
+	_ = actionexecutionFields
+	// actionexecutionDescSpaceID is the schema descriptor for space_id field.
+	actionexecutionDescSpaceID := actionexecutionFields[1].Descriptor()
+	// actionexecution.SpaceIDValidator is a validator for the "space_id" field. It is called by the builders before save.
+	actionexecution.SpaceIDValidator = actionexecutionDescSpaceID.Validators[0].(func(string) error)
+	// actionexecutionDescCapability is the schema descriptor for capability field.
+	actionexecutionDescCapability := actionexecutionFields[2].Descriptor()
+	// actionexecution.CapabilityValidator is a validator for the "capability" field. It is called by the builders before save.
+	actionexecution.CapabilityValidator = actionexecutionDescCapability.Validators[0].(func(string) error)
+	// actionexecutionDescOperation is the schema descriptor for operation field.
+	actionexecutionDescOperation := actionexecutionFields[3].Descriptor()
+	// actionexecution.OperationValidator is a validator for the "operation" field. It is called by the builders before save.
+	actionexecution.OperationValidator = actionexecutionDescOperation.Validators[0].(func(string) error)
+	// actionexecutionDescResourceType is the schema descriptor for resource_type field.
+	actionexecutionDescResourceType := actionexecutionFields[4].Descriptor()
+	// actionexecution.ResourceTypeValidator is a validator for the "resource_type" field. It is called by the builders before save.
+	actionexecution.ResourceTypeValidator = actionexecutionDescResourceType.Validators[0].(func(string) error)
+	// actionexecutionDescResourceID is the schema descriptor for resource_id field.
+	actionexecutionDescResourceID := actionexecutionFields[5].Descriptor()
+	// actionexecution.ResourceIDValidator is a validator for the "resource_id" field. It is called by the builders before save.
+	actionexecution.ResourceIDValidator = actionexecutionDescResourceID.Validators[0].(func(string) error)
+	// actionexecutionDescResourceAction is the schema descriptor for resource_action field.
+	actionexecutionDescResourceAction := actionexecutionFields[6].Descriptor()
+	// actionexecution.ResourceActionValidator is a validator for the "resource_action" field. It is called by the builders before save.
+	actionexecution.ResourceActionValidator = actionexecutionDescResourceAction.Validators[0].(func(string) error)
+	// actionexecutionDescExecutorPluginID is the schema descriptor for executor_plugin_id field.
+	actionexecutionDescExecutorPluginID := actionexecutionFields[10].Descriptor()
+	// actionexecution.ExecutorPluginIDValidator is a validator for the "executor_plugin_id" field. It is called by the builders before save.
+	actionexecution.ExecutorPluginIDValidator = actionexecutionDescExecutorPluginID.Validators[0].(func(string) error)
+	// actionexecutionDescProviderPluginID is the schema descriptor for provider_plugin_id field.
+	actionexecutionDescProviderPluginID := actionexecutionFields[11].Descriptor()
+	// actionexecution.ProviderPluginIDValidator is a validator for the "provider_plugin_id" field. It is called by the builders before save.
+	actionexecution.ProviderPluginIDValidator = actionexecutionDescProviderPluginID.Validators[0].(func(string) error)
+	// actionexecutionDescCorrelationID is the schema descriptor for correlation_id field.
+	actionexecutionDescCorrelationID := actionexecutionFields[13].Descriptor()
+	// actionexecution.CorrelationIDValidator is a validator for the "correlation_id" field. It is called by the builders before save.
+	actionexecution.CorrelationIDValidator = actionexecutionDescCorrelationID.Validators[0].(func(string) error)
+	// actionexecutionDescIdempotencyKey is the schema descriptor for idempotency_key field.
+	actionexecutionDescIdempotencyKey := actionexecutionFields[14].Descriptor()
+	// actionexecution.IdempotencyKeyValidator is a validator for the "idempotency_key" field. It is called by the builders before save.
+	actionexecution.IdempotencyKeyValidator = actionexecutionDescIdempotencyKey.Validators[0].(func(string) error)
+	// actionexecutionDescStatus is the schema descriptor for status field.
+	actionexecutionDescStatus := actionexecutionFields[15].Descriptor()
+	// actionexecution.DefaultStatus holds the default value on creation for the status field.
+	actionexecution.DefaultStatus = actionexecutionDescStatus.Default.(string)
+	// actionexecutionDescCreatedAt is the schema descriptor for created_at field.
+	actionexecutionDescCreatedAt := actionexecutionFields[24].Descriptor()
+	// actionexecution.DefaultCreatedAt holds the default value on creation for the created_at field.
+	actionexecution.DefaultCreatedAt = actionexecutionDescCreatedAt.Default.(func() time.Time)
+	// actionexecutionDescUpdatedAt is the schema descriptor for updated_at field.
+	actionexecutionDescUpdatedAt := actionexecutionFields[25].Descriptor()
+	// actionexecution.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	actionexecution.DefaultUpdatedAt = actionexecutionDescUpdatedAt.Default.(func() time.Time)
+	// actionexecution.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	actionexecution.UpdateDefaultUpdatedAt = actionexecutionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// actionexecutionDescID is the schema descriptor for id field.
+	actionexecutionDescID := actionexecutionFields[0].Descriptor()
+	// actionexecution.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	actionexecution.IDValidator = actionexecutionDescID.Validators[0].(func(string) error)
 	admingrantFields := schema.AdminGrant{}.Fields()
 	_ = admingrantFields
 	// admingrantDescUserID is the schema descriptor for user_id field.

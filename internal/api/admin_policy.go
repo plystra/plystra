@@ -68,6 +68,15 @@ func adminRequirementFor(method, path, querySpaceID string) adminRequirement {
 	if path == "/api/v1/capability-provider-bindings" || strings.HasPrefix(path, "/api/v1/capability-provider-bindings/") {
 		return adminRequirement{PermissionKey: "plugins:" + readOrManage, SpaceID: querySpaceID}
 	}
+	if path == "/api/v1/action-executions" {
+		if method == "POST" {
+			return adminRequirement{PermissionKey: "capabilities:invoke", SpaceID: querySpaceID}
+		}
+		return adminRequirement{PermissionKey: "capabilities:manage", SpaceID: querySpaceID}
+	}
+	if strings.HasPrefix(path, "/api/v1/action-executions/") {
+		return adminRequirement{PermissionKey: "capabilities:manage", SpaceID: querySpaceID}
+	}
 	if path == "/api/v1/authz/check" || path == "/api/v1/authz/explain" {
 		return adminRequirement{PermissionKey: "authz:check"}
 	}

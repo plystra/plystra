@@ -9,6 +9,18 @@ import (
 	"github.com/plystra/core/ent"
 )
 
+// The ActionExecutionFunc type is an adapter to allow the use of ordinary
+// function as ActionExecution mutator.
+type ActionExecutionFunc func(context.Context, *ent.ActionExecutionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ActionExecutionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ActionExecutionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ActionExecutionMutation", m)
+}
+
 // The AdminGrantFunc type is an adapter to allow the use of ordinary
 // function as AdminGrant mutator.
 type AdminGrantFunc func(context.Context, *ent.AdminGrantMutation) (ent.Value, error)

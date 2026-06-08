@@ -1,5 +1,60 @@
 components:
     schemas:
+        ApiActionExecutionCompleteRequest:
+            properties:
+                error_code:
+                    type: string
+                error_message:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                provider_plugin_id:
+                    type: string
+                result_ref:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                status:
+                    type: string
+            type: object
+        ApiActionExecutionProvider:
+            properties:
+                plugin_id:
+                    type: string
+            type: object
+        ApiActionExecutionRequest:
+            properties:
+                capability:
+                    type: string
+                correlation_id:
+                    type: string
+                executor:
+                    $ref: '#/components/schemas/ApiCapabilityGrantExecutor'
+                idempotency_key:
+                    type: string
+                input_summary:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                operation:
+                    type: string
+                principal:
+                    $ref: '#/components/schemas/ApiCapabilityGrantPrincipal'
+                provider:
+                    $ref: '#/components/schemas/ApiActionExecutionProvider'
+                resource:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                space_id:
+                    type: string
+            type: object
         ApiAdminGrantMutationRequest:
             properties:
                 expires_at:
@@ -493,6 +548,77 @@ components:
                     type: string
                 status:
                     example: active
+                    type: string
+                updated_at:
+                    format: date-time
+                    type: string
+            type: object
+        ApiOpenAPIActionExecution:
+            properties:
+                action_execution_id:
+                    type: string
+                capability:
+                    type: string
+                completed_at:
+                    format: date-time
+                    nullable: true
+                    type: string
+                correlation_id:
+                    type: string
+                created_at:
+                    format: date-time
+                    type: string
+                decision_id:
+                    type: string
+                error_code:
+                    type: string
+                error_message:
+                    type: string
+                executor_plugin_id:
+                    type: string
+                idempotency_key:
+                    type: string
+                idempotency_retention_seconds:
+                    type: integer
+                input_summary:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                operation:
+                    type: string
+                principal_member_id:
+                    type: string
+                principal_user_id:
+                    type: string
+                principal_user_member_id:
+                    type: string
+                provider_plugin_id:
+                    type: string
+                resource:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                resource_action:
+                    type: string
+                resource_id:
+                    type: string
+                resource_type:
+                    type: string
+                result_ref:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                space_id:
+                    type: string
+                started_at:
+                    format: date-time
+                    type: string
+                status:
+                    example: running
                     type: string
                 updated_at:
                     format: date-time
@@ -1025,6 +1151,14 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActionExecution:
+            properties:
+                data:
+                    $ref: '#/components/schemas/ApiOpenAPIActionExecution'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
         ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActorContextResponse:
             properties:
                 data:
@@ -1451,6 +1585,19 @@ components:
                 data:
                     items:
                         $ref: '#/components/schemas/ApiOpenAPIAPIKey'
+                    nullable: true
+                    type: array
+                pagination:
+                    $ref: '#/components/schemas/ApiOpenAPIPagination'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIActionExecution:
+            properties:
+                data:
+                    items:
+                        $ref: '#/components/schemas/ApiOpenAPIActionExecution'
                     nullable: true
                     type: array
                 pagination:
@@ -3321,6 +3468,151 @@ info:
     version: 0.0.1
 openapi: 3.0.3
 paths:
+    /api/v1/action-executions:
+        get:
+            description: Lists Core-owned controlled_action execution ledger rows for a Space without exposing business request payloads.
+            operationId: listActionExecutions
+            parameters:
+                - in: query
+                  name: space_id
+                  schema:
+                    type: string
+                - in: query
+                  name: capability
+                  schema:
+                    type: string
+                - in: query
+                  name: operation
+                  schema:
+                    type: string
+                - in: query
+                  name: status
+                  schema:
+                    type: string
+                - in: query
+                  name: resource_type
+                  schema:
+                    type: string
+                - in: query
+                  name: resource_id
+                  schema:
+                    type: string
+                - in: query
+                  name: limit
+                  schema:
+                    maximum: 200
+                    minimum: 1
+                    type: integer
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIActionExecution'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: List Action Gateway executions
+            tags:
+                - Action Gateway
+        post:
+            description: Creates or replays a brokered Action Gateway execution for a controlled_action capability operation. Core records authorization and lifecycle metadata; the provider owns business execution.
+            operationId: beginActionExecution
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiActionExecutionRequest'
+                required: true
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActionExecution'
+                    description: Created
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Begin a controlled Action Gateway execution
+            tags:
+                - Action Gateway
+    /api/v1/action-executions/{action_execution_id}:
+        get:
+            operationId: getActionExecution
+            parameters:
+                - in: path
+                  name: action_execution_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActionExecution'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Get an Action Gateway execution
+            tags:
+                - Action Gateway
+    /api/v1/action-executions/{action_execution_id}/complete:
+        post:
+            description: Provider runtimes idempotently report terminal Action Gateway results, including result_unknown for reconciliation.
+            operationId: completeActionExecution
+            parameters:
+                - in: path
+                  name: action_execution_id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiActionExecutionCompleteRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIActionExecution'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Complete a controlled Action Gateway execution
+            tags:
+                - Action Gateway
     /api/v1/actor/context:
         get:
             operationId: getActorContext

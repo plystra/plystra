@@ -13,6 +13,7 @@ import (
 	"time"
 
 	coreent "github.com/plystra/core/ent"
+	entactionexecution "github.com/plystra/core/ent/actionexecution"
 	entauditlog "github.com/plystra/core/ent/auditlog"
 	entcapabilitygrant "github.com/plystra/core/ent/capabilitygrant"
 	entcapabilityproviderbinding "github.com/plystra/core/ent/capabilityproviderbinding"
@@ -546,6 +547,96 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 			t.Fatalf("brokered operation status = %d, want rejection, body=%s", rec.Code, rec.Body.String())
 		}
 		assertNoGrantForIdempotencyKey(t, ctx, store.Client(), fixture.SpaceID, fixture.CallerPluginID, "payment.pay_123.charge.v1")
+	})
+
+	t.Run("begins and completes brokered action execution", func(t *testing.T) {
+		body := actionExecutionBeginBody(fixture, "payment.pay_123.charge.v1")
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/action-executions", fixture.SpaceID), fixture.APIKey, body)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("begin action status = %d, want 201, body=%s", rec.Code, rec.Body.String())
+		}
+		data := decodeCapabilityGrantData(t, rec)
+		actionExecutionID := requireStringField(t, data, "action_execution_id")
+		if data["status"] != "running" {
+			t.Fatalf("action status = %#v, want running", data["status"])
+		}
+		if data["provider_plugin_id"] != fixture.ProviderPluginID {
+			t.Fatalf("provider_plugin_id = %#v, want %q", data["provider_plugin_id"], fixture.ProviderPluginID)
+		}
+		if data["decision_id"] == "" {
+			t.Fatalf("decision_id missing: %#v", data)
+		}
+
+		replay := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/action-executions", fixture.SpaceID), fixture.APIKey, body)
+		if replay.Code != http.StatusOK {
+			t.Fatalf("begin replay status = %d, want 200, body=%s", replay.Code, replay.Body.String())
+		}
+		replayData := decodeCapabilityGrantData(t, replay)
+		if got := requireStringField(t, replayData, "action_execution_id"); got != actionExecutionID {
+			t.Fatalf("replayed action_execution_id=%q, want %q", got, actionExecutionID)
+		}
+
+		conflictBody := actionExecutionBeginBody(fixture, "payment.pay_123.charge.v1")
+		conflictSummary := requireObjectField(t, conflictBody, "input_summary")
+		conflictSummary["amount_minor"] = 24000
+		conflict := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/action-executions", fixture.SpaceID), fixture.APIKey, conflictBody)
+		if conflict.Code != http.StatusConflict {
+			t.Fatalf("begin conflict status = %d, want 409, body=%s", conflict.Code, conflict.Body.String())
+		}
+
+		completeWrongProvider := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/action-executions/"+actionExecutionID+"/complete", fixture.SpaceID), fixture.APIKey, map[string]any{
+			"provider_plugin_id": fixture.NoRequiresPluginID,
+			"status":             "succeeded",
+			"result_ref":         map[string]any{"resource_type": "payment", "resource_id": "pay_123"},
+		})
+		if completeWrongProvider.Code != http.StatusForbidden {
+			t.Fatalf("complete wrong provider status = %d, want 403, body=%s", completeWrongProvider.Code, completeWrongProvider.Body.String())
+		}
+
+		complete := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/action-executions/"+actionExecutionID+"/complete", fixture.SpaceID), fixture.ProviderAPIKey, map[string]any{
+			"provider_plugin_id": fixture.ProviderPluginID,
+			"status":             "succeeded",
+			"result_ref":         map[string]any{"resource_type": "payment", "resource_id": "pay_123"},
+			"metadata":           map[string]any{"completion_source": "test"},
+		})
+		if complete.Code != http.StatusOK {
+			t.Fatalf("complete status = %d, want 200, body=%s", complete.Code, complete.Body.String())
+		}
+		completed := decodeCapabilityGrantData(t, complete)
+		if completed["status"] != "succeeded" {
+			t.Fatalf("completed status = %#v, want succeeded", completed["status"])
+		}
+		if completed["completed_at"] == nil {
+			t.Fatalf("completed_at missing: %#v", completed)
+		}
+
+		completeReplay := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/action-executions/"+actionExecutionID+"/complete", fixture.SpaceID), fixture.ProviderAPIKey, map[string]any{
+			"provider_plugin_id": fixture.ProviderPluginID,
+			"status":             "succeeded",
+			"result_ref":         map[string]any{"resource_type": "payment", "resource_id": "pay_123"},
+		})
+		if completeReplay.Code != http.StatusOK {
+			t.Fatalf("complete replay status = %d, want 200, body=%s", completeReplay.Code, completeReplay.Body.String())
+		}
+
+		completeConflict := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/action-executions/"+actionExecutionID+"/complete", fixture.SpaceID), fixture.ProviderAPIKey, map[string]any{
+			"provider_plugin_id": fixture.ProviderPluginID,
+			"status":             "failed",
+			"error_code":         "PROVIDER_FAILED",
+		})
+		if completeConflict.Code != http.StatusConflict {
+			t.Fatalf("complete conflict status = %d, want 409, body=%s", completeConflict.Code, completeConflict.Body.String())
+		}
+
+		list := capabilityGrantJSONRequest(handler, http.MethodGet, "/api/v1/action-executions?space_id="+fixture.SpaceID+"&status=succeeded", fixture.APIKey, nil)
+		if list.Code != http.StatusOK {
+			t.Fatalf("list actions status = %d, body=%s", list.Code, list.Body.String())
+		}
+		payload := decodeCapabilityGrantEnvelope(t, list)
+		rows, ok := payload["data"].([]any)
+		if !ok || len(rows) == 0 {
+			t.Fatalf("list actions returned no rows: %#v", payload["data"])
+		}
 	})
 
 	t.Run("manages provider binding and revokes resolver path by binding status", func(t *testing.T) {
@@ -1100,6 +1191,8 @@ func cleanupCapabilityGrantFixture(ctx context.Context, t *testing.T, client *co
 	}
 	_, err := client.CapabilityGrant.Delete().Where(entcapabilitygrant.SpaceID(fixture.SpaceID)).Exec(ctx)
 	ignore("capability grants", err)
+	_, err = client.ActionExecution.Delete().Where(entactionexecution.SpaceID(fixture.SpaceID)).Exec(ctx)
+	ignore("action executions", err)
 	_, err = client.CapabilityProviderBinding.Delete().Where(entcapabilityproviderbinding.SpaceID(fixture.SpaceID)).Exec(ctx)
 	ignore("capability provider bindings", err)
 	_, err = client.AuditLog.Delete().Where(entauditlog.SpaceID(fixture.SpaceID)).Exec(ctx)
@@ -1176,6 +1269,33 @@ func capabilityGrantIssueBody(fixture capabilityGrantFixture, idempotencyKey str
 		"idempotency_key": idempotencyKey,
 		"correlation_id":  "cor_capability_grants_" + fixture.Suffix,
 		"ttl_ms":          60000,
+	}
+}
+
+func actionExecutionBeginBody(fixture capabilityGrantFixture, idempotencyKey string) map[string]any {
+	return map[string]any{
+		"space_id":   fixture.SpaceID,
+		"capability": fixture.BrokeredCapabilityID,
+		"operation":  "charge",
+		"principal": map[string]any{
+			"user_id":        fixture.PrincipalUserID,
+			"member_id":      fixture.PrincipalMemberID,
+			"user_member_id": fixture.PrincipalUserMemberID,
+		},
+		"executor": map[string]any{"plugin_id": fixture.CallerPluginID},
+		"provider": map[string]any{"plugin_id": fixture.ProviderPluginID},
+		"resource": map[string]any{
+			"resource_type": "invoice",
+			"resource_id":   fixture.InvoiceResourceID,
+			"action":        "approve",
+		},
+		"input_summary": map[string]any{
+			"amount_minor": 12000,
+			"currency":     "USD",
+		},
+		"idempotency_key": idempotencyKey,
+		"correlation_id":  "cor_action_execution_" + fixture.Suffix,
+		"metadata":        map[string]any{"test": "action_execution"},
 	}
 }
 

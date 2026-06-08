@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// ActionExecution is the predicate function for actionexecution builders.
+type ActionExecution func(*sql.Selector)
+
 // AdminGrant is the predicate function for admingrant builders.
 type AdminGrant func(*sql.Selector)
 
