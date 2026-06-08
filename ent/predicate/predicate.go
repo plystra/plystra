@@ -63,6 +63,9 @@ type PluginSettingsDefinition func(*sql.Selector)
 // PluginSettingsValue is the predicate function for pluginsettingsvalue builders.
 type PluginSettingsValue func(*sql.Selector)
 
+// ProviderRequestContext is the predicate function for providerrequestcontext builders.
+type ProviderRequestContext func(*sql.Selector)
+
 // Resource is the predicate function for resource builders.
 type Resource func(*sql.Selector)
 

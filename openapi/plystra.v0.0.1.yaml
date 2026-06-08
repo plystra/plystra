@@ -1371,6 +1371,14 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIProviderRequestContext:
+            properties:
+                data:
+                    $ref: '#/components/schemas/ApiOpenAPIProviderRequestContext'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
         ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIReady:
             properties:
                 data:
@@ -2202,6 +2210,45 @@ components:
                 valid:
                     type: boolean
             type: object
+        ApiOpenAPIProviderRequestContext:
+            properties:
+                actor_member_id:
+                    type: string
+                actor_user_id:
+                    type: string
+                actor_user_member_id:
+                    type: string
+                authorization_decision_id:
+                    type: string
+                context_token:
+                    type: string
+                created_at:
+                    format: date-time
+                    type: string
+                expires_at:
+                    format: date-time
+                    type: string
+                id:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                provider_plugin_id:
+                    type: string
+                purpose:
+                    type: string
+                request_id:
+                    type: string
+                space_id:
+                    type: string
+                status:
+                    example: active
+                    type: string
+                updated_at:
+                    format: date-time
+                    type: string
+            type: object
         ApiOpenAPIReady:
             properties:
                 expected_schema_version:
@@ -2658,6 +2705,25 @@ components:
                     type: object
                 space_id:
                     type: string
+            type: object
+        ApiProviderRequestContextRequest:
+            properties:
+                actor:
+                    $ref: '#/components/schemas/AuthzActorContext'
+                authorization_decision_id:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                provider_plugin_id:
+                    type: string
+                purpose:
+                    type: string
+                space_id:
+                    type: string
+                ttl_ms:
+                    type: integer
             type: object
         ApiResourceActionMutationRequest:
             properties:
@@ -5716,6 +5782,35 @@ paths:
             summary: Validate plugin manifest
             tags:
                 - Plugins
+    /api/v1/provider-request-contexts:
+        post:
+            description: Provider runtimes use this provider-bound API to obtain a short-lived opaque token. Inside a provider database transaction, the runtime calls plystra.set_verified_context(token); RLS policies then read plystra.current_space_id() and related verified GUC helpers. Core stores only a token hash and returns the plaintext token once.
+            operationId: issueProviderRequestContext
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiProviderRequestContextRequest'
+                required: true
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIProviderRequestContext'
+                    description: Created
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Issue a provider database request context
+            tags:
+                - Capability Grants
     /api/v1/ready:
         get:
             operationId: getReadiness

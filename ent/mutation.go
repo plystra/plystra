@@ -31,6 +31,7 @@ import (
 	"github.com/plystra/core/ent/pluginsettingsdefinition"
 	"github.com/plystra/core/ent/pluginsettingsvalue"
 	"github.com/plystra/core/ent/predicate"
+	"github.com/plystra/core/ent/providerrequestcontext"
 	"github.com/plystra/core/ent/resource"
 	"github.com/plystra/core/ent/resourceaction"
 	"github.com/plystra/core/ent/resourcemapping"
@@ -72,6 +73,7 @@ const (
 	TypePluginAdminMenu           = "PluginAdminMenu"
 	TypePluginSettingsDefinition  = "PluginSettingsDefinition"
 	TypePluginSettingsValue       = "PluginSettingsValue"
+	TypeProviderRequestContext    = "ProviderRequestContext"
 	TypeResource                  = "Resource"
 	TypeResourceAction            = "ResourceAction"
 	TypeResourceMapping           = "ResourceMapping"
@@ -21006,6 +21008,1395 @@ func (m *PluginSettingsValueMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *PluginSettingsValueMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown PluginSettingsValue edge %s", name)
+}
+
+// ProviderRequestContextMutation represents an operation that mutates the ProviderRequestContext nodes in the graph.
+type ProviderRequestContextMutation struct {
+	config
+	op                        Op
+	typ                       string
+	id                        *string
+	token_hash                *string
+	provider_plugin_id        *string
+	space_id                  *string
+	actor_user_id             *string
+	actor_member_id           *string
+	actor_user_member_id      *string
+	authorization_decision_id *string
+	request_id                *string
+	purpose                   *string
+	status                    *string
+	expires_at                *time.Time
+	revoked_at                *time.Time
+	revoked_reason            *string
+	metadata                  *map[string]interface{}
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	clearedFields             map[string]struct{}
+	done                      bool
+	oldValue                  func(context.Context) (*ProviderRequestContext, error)
+	predicates                []predicate.ProviderRequestContext
+}
+
+var _ ent.Mutation = (*ProviderRequestContextMutation)(nil)
+
+// providerrequestcontextOption allows management of the mutation configuration using functional options.
+type providerrequestcontextOption func(*ProviderRequestContextMutation)
+
+// newProviderRequestContextMutation creates new mutation for the ProviderRequestContext entity.
+func newProviderRequestContextMutation(c config, op Op, opts ...providerrequestcontextOption) *ProviderRequestContextMutation {
+	m := &ProviderRequestContextMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeProviderRequestContext,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withProviderRequestContextID sets the ID field of the mutation.
+func withProviderRequestContextID(id string) providerrequestcontextOption {
+	return func(m *ProviderRequestContextMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ProviderRequestContext
+		)
+		m.oldValue = func(ctx context.Context) (*ProviderRequestContext, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ProviderRequestContext.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withProviderRequestContext sets the old ProviderRequestContext of the mutation.
+func withProviderRequestContext(node *ProviderRequestContext) providerrequestcontextOption {
+	return func(m *ProviderRequestContextMutation) {
+		m.oldValue = func(context.Context) (*ProviderRequestContext, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ProviderRequestContextMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ProviderRequestContextMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ProviderRequestContext entities.
+func (m *ProviderRequestContextMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ProviderRequestContextMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ProviderRequestContextMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ProviderRequestContext.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetTokenHash sets the "token_hash" field.
+func (m *ProviderRequestContextMutation) SetTokenHash(s string) {
+	m.token_hash = &s
+}
+
+// TokenHash returns the value of the "token_hash" field in the mutation.
+func (m *ProviderRequestContextMutation) TokenHash() (r string, exists bool) {
+	v := m.token_hash
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTokenHash returns the old "token_hash" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldTokenHash(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTokenHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTokenHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTokenHash: %w", err)
+	}
+	return oldValue.TokenHash, nil
+}
+
+// ResetTokenHash resets all changes to the "token_hash" field.
+func (m *ProviderRequestContextMutation) ResetTokenHash() {
+	m.token_hash = nil
+}
+
+// SetProviderPluginID sets the "provider_plugin_id" field.
+func (m *ProviderRequestContextMutation) SetProviderPluginID(s string) {
+	m.provider_plugin_id = &s
+}
+
+// ProviderPluginID returns the value of the "provider_plugin_id" field in the mutation.
+func (m *ProviderRequestContextMutation) ProviderPluginID() (r string, exists bool) {
+	v := m.provider_plugin_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderPluginID returns the old "provider_plugin_id" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldProviderPluginID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderPluginID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderPluginID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderPluginID: %w", err)
+	}
+	return oldValue.ProviderPluginID, nil
+}
+
+// ResetProviderPluginID resets all changes to the "provider_plugin_id" field.
+func (m *ProviderRequestContextMutation) ResetProviderPluginID() {
+	m.provider_plugin_id = nil
+}
+
+// SetSpaceID sets the "space_id" field.
+func (m *ProviderRequestContextMutation) SetSpaceID(s string) {
+	m.space_id = &s
+}
+
+// SpaceID returns the value of the "space_id" field in the mutation.
+func (m *ProviderRequestContextMutation) SpaceID() (r string, exists bool) {
+	v := m.space_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSpaceID returns the old "space_id" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldSpaceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSpaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSpaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSpaceID: %w", err)
+	}
+	return oldValue.SpaceID, nil
+}
+
+// ResetSpaceID resets all changes to the "space_id" field.
+func (m *ProviderRequestContextMutation) ResetSpaceID() {
+	m.space_id = nil
+}
+
+// SetActorUserID sets the "actor_user_id" field.
+func (m *ProviderRequestContextMutation) SetActorUserID(s string) {
+	m.actor_user_id = &s
+}
+
+// ActorUserID returns the value of the "actor_user_id" field in the mutation.
+func (m *ProviderRequestContextMutation) ActorUserID() (r string, exists bool) {
+	v := m.actor_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorUserID returns the old "actor_user_id" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldActorUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorUserID: %w", err)
+	}
+	return oldValue.ActorUserID, nil
+}
+
+// ClearActorUserID clears the value of the "actor_user_id" field.
+func (m *ProviderRequestContextMutation) ClearActorUserID() {
+	m.actor_user_id = nil
+	m.clearedFields[providerrequestcontext.FieldActorUserID] = struct{}{}
+}
+
+// ActorUserIDCleared returns if the "actor_user_id" field was cleared in this mutation.
+func (m *ProviderRequestContextMutation) ActorUserIDCleared() bool {
+	_, ok := m.clearedFields[providerrequestcontext.FieldActorUserID]
+	return ok
+}
+
+// ResetActorUserID resets all changes to the "actor_user_id" field.
+func (m *ProviderRequestContextMutation) ResetActorUserID() {
+	m.actor_user_id = nil
+	delete(m.clearedFields, providerrequestcontext.FieldActorUserID)
+}
+
+// SetActorMemberID sets the "actor_member_id" field.
+func (m *ProviderRequestContextMutation) SetActorMemberID(s string) {
+	m.actor_member_id = &s
+}
+
+// ActorMemberID returns the value of the "actor_member_id" field in the mutation.
+func (m *ProviderRequestContextMutation) ActorMemberID() (r string, exists bool) {
+	v := m.actor_member_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorMemberID returns the old "actor_member_id" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldActorMemberID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorMemberID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorMemberID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorMemberID: %w", err)
+	}
+	return oldValue.ActorMemberID, nil
+}
+
+// ClearActorMemberID clears the value of the "actor_member_id" field.
+func (m *ProviderRequestContextMutation) ClearActorMemberID() {
+	m.actor_member_id = nil
+	m.clearedFields[providerrequestcontext.FieldActorMemberID] = struct{}{}
+}
+
+// ActorMemberIDCleared returns if the "actor_member_id" field was cleared in this mutation.
+func (m *ProviderRequestContextMutation) ActorMemberIDCleared() bool {
+	_, ok := m.clearedFields[providerrequestcontext.FieldActorMemberID]
+	return ok
+}
+
+// ResetActorMemberID resets all changes to the "actor_member_id" field.
+func (m *ProviderRequestContextMutation) ResetActorMemberID() {
+	m.actor_member_id = nil
+	delete(m.clearedFields, providerrequestcontext.FieldActorMemberID)
+}
+
+// SetActorUserMemberID sets the "actor_user_member_id" field.
+func (m *ProviderRequestContextMutation) SetActorUserMemberID(s string) {
+	m.actor_user_member_id = &s
+}
+
+// ActorUserMemberID returns the value of the "actor_user_member_id" field in the mutation.
+func (m *ProviderRequestContextMutation) ActorUserMemberID() (r string, exists bool) {
+	v := m.actor_user_member_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActorUserMemberID returns the old "actor_user_member_id" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldActorUserMemberID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActorUserMemberID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActorUserMemberID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActorUserMemberID: %w", err)
+	}
+	return oldValue.ActorUserMemberID, nil
+}
+
+// ClearActorUserMemberID clears the value of the "actor_user_member_id" field.
+func (m *ProviderRequestContextMutation) ClearActorUserMemberID() {
+	m.actor_user_member_id = nil
+	m.clearedFields[providerrequestcontext.FieldActorUserMemberID] = struct{}{}
+}
+
+// ActorUserMemberIDCleared returns if the "actor_user_member_id" field was cleared in this mutation.
+func (m *ProviderRequestContextMutation) ActorUserMemberIDCleared() bool {
+	_, ok := m.clearedFields[providerrequestcontext.FieldActorUserMemberID]
+	return ok
+}
+
+// ResetActorUserMemberID resets all changes to the "actor_user_member_id" field.
+func (m *ProviderRequestContextMutation) ResetActorUserMemberID() {
+	m.actor_user_member_id = nil
+	delete(m.clearedFields, providerrequestcontext.FieldActorUserMemberID)
+}
+
+// SetAuthorizationDecisionID sets the "authorization_decision_id" field.
+func (m *ProviderRequestContextMutation) SetAuthorizationDecisionID(s string) {
+	m.authorization_decision_id = &s
+}
+
+// AuthorizationDecisionID returns the value of the "authorization_decision_id" field in the mutation.
+func (m *ProviderRequestContextMutation) AuthorizationDecisionID() (r string, exists bool) {
+	v := m.authorization_decision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAuthorizationDecisionID returns the old "authorization_decision_id" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldAuthorizationDecisionID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAuthorizationDecisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAuthorizationDecisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAuthorizationDecisionID: %w", err)
+	}
+	return oldValue.AuthorizationDecisionID, nil
+}
+
+// ClearAuthorizationDecisionID clears the value of the "authorization_decision_id" field.
+func (m *ProviderRequestContextMutation) ClearAuthorizationDecisionID() {
+	m.authorization_decision_id = nil
+	m.clearedFields[providerrequestcontext.FieldAuthorizationDecisionID] = struct{}{}
+}
+
+// AuthorizationDecisionIDCleared returns if the "authorization_decision_id" field was cleared in this mutation.
+func (m *ProviderRequestContextMutation) AuthorizationDecisionIDCleared() bool {
+	_, ok := m.clearedFields[providerrequestcontext.FieldAuthorizationDecisionID]
+	return ok
+}
+
+// ResetAuthorizationDecisionID resets all changes to the "authorization_decision_id" field.
+func (m *ProviderRequestContextMutation) ResetAuthorizationDecisionID() {
+	m.authorization_decision_id = nil
+	delete(m.clearedFields, providerrequestcontext.FieldAuthorizationDecisionID)
+}
+
+// SetRequestID sets the "request_id" field.
+func (m *ProviderRequestContextMutation) SetRequestID(s string) {
+	m.request_id = &s
+}
+
+// RequestID returns the value of the "request_id" field in the mutation.
+func (m *ProviderRequestContextMutation) RequestID() (r string, exists bool) {
+	v := m.request_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRequestID returns the old "request_id" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldRequestID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRequestID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRequestID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRequestID: %w", err)
+	}
+	return oldValue.RequestID, nil
+}
+
+// ClearRequestID clears the value of the "request_id" field.
+func (m *ProviderRequestContextMutation) ClearRequestID() {
+	m.request_id = nil
+	m.clearedFields[providerrequestcontext.FieldRequestID] = struct{}{}
+}
+
+// RequestIDCleared returns if the "request_id" field was cleared in this mutation.
+func (m *ProviderRequestContextMutation) RequestIDCleared() bool {
+	_, ok := m.clearedFields[providerrequestcontext.FieldRequestID]
+	return ok
+}
+
+// ResetRequestID resets all changes to the "request_id" field.
+func (m *ProviderRequestContextMutation) ResetRequestID() {
+	m.request_id = nil
+	delete(m.clearedFields, providerrequestcontext.FieldRequestID)
+}
+
+// SetPurpose sets the "purpose" field.
+func (m *ProviderRequestContextMutation) SetPurpose(s string) {
+	m.purpose = &s
+}
+
+// Purpose returns the value of the "purpose" field in the mutation.
+func (m *ProviderRequestContextMutation) Purpose() (r string, exists bool) {
+	v := m.purpose
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPurpose returns the old "purpose" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldPurpose(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPurpose is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPurpose requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPurpose: %w", err)
+	}
+	return oldValue.Purpose, nil
+}
+
+// ClearPurpose clears the value of the "purpose" field.
+func (m *ProviderRequestContextMutation) ClearPurpose() {
+	m.purpose = nil
+	m.clearedFields[providerrequestcontext.FieldPurpose] = struct{}{}
+}
+
+// PurposeCleared returns if the "purpose" field was cleared in this mutation.
+func (m *ProviderRequestContextMutation) PurposeCleared() bool {
+	_, ok := m.clearedFields[providerrequestcontext.FieldPurpose]
+	return ok
+}
+
+// ResetPurpose resets all changes to the "purpose" field.
+func (m *ProviderRequestContextMutation) ResetPurpose() {
+	m.purpose = nil
+	delete(m.clearedFields, providerrequestcontext.FieldPurpose)
+}
+
+// SetStatus sets the "status" field.
+func (m *ProviderRequestContextMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *ProviderRequestContextMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *ProviderRequestContextMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (m *ProviderRequestContextMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *ProviderRequestContextMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldExpiresAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *ProviderRequestContextMutation) ResetExpiresAt() {
+	m.expires_at = nil
+}
+
+// SetRevokedAt sets the "revoked_at" field.
+func (m *ProviderRequestContextMutation) SetRevokedAt(t time.Time) {
+	m.revoked_at = &t
+}
+
+// RevokedAt returns the value of the "revoked_at" field in the mutation.
+func (m *ProviderRequestContextMutation) RevokedAt() (r time.Time, exists bool) {
+	v := m.revoked_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRevokedAt returns the old "revoked_at" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldRevokedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRevokedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRevokedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRevokedAt: %w", err)
+	}
+	return oldValue.RevokedAt, nil
+}
+
+// ClearRevokedAt clears the value of the "revoked_at" field.
+func (m *ProviderRequestContextMutation) ClearRevokedAt() {
+	m.revoked_at = nil
+	m.clearedFields[providerrequestcontext.FieldRevokedAt] = struct{}{}
+}
+
+// RevokedAtCleared returns if the "revoked_at" field was cleared in this mutation.
+func (m *ProviderRequestContextMutation) RevokedAtCleared() bool {
+	_, ok := m.clearedFields[providerrequestcontext.FieldRevokedAt]
+	return ok
+}
+
+// ResetRevokedAt resets all changes to the "revoked_at" field.
+func (m *ProviderRequestContextMutation) ResetRevokedAt() {
+	m.revoked_at = nil
+	delete(m.clearedFields, providerrequestcontext.FieldRevokedAt)
+}
+
+// SetRevokedReason sets the "revoked_reason" field.
+func (m *ProviderRequestContextMutation) SetRevokedReason(s string) {
+	m.revoked_reason = &s
+}
+
+// RevokedReason returns the value of the "revoked_reason" field in the mutation.
+func (m *ProviderRequestContextMutation) RevokedReason() (r string, exists bool) {
+	v := m.revoked_reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRevokedReason returns the old "revoked_reason" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldRevokedReason(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRevokedReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRevokedReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRevokedReason: %w", err)
+	}
+	return oldValue.RevokedReason, nil
+}
+
+// ClearRevokedReason clears the value of the "revoked_reason" field.
+func (m *ProviderRequestContextMutation) ClearRevokedReason() {
+	m.revoked_reason = nil
+	m.clearedFields[providerrequestcontext.FieldRevokedReason] = struct{}{}
+}
+
+// RevokedReasonCleared returns if the "revoked_reason" field was cleared in this mutation.
+func (m *ProviderRequestContextMutation) RevokedReasonCleared() bool {
+	_, ok := m.clearedFields[providerrequestcontext.FieldRevokedReason]
+	return ok
+}
+
+// ResetRevokedReason resets all changes to the "revoked_reason" field.
+func (m *ProviderRequestContextMutation) ResetRevokedReason() {
+	m.revoked_reason = nil
+	delete(m.clearedFields, providerrequestcontext.FieldRevokedReason)
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *ProviderRequestContextMutation) SetMetadata(value map[string]interface{}) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *ProviderRequestContextMutation) Metadata() (r map[string]interface{}, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldMetadata(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *ProviderRequestContextMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[providerrequestcontext.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *ProviderRequestContextMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[providerrequestcontext.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *ProviderRequestContextMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, providerrequestcontext.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ProviderRequestContextMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ProviderRequestContextMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ProviderRequestContextMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ProviderRequestContextMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ProviderRequestContextMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ProviderRequestContextMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *ProviderRequestContextMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *ProviderRequestContextMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *ProviderRequestContextMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[providerrequestcontext.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *ProviderRequestContextMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[providerrequestcontext.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *ProviderRequestContextMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, providerrequestcontext.FieldDeletedAt)
+}
+
+// Where appends a list predicates to the ProviderRequestContextMutation builder.
+func (m *ProviderRequestContextMutation) Where(ps ...predicate.ProviderRequestContext) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ProviderRequestContextMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ProviderRequestContextMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ProviderRequestContext, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ProviderRequestContextMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ProviderRequestContextMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ProviderRequestContext).
+func (m *ProviderRequestContextMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ProviderRequestContextMutation) Fields() []string {
+	fields := make([]string, 0, 17)
+	if m.token_hash != nil {
+		fields = append(fields, providerrequestcontext.FieldTokenHash)
+	}
+	if m.provider_plugin_id != nil {
+		fields = append(fields, providerrequestcontext.FieldProviderPluginID)
+	}
+	if m.space_id != nil {
+		fields = append(fields, providerrequestcontext.FieldSpaceID)
+	}
+	if m.actor_user_id != nil {
+		fields = append(fields, providerrequestcontext.FieldActorUserID)
+	}
+	if m.actor_member_id != nil {
+		fields = append(fields, providerrequestcontext.FieldActorMemberID)
+	}
+	if m.actor_user_member_id != nil {
+		fields = append(fields, providerrequestcontext.FieldActorUserMemberID)
+	}
+	if m.authorization_decision_id != nil {
+		fields = append(fields, providerrequestcontext.FieldAuthorizationDecisionID)
+	}
+	if m.request_id != nil {
+		fields = append(fields, providerrequestcontext.FieldRequestID)
+	}
+	if m.purpose != nil {
+		fields = append(fields, providerrequestcontext.FieldPurpose)
+	}
+	if m.status != nil {
+		fields = append(fields, providerrequestcontext.FieldStatus)
+	}
+	if m.expires_at != nil {
+		fields = append(fields, providerrequestcontext.FieldExpiresAt)
+	}
+	if m.revoked_at != nil {
+		fields = append(fields, providerrequestcontext.FieldRevokedAt)
+	}
+	if m.revoked_reason != nil {
+		fields = append(fields, providerrequestcontext.FieldRevokedReason)
+	}
+	if m.metadata != nil {
+		fields = append(fields, providerrequestcontext.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, providerrequestcontext.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, providerrequestcontext.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, providerrequestcontext.FieldDeletedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ProviderRequestContextMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case providerrequestcontext.FieldTokenHash:
+		return m.TokenHash()
+	case providerrequestcontext.FieldProviderPluginID:
+		return m.ProviderPluginID()
+	case providerrequestcontext.FieldSpaceID:
+		return m.SpaceID()
+	case providerrequestcontext.FieldActorUserID:
+		return m.ActorUserID()
+	case providerrequestcontext.FieldActorMemberID:
+		return m.ActorMemberID()
+	case providerrequestcontext.FieldActorUserMemberID:
+		return m.ActorUserMemberID()
+	case providerrequestcontext.FieldAuthorizationDecisionID:
+		return m.AuthorizationDecisionID()
+	case providerrequestcontext.FieldRequestID:
+		return m.RequestID()
+	case providerrequestcontext.FieldPurpose:
+		return m.Purpose()
+	case providerrequestcontext.FieldStatus:
+		return m.Status()
+	case providerrequestcontext.FieldExpiresAt:
+		return m.ExpiresAt()
+	case providerrequestcontext.FieldRevokedAt:
+		return m.RevokedAt()
+	case providerrequestcontext.FieldRevokedReason:
+		return m.RevokedReason()
+	case providerrequestcontext.FieldMetadata:
+		return m.Metadata()
+	case providerrequestcontext.FieldCreatedAt:
+		return m.CreatedAt()
+	case providerrequestcontext.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case providerrequestcontext.FieldDeletedAt:
+		return m.DeletedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ProviderRequestContextMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case providerrequestcontext.FieldTokenHash:
+		return m.OldTokenHash(ctx)
+	case providerrequestcontext.FieldProviderPluginID:
+		return m.OldProviderPluginID(ctx)
+	case providerrequestcontext.FieldSpaceID:
+		return m.OldSpaceID(ctx)
+	case providerrequestcontext.FieldActorUserID:
+		return m.OldActorUserID(ctx)
+	case providerrequestcontext.FieldActorMemberID:
+		return m.OldActorMemberID(ctx)
+	case providerrequestcontext.FieldActorUserMemberID:
+		return m.OldActorUserMemberID(ctx)
+	case providerrequestcontext.FieldAuthorizationDecisionID:
+		return m.OldAuthorizationDecisionID(ctx)
+	case providerrequestcontext.FieldRequestID:
+		return m.OldRequestID(ctx)
+	case providerrequestcontext.FieldPurpose:
+		return m.OldPurpose(ctx)
+	case providerrequestcontext.FieldStatus:
+		return m.OldStatus(ctx)
+	case providerrequestcontext.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
+	case providerrequestcontext.FieldRevokedAt:
+		return m.OldRevokedAt(ctx)
+	case providerrequestcontext.FieldRevokedReason:
+		return m.OldRevokedReason(ctx)
+	case providerrequestcontext.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case providerrequestcontext.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case providerrequestcontext.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case providerrequestcontext.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ProviderRequestContext field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProviderRequestContextMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case providerrequestcontext.FieldTokenHash:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTokenHash(v)
+		return nil
+	case providerrequestcontext.FieldProviderPluginID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderPluginID(v)
+		return nil
+	case providerrequestcontext.FieldSpaceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSpaceID(v)
+		return nil
+	case providerrequestcontext.FieldActorUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorUserID(v)
+		return nil
+	case providerrequestcontext.FieldActorMemberID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorMemberID(v)
+		return nil
+	case providerrequestcontext.FieldActorUserMemberID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActorUserMemberID(v)
+		return nil
+	case providerrequestcontext.FieldAuthorizationDecisionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAuthorizationDecisionID(v)
+		return nil
+	case providerrequestcontext.FieldRequestID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRequestID(v)
+		return nil
+	case providerrequestcontext.FieldPurpose:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPurpose(v)
+		return nil
+	case providerrequestcontext.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case providerrequestcontext.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
+		return nil
+	case providerrequestcontext.FieldRevokedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRevokedAt(v)
+		return nil
+	case providerrequestcontext.FieldRevokedReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRevokedReason(v)
+		return nil
+	case providerrequestcontext.FieldMetadata:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case providerrequestcontext.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case providerrequestcontext.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case providerrequestcontext.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderRequestContext field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ProviderRequestContextMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ProviderRequestContextMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProviderRequestContextMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ProviderRequestContext numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ProviderRequestContextMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(providerrequestcontext.FieldActorUserID) {
+		fields = append(fields, providerrequestcontext.FieldActorUserID)
+	}
+	if m.FieldCleared(providerrequestcontext.FieldActorMemberID) {
+		fields = append(fields, providerrequestcontext.FieldActorMemberID)
+	}
+	if m.FieldCleared(providerrequestcontext.FieldActorUserMemberID) {
+		fields = append(fields, providerrequestcontext.FieldActorUserMemberID)
+	}
+	if m.FieldCleared(providerrequestcontext.FieldAuthorizationDecisionID) {
+		fields = append(fields, providerrequestcontext.FieldAuthorizationDecisionID)
+	}
+	if m.FieldCleared(providerrequestcontext.FieldRequestID) {
+		fields = append(fields, providerrequestcontext.FieldRequestID)
+	}
+	if m.FieldCleared(providerrequestcontext.FieldPurpose) {
+		fields = append(fields, providerrequestcontext.FieldPurpose)
+	}
+	if m.FieldCleared(providerrequestcontext.FieldRevokedAt) {
+		fields = append(fields, providerrequestcontext.FieldRevokedAt)
+	}
+	if m.FieldCleared(providerrequestcontext.FieldRevokedReason) {
+		fields = append(fields, providerrequestcontext.FieldRevokedReason)
+	}
+	if m.FieldCleared(providerrequestcontext.FieldMetadata) {
+		fields = append(fields, providerrequestcontext.FieldMetadata)
+	}
+	if m.FieldCleared(providerrequestcontext.FieldDeletedAt) {
+		fields = append(fields, providerrequestcontext.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ProviderRequestContextMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ProviderRequestContextMutation) ClearField(name string) error {
+	switch name {
+	case providerrequestcontext.FieldActorUserID:
+		m.ClearActorUserID()
+		return nil
+	case providerrequestcontext.FieldActorMemberID:
+		m.ClearActorMemberID()
+		return nil
+	case providerrequestcontext.FieldActorUserMemberID:
+		m.ClearActorUserMemberID()
+		return nil
+	case providerrequestcontext.FieldAuthorizationDecisionID:
+		m.ClearAuthorizationDecisionID()
+		return nil
+	case providerrequestcontext.FieldRequestID:
+		m.ClearRequestID()
+		return nil
+	case providerrequestcontext.FieldPurpose:
+		m.ClearPurpose()
+		return nil
+	case providerrequestcontext.FieldRevokedAt:
+		m.ClearRevokedAt()
+		return nil
+	case providerrequestcontext.FieldRevokedReason:
+		m.ClearRevokedReason()
+		return nil
+	case providerrequestcontext.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case providerrequestcontext.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderRequestContext nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ProviderRequestContextMutation) ResetField(name string) error {
+	switch name {
+	case providerrequestcontext.FieldTokenHash:
+		m.ResetTokenHash()
+		return nil
+	case providerrequestcontext.FieldProviderPluginID:
+		m.ResetProviderPluginID()
+		return nil
+	case providerrequestcontext.FieldSpaceID:
+		m.ResetSpaceID()
+		return nil
+	case providerrequestcontext.FieldActorUserID:
+		m.ResetActorUserID()
+		return nil
+	case providerrequestcontext.FieldActorMemberID:
+		m.ResetActorMemberID()
+		return nil
+	case providerrequestcontext.FieldActorUserMemberID:
+		m.ResetActorUserMemberID()
+		return nil
+	case providerrequestcontext.FieldAuthorizationDecisionID:
+		m.ResetAuthorizationDecisionID()
+		return nil
+	case providerrequestcontext.FieldRequestID:
+		m.ResetRequestID()
+		return nil
+	case providerrequestcontext.FieldPurpose:
+		m.ResetPurpose()
+		return nil
+	case providerrequestcontext.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case providerrequestcontext.FieldExpiresAt:
+		m.ResetExpiresAt()
+		return nil
+	case providerrequestcontext.FieldRevokedAt:
+		m.ResetRevokedAt()
+		return nil
+	case providerrequestcontext.FieldRevokedReason:
+		m.ResetRevokedReason()
+		return nil
+	case providerrequestcontext.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case providerrequestcontext.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case providerrequestcontext.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case providerrequestcontext.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderRequestContext field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ProviderRequestContextMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ProviderRequestContextMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ProviderRequestContextMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ProviderRequestContextMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ProviderRequestContextMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ProviderRequestContextMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ProviderRequestContextMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ProviderRequestContext unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ProviderRequestContextMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ProviderRequestContext edge %s", name)
 }
 
 // ResourceMutation represents an operation that mutates the Resource nodes in the graph.

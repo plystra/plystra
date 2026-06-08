@@ -33,6 +33,7 @@ import (
 	"github.com/plystra/core/ent/pluginadminmenu"
 	"github.com/plystra/core/ent/pluginsettingsdefinition"
 	"github.com/plystra/core/ent/pluginsettingsvalue"
+	"github.com/plystra/core/ent/providerrequestcontext"
 	"github.com/plystra/core/ent/resource"
 	"github.com/plystra/core/ent/resourceaction"
 	"github.com/plystra/core/ent/resourcemapping"
@@ -89,6 +90,8 @@ type Client struct {
 	PluginSettingsDefinition *PluginSettingsDefinitionClient
 	// PluginSettingsValue is the client for interacting with the PluginSettingsValue builders.
 	PluginSettingsValue *PluginSettingsValueClient
+	// ProviderRequestContext is the client for interacting with the ProviderRequestContext builders.
+	ProviderRequestContext *ProviderRequestContextClient
 	// Resource is the client for interacting with the Resource builders.
 	Resource *ResourceClient
 	// ResourceAction is the client for interacting with the ResourceAction builders.
@@ -141,6 +144,7 @@ func (c *Client) init() {
 	c.PluginAdminMenu = NewPluginAdminMenuClient(c.config)
 	c.PluginSettingsDefinition = NewPluginSettingsDefinitionClient(c.config)
 	c.PluginSettingsValue = NewPluginSettingsValueClient(c.config)
+	c.ProviderRequestContext = NewProviderRequestContextClient(c.config)
 	c.Resource = NewResourceClient(c.config)
 	c.ResourceAction = NewResourceActionClient(c.config)
 	c.ResourceMapping = NewResourceMappingClient(c.config)
@@ -263,6 +267,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PluginAdminMenu:           NewPluginAdminMenuClient(cfg),
 		PluginSettingsDefinition:  NewPluginSettingsDefinitionClient(cfg),
 		PluginSettingsValue:       NewPluginSettingsValueClient(cfg),
+		ProviderRequestContext:    NewProviderRequestContextClient(cfg),
 		Resource:                  NewResourceClient(cfg),
 		ResourceAction:            NewResourceActionClient(cfg),
 		ResourceMapping:           NewResourceMappingClient(cfg),
@@ -312,6 +317,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PluginAdminMenu:           NewPluginAdminMenuClient(cfg),
 		PluginSettingsDefinition:  NewPluginSettingsDefinitionClient(cfg),
 		PluginSettingsValue:       NewPluginSettingsValueClient(cfg),
+		ProviderRequestContext:    NewProviderRequestContextClient(cfg),
 		Resource:                  NewResourceClient(cfg),
 		ResourceAction:            NewResourceActionClient(cfg),
 		ResourceMapping:           NewResourceMappingClient(cfg),
@@ -356,9 +362,10 @@ func (c *Client) Use(hooks ...Hook) {
 		c.AppDataRecordRevision, c.AuditEventType, c.AuditLog, c.BackgroundJob,
 		c.CapabilityGrant, c.CapabilityProviderBinding, c.Group, c.Member,
 		c.MemberRole, c.Permission, c.Plugin, c.PluginAdminMenu,
-		c.PluginSettingsDefinition, c.PluginSettingsValue, c.Resource,
-		c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role, c.RolePermission,
-		c.Session, c.Space, c.TemplateInstallation, c.User, c.UserMember,
+		c.PluginSettingsDefinition, c.PluginSettingsValue, c.ProviderRequestContext,
+		c.Resource, c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role,
+		c.RolePermission, c.Session, c.Space, c.TemplateInstallation, c.User,
+		c.UserMember,
 	} {
 		n.Use(hooks...)
 	}
@@ -372,9 +379,10 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.AppDataRecordRevision, c.AuditEventType, c.AuditLog, c.BackgroundJob,
 		c.CapabilityGrant, c.CapabilityProviderBinding, c.Group, c.Member,
 		c.MemberRole, c.Permission, c.Plugin, c.PluginAdminMenu,
-		c.PluginSettingsDefinition, c.PluginSettingsValue, c.Resource,
-		c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role, c.RolePermission,
-		c.Session, c.Space, c.TemplateInstallation, c.User, c.UserMember,
+		c.PluginSettingsDefinition, c.PluginSettingsValue, c.ProviderRequestContext,
+		c.Resource, c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role,
+		c.RolePermission, c.Session, c.Space, c.TemplateInstallation, c.User,
+		c.UserMember,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -421,6 +429,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PluginSettingsDefinition.mutate(ctx, m)
 	case *PluginSettingsValueMutation:
 		return c.PluginSettingsValue.mutate(ctx, m)
+	case *ProviderRequestContextMutation:
+		return c.ProviderRequestContext.mutate(ctx, m)
 	case *ResourceMutation:
 		return c.Resource.mutate(ctx, m)
 	case *ResourceActionMutation:
@@ -2976,6 +2986,139 @@ func (c *PluginSettingsValueClient) mutate(ctx context.Context, m *PluginSetting
 	}
 }
 
+// ProviderRequestContextClient is a client for the ProviderRequestContext schema.
+type ProviderRequestContextClient struct {
+	config
+}
+
+// NewProviderRequestContextClient returns a client for the ProviderRequestContext from the given config.
+func NewProviderRequestContextClient(c config) *ProviderRequestContextClient {
+	return &ProviderRequestContextClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `providerrequestcontext.Hooks(f(g(h())))`.
+func (c *ProviderRequestContextClient) Use(hooks ...Hook) {
+	c.hooks.ProviderRequestContext = append(c.hooks.ProviderRequestContext, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `providerrequestcontext.Intercept(f(g(h())))`.
+func (c *ProviderRequestContextClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ProviderRequestContext = append(c.inters.ProviderRequestContext, interceptors...)
+}
+
+// Create returns a builder for creating a ProviderRequestContext entity.
+func (c *ProviderRequestContextClient) Create() *ProviderRequestContextCreate {
+	mutation := newProviderRequestContextMutation(c.config, OpCreate)
+	return &ProviderRequestContextCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ProviderRequestContext entities.
+func (c *ProviderRequestContextClient) CreateBulk(builders ...*ProviderRequestContextCreate) *ProviderRequestContextCreateBulk {
+	return &ProviderRequestContextCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProviderRequestContextClient) MapCreateBulk(slice any, setFunc func(*ProviderRequestContextCreate, int)) *ProviderRequestContextCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProviderRequestContextCreateBulk{err: fmt.Errorf("calling to ProviderRequestContextClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProviderRequestContextCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ProviderRequestContextCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ProviderRequestContext.
+func (c *ProviderRequestContextClient) Update() *ProviderRequestContextUpdate {
+	mutation := newProviderRequestContextMutation(c.config, OpUpdate)
+	return &ProviderRequestContextUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProviderRequestContextClient) UpdateOne(_m *ProviderRequestContext) *ProviderRequestContextUpdateOne {
+	mutation := newProviderRequestContextMutation(c.config, OpUpdateOne, withProviderRequestContext(_m))
+	return &ProviderRequestContextUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProviderRequestContextClient) UpdateOneID(id string) *ProviderRequestContextUpdateOne {
+	mutation := newProviderRequestContextMutation(c.config, OpUpdateOne, withProviderRequestContextID(id))
+	return &ProviderRequestContextUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ProviderRequestContext.
+func (c *ProviderRequestContextClient) Delete() *ProviderRequestContextDelete {
+	mutation := newProviderRequestContextMutation(c.config, OpDelete)
+	return &ProviderRequestContextDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProviderRequestContextClient) DeleteOne(_m *ProviderRequestContext) *ProviderRequestContextDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProviderRequestContextClient) DeleteOneID(id string) *ProviderRequestContextDeleteOne {
+	builder := c.Delete().Where(providerrequestcontext.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProviderRequestContextDeleteOne{builder}
+}
+
+// Query returns a query builder for ProviderRequestContext.
+func (c *ProviderRequestContextClient) Query() *ProviderRequestContextQuery {
+	return &ProviderRequestContextQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProviderRequestContext},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ProviderRequestContext entity by its id.
+func (c *ProviderRequestContextClient) Get(ctx context.Context, id string) (*ProviderRequestContext, error) {
+	return c.Query().Where(providerrequestcontext.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProviderRequestContextClient) GetX(ctx context.Context, id string) *ProviderRequestContext {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ProviderRequestContextClient) Hooks() []Hook {
+	return c.hooks.ProviderRequestContext
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProviderRequestContextClient) Interceptors() []Interceptor {
+	return c.inters.ProviderRequestContext
+}
+
+func (c *ProviderRequestContextClient) mutate(ctx context.Context, m *ProviderRequestContextMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProviderRequestContextCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProviderRequestContextUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProviderRequestContextUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProviderRequestContextDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ProviderRequestContext mutation op: %q", m.Op())
+	}
+}
+
 // ResourceClient is a client for the Resource schema.
 type ResourceClient struct {
 	config
@@ -4446,17 +4589,17 @@ type (
 		AppDataRecordRevision, AuditEventType, AuditLog, BackgroundJob,
 		CapabilityGrant, CapabilityProviderBinding, Group, Member, MemberRole,
 		Permission, Plugin, PluginAdminMenu, PluginSettingsDefinition,
-		PluginSettingsValue, Resource, ResourceAction, ResourceMapping, ResourceType,
-		Role, RolePermission, Session, Space, TemplateInstallation, User,
-		UserMember []ent.Hook
+		PluginSettingsValue, ProviderRequestContext, Resource, ResourceAction,
+		ResourceMapping, ResourceType, Role, RolePermission, Session, Space,
+		TemplateInstallation, User, UserMember []ent.Hook
 	}
 	inters struct {
 		ActionExecution, AdminGrant, ApiKey, AppDataModel, AppDataRecord,
 		AppDataRecordRevision, AuditEventType, AuditLog, BackgroundJob,
 		CapabilityGrant, CapabilityProviderBinding, Group, Member, MemberRole,
 		Permission, Plugin, PluginAdminMenu, PluginSettingsDefinition,
-		PluginSettingsValue, Resource, ResourceAction, ResourceMapping, ResourceType,
-		Role, RolePermission, Session, Space, TemplateInstallation, User,
-		UserMember []ent.Interceptor
+		PluginSettingsValue, ProviderRequestContext, Resource, ResourceAction,
+		ResourceMapping, ResourceType, Role, RolePermission, Session, Space,
+		TemplateInstallation, User, UserMember []ent.Interceptor
 	}
 )

@@ -108,6 +108,7 @@ func backupManifest(ctx context.Context) (map[string]any, error) {
 		"app_data_models",
 		"app_data_records",
 		"app_data_record_revisions",
+		"provider_request_contexts",
 		"audit_logs",
 	} {
 		value, err := countRequiredTable(ctx, pool, table)
@@ -116,18 +117,18 @@ func backupManifest(ctx context.Context) (map[string]any, error) {
 		}
 		tables[table] = value
 	}
-	pluginTables := map[string]int64{}
-	discoveredPluginTables, err := discoverPluginOwnedTables(ctx, pool)
+	providerTables := map[string]int64{}
+	discoveredProviderTables, err := discoverProviderOwnedTables(ctx, pool)
 	if err != nil {
-		return nil, fmt.Errorf("discover plugin-owned tables: %w", err)
+		return nil, fmt.Errorf("discover provider-owned tables: %w", err)
 	}
-	for _, table := range discoveredPluginTables {
+	for _, table := range discoveredProviderTables {
 		value, exists, err := countOptionalTable(ctx, pool, table)
 		if err != nil {
-			return nil, fmt.Errorf("read optional plugin table %s count: %w", table, err)
+			return nil, fmt.Errorf("read optional provider table %s count: %w", table, err)
 		}
 		if exists {
-			pluginTables[table] = value
+			providerTables[table] = value
 		}
 	}
 	return map[string]any{
@@ -136,12 +137,13 @@ func backupManifest(ctx context.Context) (map[string]any, error) {
 		"database_url_fingerprint": databaseURLFingerprint(databaseURL()),
 		"schema_version":           schemaVersion,
 		"tables":                   tables,
-		"plugin_tables":            pluginTables,
+		"provider_tables":          providerTables,
 		"backup_scope": []string{
 			"PostgreSQL database dump",
 			"environment configuration and secrets from runtime secret store",
-			"plugin manifests and plugin-owned tables in the same database",
+			"plugin manifests and provider-owned tables in the same database",
 			"schema_migrations revision metadata",
+			"Core-issued provider request contexts and provider RLS helper functions",
 		},
 		"restore_order": []string{
 			"stop Plystra Core and plugin processes",
@@ -163,14 +165,17 @@ var corePluginSystemTables = map[string]bool{
 	"plugin_settings_values":      true,
 }
 
-func discoverPluginOwnedTables(ctx context.Context, pool *pgxpool.Pool) ([]string, error) {
+func discoverProviderOwnedTables(ctx context.Context, pool *pgxpool.Pool) ([]string, error) {
 	rows, err := pool.Query(ctx, `
-SELECT table_name
+SELECT table_schema || '.' || table_name
 FROM information_schema.tables
-WHERE table_schema = current_schema()
-  AND table_type = 'BASE TABLE'
-  AND table_name LIKE 'plugin\_%' ESCAPE '\'
-ORDER BY table_name`)
+WHERE table_type = 'BASE TABLE'
+  AND (
+    (table_schema = current_schema() AND table_name LIKE 'plugin\_%' ESCAPE '\')
+    OR table_schema LIKE 'plg\_%' ESCAPE '\'
+    OR table_schema LIKE 'app\_%' ESCAPE '\'
+  )
+ORDER BY table_schema, table_name`)
 	if err != nil {
 		return nil, err
 	}
@@ -182,33 +187,45 @@ ORDER BY table_name`)
 		if err := rows.Scan(&table); err != nil {
 			return nil, err
 		}
-		if pluginBackupTableAllowed(table) {
-			tables = append(tables, safeTableIdentifier(table))
+		if providerBackupTableAllowed(table) {
+			tables = append(tables, safeQualifiedTableIdentifier(table))
 		}
 	}
 	return tables, rows.Err()
 }
 
+func providerBackupTableAllowed(table string) bool {
+	schemaName, tableName, ok := strings.Cut(table, ".")
+	if !ok || !tableNamePattern.MatchString(schemaName) || !tableNamePattern.MatchString(tableName) {
+		return false
+	}
+	if schemaName == "public" {
+		if !strings.HasPrefix(tableName, "plugin_") {
+			return false
+		}
+		return !corePluginSystemTables[tableName]
+	}
+	return strings.HasPrefix(schemaName, "plg_") || strings.HasPrefix(schemaName, "app_")
+}
+
 func pluginBackupTableAllowed(table string) bool {
-	if !tableNamePattern.MatchString(table) {
-		return false
-	}
-	if !strings.HasPrefix(table, "plugin_") {
-		return false
-	}
-	return !corePluginSystemTables[table]
+	return providerBackupTableAllowed("public." + table)
 }
 
 func countRequiredTable(ctx context.Context, pool *pgxpool.Pool, table string) (int64, error) {
+	return countTableIdentifier(ctx, pool, safeTableIdentifier(table))
+}
+
+func countTableIdentifier(ctx context.Context, pool *pgxpool.Pool, table string) (int64, error) {
 	var value int64
-	if err := pool.QueryRow(ctx, `SELECT count(*) FROM `+safeTableIdentifier(table)).Scan(&value); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM `+table).Scan(&value); err != nil {
 		return 0, err
 	}
 	return value, nil
 }
 
 func countOptionalTable(ctx context.Context, pool *pgxpool.Pool, table string) (int64, bool, error) {
-	table = safeTableIdentifier(table)
+	table = safeQualifiedTableIdentifier(table)
 	var exists bool
 	if err := pool.QueryRow(ctx, `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 		return 0, false, err
@@ -216,7 +233,7 @@ func countOptionalTable(ctx context.Context, pool *pgxpool.Pool, table string) (
 	if !exists {
 		return 0, false, nil
 	}
-	value, err := countRequiredTable(ctx, pool, table)
+	value, err := countTableIdentifier(ctx, pool, table)
 	return value, true, err
 }
 
@@ -225,6 +242,17 @@ func safeTableIdentifier(table string) string {
 		panic("invalid static table identifier: " + table)
 	}
 	return table
+}
+
+func safeQualifiedTableIdentifier(table string) string {
+	schemaName, tableName, ok := strings.Cut(table, ".")
+	if !ok {
+		return safeTableIdentifier(table)
+	}
+	if !tableNamePattern.MatchString(schemaName) || !tableNamePattern.MatchString(tableName) {
+		panic("invalid provider table identifier: " + table)
+	}
+	return schemaName + "." + tableName
 }
 
 func pgDumpCommand(rawURL string) string {

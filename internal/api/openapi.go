@@ -674,6 +674,24 @@ type openAPIGrantIntrospectionResponse struct {
 	ExpiresAt            string                          `json:"expires_at,omitempty" format:"date-time"`
 }
 
+type openAPIProviderRequestContext struct {
+	ID                      string         `json:"id"`
+	ContextToken            string         `json:"context_token,omitempty"`
+	ProviderPluginID        string         `json:"provider_plugin_id"`
+	SpaceID                 string         `json:"space_id"`
+	ActorUserID             string         `json:"actor_user_id,omitempty"`
+	ActorMemberID           string         `json:"actor_member_id,omitempty"`
+	ActorUserMemberID       string         `json:"actor_user_member_id,omitempty"`
+	AuthorizationDecisionID string         `json:"authorization_decision_id,omitempty"`
+	RequestID               string         `json:"request_id,omitempty"`
+	Purpose                 string         `json:"purpose,omitempty"`
+	Status                  string         `json:"status" example:"active"`
+	ExpiresAt               string         `json:"expires_at" format:"date-time"`
+	Metadata                map[string]any `json:"metadata"`
+	CreatedAt               string         `json:"created_at" format:"date-time"`
+	UpdatedAt               string         `json:"updated_at" format:"date-time"`
+}
+
 type openAPIActionExecution struct {
 	ActionExecutionID           string         `json:"action_execution_id"`
 	SpaceID                     string         `json:"space_id"`
@@ -986,6 +1004,7 @@ func openAPIRoutes() []openAPIRoute {
 		{Method: http.MethodDelete, Path: "/api/v1/capability-provider-bindings/{binding_id}", Tag: "Capability Grants", ID: "disableCapabilityProviderBinding", Summary: "Disable a capability provider binding", Params: new(struct {
 			BindingID string `path:"binding_id"`
 		}), Response: new(openAPIEnvelope[openAPICapabilityProviderBinding]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/provider-request-contexts", Tag: "Capability Grants", ID: "issueProviderRequestContext", Summary: "Issue a provider database request context", Description: "Provider runtimes use this provider-bound API to obtain a short-lived opaque token. Inside a provider database transaction, the runtime calls plystra.set_verified_context(token); RLS policies then read plystra.current_space_id() and related verified GUC helpers. Core stores only a token hash and returns the plaintext token once.", Body: new(providerRequestContextRequest), Response: new(openAPIEnvelope[openAPIProviderRequestContext]), Status: http.StatusCreated, Security: openAPIAdmin},
 		{Method: http.MethodGet, Path: "/api/v1/action-executions", Tag: "Action Gateway", ID: "listActionExecutions", Summary: "List Action Gateway executions", Description: "Lists Core-owned controlled_action execution ledger rows for a Space without exposing business request payloads.", Params: new(struct {
 			SpaceID      string `query:"space_id"`
 			Capability   string `query:"capability"`

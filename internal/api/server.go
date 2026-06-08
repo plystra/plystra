@@ -56,6 +56,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/v1/capability-outcomes", s.handleCapabilityOutcomes)
 	mux.HandleFunc("/api/v1/capability-provider-bindings", s.handleCapabilityProviderBindings)
 	mux.HandleFunc("/api/v1/capability-provider-bindings/", s.handleCapabilityProviderBindingSubroutes)
+	mux.HandleFunc("/api/v1/provider-request-contexts", s.handleProviderRequestContexts)
 	mux.HandleFunc("/api/v1/action-executions", s.handleActionExecutions)
 	mux.HandleFunc("/api/v1/action-executions/", s.handleActionExecutionSubroutes)
 	mux.HandleFunc("/metrics", s.handleMetrics)

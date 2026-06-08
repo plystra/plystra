@@ -24,6 +24,7 @@ import (
 	"github.com/plystra/core/ent/pluginadminmenu"
 	"github.com/plystra/core/ent/pluginsettingsdefinition"
 	"github.com/plystra/core/ent/pluginsettingsvalue"
+	"github.com/plystra/core/ent/providerrequestcontext"
 	"github.com/plystra/core/ent/resource"
 	"github.com/plystra/core/ent/resourceaction"
 	"github.com/plystra/core/ent/resourcemapping"
@@ -778,6 +779,38 @@ func init() {
 	pluginsettingsvalueDescID := pluginsettingsvalueFields[0].Descriptor()
 	// pluginsettingsvalue.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	pluginsettingsvalue.IDValidator = pluginsettingsvalueDescID.Validators[0].(func(string) error)
+	providerrequestcontextFields := schema.ProviderRequestContext{}.Fields()
+	_ = providerrequestcontextFields
+	// providerrequestcontextDescTokenHash is the schema descriptor for token_hash field.
+	providerrequestcontextDescTokenHash := providerrequestcontextFields[1].Descriptor()
+	// providerrequestcontext.TokenHashValidator is a validator for the "token_hash" field. It is called by the builders before save.
+	providerrequestcontext.TokenHashValidator = providerrequestcontextDescTokenHash.Validators[0].(func(string) error)
+	// providerrequestcontextDescProviderPluginID is the schema descriptor for provider_plugin_id field.
+	providerrequestcontextDescProviderPluginID := providerrequestcontextFields[2].Descriptor()
+	// providerrequestcontext.ProviderPluginIDValidator is a validator for the "provider_plugin_id" field. It is called by the builders before save.
+	providerrequestcontext.ProviderPluginIDValidator = providerrequestcontextDescProviderPluginID.Validators[0].(func(string) error)
+	// providerrequestcontextDescSpaceID is the schema descriptor for space_id field.
+	providerrequestcontextDescSpaceID := providerrequestcontextFields[3].Descriptor()
+	// providerrequestcontext.SpaceIDValidator is a validator for the "space_id" field. It is called by the builders before save.
+	providerrequestcontext.SpaceIDValidator = providerrequestcontextDescSpaceID.Validators[0].(func(string) error)
+	// providerrequestcontextDescStatus is the schema descriptor for status field.
+	providerrequestcontextDescStatus := providerrequestcontextFields[10].Descriptor()
+	// providerrequestcontext.DefaultStatus holds the default value on creation for the status field.
+	providerrequestcontext.DefaultStatus = providerrequestcontextDescStatus.Default.(string)
+	// providerrequestcontextDescCreatedAt is the schema descriptor for created_at field.
+	providerrequestcontextDescCreatedAt := providerrequestcontextFields[15].Descriptor()
+	// providerrequestcontext.DefaultCreatedAt holds the default value on creation for the created_at field.
+	providerrequestcontext.DefaultCreatedAt = providerrequestcontextDescCreatedAt.Default.(func() time.Time)
+	// providerrequestcontextDescUpdatedAt is the schema descriptor for updated_at field.
+	providerrequestcontextDescUpdatedAt := providerrequestcontextFields[16].Descriptor()
+	// providerrequestcontext.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	providerrequestcontext.DefaultUpdatedAt = providerrequestcontextDescUpdatedAt.Default.(func() time.Time)
+	// providerrequestcontext.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	providerrequestcontext.UpdateDefaultUpdatedAt = providerrequestcontextDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// providerrequestcontextDescID is the schema descriptor for id field.
+	providerrequestcontextDescID := providerrequestcontextFields[0].Descriptor()
+	// providerrequestcontext.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	providerrequestcontext.IDValidator = providerrequestcontextDescID.Validators[0].(func(string) error)
 	resourceFields := schema.Resource{}.Fields()
 	_ = resourceFields
 	// resourceDescResourceType is the schema descriptor for resource_type field.

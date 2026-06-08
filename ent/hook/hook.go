@@ -237,6 +237,18 @@ func (f PluginSettingsValueFunc) Mutate(ctx context.Context, m ent.Mutation) (en
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PluginSettingsValueMutation", m)
 }
 
+// The ProviderRequestContextFunc type is an adapter to allow the use of ordinary
+// function as ProviderRequestContext mutator.
+type ProviderRequestContextFunc func(context.Context, *ent.ProviderRequestContextMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProviderRequestContextFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProviderRequestContextMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProviderRequestContextMutation", m)
+}
+
 // The ResourceFunc type is an adapter to allow the use of ordinary
 // function as Resource mutator.
 type ResourceFunc func(context.Context, *ent.ResourceMutation) (ent.Value, error)

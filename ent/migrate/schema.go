@@ -821,6 +821,60 @@ var (
 			},
 		},
 	}
+	// ProviderRequestContextsColumns holds the columns for the "provider_request_contexts" table.
+	ProviderRequestContextsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "token_hash", Type: field.TypeString},
+		{Name: "provider_plugin_id", Type: field.TypeString},
+		{Name: "space_id", Type: field.TypeString},
+		{Name: "actor_user_id", Type: field.TypeString, Nullable: true},
+		{Name: "actor_member_id", Type: field.TypeString, Nullable: true},
+		{Name: "actor_user_member_id", Type: field.TypeString, Nullable: true},
+		{Name: "authorization_decision_id", Type: field.TypeString, Nullable: true},
+		{Name: "request_id", Type: field.TypeString, Nullable: true},
+		{Name: "purpose", Type: field.TypeString, Nullable: true},
+		{Name: "status", Type: field.TypeString, Default: schema.Expr("'active'")},
+		{Name: "expires_at", Type: field.TypeTime},
+		{Name: "revoked_at", Type: field.TypeTime, Nullable: true},
+		{Name: "revoked_reason", Type: field.TypeString, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, Default: schema.Expr("'{}'::jsonb")},
+		{Name: "created_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+		{Name: "updated_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+	}
+	// ProviderRequestContextsTable holds the schema information for the "provider_request_contexts" table.
+	ProviderRequestContextsTable = &schema.Table{
+		Name:       "provider_request_contexts",
+		Columns:    ProviderRequestContextsColumns,
+		PrimaryKey: []*schema.Column{ProviderRequestContextsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "providerrequestcontext_token_hash",
+				Unique:  true,
+				Columns: []*schema.Column{ProviderRequestContextsColumns[1]},
+			},
+			{
+				Name:    "providerrequestcontext_provider_plugin_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderRequestContextsColumns[2], ProviderRequestContextsColumns[10]},
+			},
+			{
+				Name:    "providerrequestcontext_space_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderRequestContextsColumns[3], ProviderRequestContextsColumns[10]},
+			},
+			{
+				Name:    "providerrequestcontext_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderRequestContextsColumns[11]},
+			},
+			{
+				Name:    "providerrequestcontext_authorization_decision_id",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderRequestContextsColumns[7]},
+			},
+		},
+	}
 	// ResourcesColumns holds the columns for the "resources" table.
 	ResourcesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -1128,6 +1182,7 @@ var (
 		PluginAdminMenusTable,
 		PluginSettingsDefinitionsTable,
 		PluginSettingsValuesTable,
+		ProviderRequestContextsTable,
 		ResourcesTable,
 		ResourceActionsTable,
 		ResourceMappingsTable,

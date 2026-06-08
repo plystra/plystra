@@ -3940,6 +3940,56 @@
         ]
       }
     },
+    "/api/v1/provider-request-contexts": {
+      "post": {
+        "tags": [
+          "Capability Grants"
+        ],
+        "summary": "Issue a provider database request context",
+        "description": "Provider runtimes use this provider-bound API to obtain a short-lived opaque token. Inside a provider database transaction, the runtime calls plystra.set_verified_context(token); RLS policies then read plystra.current_space_id() and related verified GUC helpers. Core stores only a token hash and returns the plaintext token once.",
+        "operationId": "issueProviderRequestContext",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiProviderRequestContextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIProviderRequestContext"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/ready": {
       "get": {
         "tags": [
@@ -10779,6 +10829,18 @@
           }
         }
       },
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIProviderRequestContext": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ApiOpenAPIProviderRequestContext"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req_01hzyj6b6q8"
+          }
+        }
+      },
       "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIReady": {
         "type": "object",
         "properties": {
@@ -11986,6 +12048,62 @@
           }
         }
       },
+      "ApiOpenAPIProviderRequestContext": {
+        "type": "object",
+        "properties": {
+          "actor_member_id": {
+            "type": "string"
+          },
+          "actor_user_id": {
+            "type": "string"
+          },
+          "actor_user_member_id": {
+            "type": "string"
+          },
+          "authorization_decision_id": {
+            "type": "string"
+          },
+          "context_token": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "provider_plugin_id": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "example": "active"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "ApiOpenAPIReady": {
         "type": "object",
         "properties": {
@@ -12633,6 +12751,34 @@
           },
           "space_id": {
             "type": "string"
+          }
+        }
+      },
+      "ApiProviderRequestContextRequest": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/AuthzActorContext"
+          },
+          "authorization_decision_id": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "provider_plugin_id": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "ttl_ms": {
+            "type": "integer"
           }
         }
       },

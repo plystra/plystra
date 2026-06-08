@@ -50,6 +50,8 @@ type Tx struct {
 	PluginSettingsDefinition *PluginSettingsDefinitionClient
 	// PluginSettingsValue is the client for interacting with the PluginSettingsValue builders.
 	PluginSettingsValue *PluginSettingsValueClient
+	// ProviderRequestContext is the client for interacting with the ProviderRequestContext builders.
+	ProviderRequestContext *ProviderRequestContextClient
 	// Resource is the client for interacting with the Resource builders.
 	Resource *ResourceClient
 	// ResourceAction is the client for interacting with the ResourceAction builders.
@@ -222,6 +224,7 @@ func (tx *Tx) init() {
 	tx.PluginAdminMenu = NewPluginAdminMenuClient(tx.config)
 	tx.PluginSettingsDefinition = NewPluginSettingsDefinitionClient(tx.config)
 	tx.PluginSettingsValue = NewPluginSettingsValueClient(tx.config)
+	tx.ProviderRequestContext = NewProviderRequestContextClient(tx.config)
 	tx.Resource = NewResourceClient(tx.config)
 	tx.ResourceAction = NewResourceActionClient(tx.config)
 	tx.ResourceMapping = NewResourceMappingClient(tx.config)

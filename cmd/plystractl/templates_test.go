@@ -132,6 +132,28 @@ func TestPluginBackupTableAllowed(t *testing.T) {
 	}
 }
 
+func TestProviderBackupTableAllowed(t *testing.T) {
+	for _, table := range []string{
+		"plg_invoice.invoices",
+		"plg_storage.objects",
+		"app_forge.tasks",
+	} {
+		if !providerBackupTableAllowed(table) {
+			t.Fatalf("providerBackupTableAllowed(%q) = false", table)
+		}
+	}
+	for _, table := range []string{
+		"public.plugins",
+		"core.users",
+		"plg_bad.records;drop",
+		"bad-schema.records",
+	} {
+		if providerBackupTableAllowed(table) {
+			t.Fatalf("providerBackupTableAllowed(%q) = true", table)
+		}
+	}
+}
+
 func TestCreateTemplateAppRefusesExistingOutputDirectory(t *testing.T) {
 	tpl, ok := templates.ByID("blank")
 	if !ok {
