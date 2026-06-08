@@ -16,6 +16,7 @@ import (
 	entplugin "github.com/plystra/core/ent/plugin"
 	entpluginadminmenu "github.com/plystra/core/ent/pluginadminmenu"
 	entpluginsettingsdefinition "github.com/plystra/core/ent/pluginsettingsdefinition"
+	entproviderinstallation "github.com/plystra/core/ent/providerinstallation"
 	"github.com/plystra/core/internal/plugins"
 	"github.com/plystra/core/internal/store/entstore"
 )
@@ -178,6 +179,53 @@ func TestPluginManifestInstallPrunesStaleAppModuleMetadata(t *testing.T) {
 	}
 	if staleMenus != 0 {
 		t.Fatalf("stale admin menus = %d, want 0", staleMenus)
+	}
+}
+
+func TestPluginManifestInstallCreatesProviderInstallationForDirectDB(t *testing.T) {
+	databaseURL := pluginTestDatabaseURL()
+	if databaseURL == "" {
+		t.Skip("set PLYSTRA_INTEGRATION_DATABASE_URL or PLYSTRA_DATABASE_URL to run plugin integration tests")
+	}
+	ctx := context.Background()
+	store, err := entstore.Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("open ent store: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = store.Close()
+	})
+
+	suffix := fmt.Sprintf("%d", time.Now().UTC().UnixNano())
+	appModuleID := "app.sample.directdb_" + suffix
+	pluginRowID := "plugin_" + safeIdentifier(appModuleID)
+	t.Cleanup(func() {
+		if _, err := store.Client().ProviderInstallation.Delete().Where(entproviderinstallation.ProviderPluginID(appModuleID)).Exec(context.Background()); err != nil {
+			t.Fatalf("cleanup provider installation: %v", err)
+		}
+		cleanupPluginManifestMetadataRows(context.Background(), store.Client(), t, appModuleID, pluginRowID)
+	})
+
+	server := NewServer(nil, store, "1.0.0-test")
+	manifest := appModuleConvergenceManifest(appModuleID, suffix, "runtime.endpoint", "Admin", "/apps/sample/admin")
+	manifest.LocalCapabilities[0].DataPlane.Allowed = []string{"direct_db"}
+	manifest.Runtime.SchemaCompatibility = &plugins.SchemaCompatibilityDefinition{Min: 1, Preferred: 2, Max: 3}
+	installPluginManifestForTest(t, server, manifest)
+
+	installation, err := store.Client().ProviderInstallation.Query().
+		Where(entproviderinstallation.ProviderPluginID(appModuleID)).
+		Only(ctx)
+	if err != nil {
+		t.Fatalf("provider installation missing: %v", err)
+	}
+	if installation.SchemaName != "app_sample" {
+		t.Fatalf("app module schema = %q, want app_sample", installation.SchemaName)
+	}
+	if installation.RuntimeSchemaMin != 1 || installation.RuntimeSchemaPreferred != 2 || installation.RuntimeSchemaMax != 3 {
+		t.Fatalf("schema compatibility not recorded: %#v", installation)
+	}
+	if !installation.RlsRequired || !installation.ZeroDdlRuntime {
+		t.Fatalf("provider installation must require RLS and zero-DDL runtime: %#v", installation)
 	}
 }
 

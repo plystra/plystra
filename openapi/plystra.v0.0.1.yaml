@@ -1371,6 +1371,22 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIProviderInstallation:
+            properties:
+                data:
+                    $ref: '#/components/schemas/ApiOpenAPIProviderInstallation'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIProviderMigrationRevision:
+            properties:
+                data:
+                    $ref: '#/components/schemas/ApiOpenAPIProviderMigrationRevision'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
         ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIProviderRequestContext:
             properties:
                 data:
@@ -1816,6 +1832,32 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIProviderInstallation:
+            properties:
+                data:
+                    items:
+                        $ref: '#/components/schemas/ApiOpenAPIProviderInstallation'
+                    nullable: true
+                    type: array
+                pagination:
+                    $ref: '#/components/schemas/ApiOpenAPIPagination'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIProviderMigrationRevision:
+            properties:
+                data:
+                    items:
+                        $ref: '#/components/schemas/ApiOpenAPIProviderMigrationRevision'
+                    nullable: true
+                    type: array
+                pagination:
+                    $ref: '#/components/schemas/ApiOpenAPIPagination'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
         ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIResource:
             properties:
                 data:
@@ -2209,6 +2251,173 @@ components:
                     type: array
                 valid:
                     type: boolean
+            type: object
+        ApiOpenAPIProviderInstallation:
+            properties:
+                app_id:
+                    type: string
+                created_at:
+                    format: date-time
+                    type: string
+                deleted_at:
+                    format: date-time
+                    nullable: true
+                    type: string
+                id:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                migrator_role:
+                    example: plg_email_smtp_migrator_owner
+                    type: string
+                mutation_journal_required:
+                    type: boolean
+                plugin_scope:
+                    example: public
+                    type: string
+                plugin_type:
+                    example: plugin
+                    type: string
+                provider_plugin_id:
+                    type: string
+                rls_required:
+                    type: boolean
+                runtime_role:
+                    example: plg_email_smtp_runtime
+                    type: string
+                runtime_schema_max:
+                    type: integer
+                runtime_schema_min:
+                    type: integer
+                runtime_schema_preferred:
+                    type: integer
+                schema_name:
+                    example: plg_email_smtp
+                    type: string
+                schema_version:
+                    type: integer
+                status:
+                    example: planned
+                    type: string
+                trust_bundle_id:
+                    type: string
+                updated_at:
+                    format: date-time
+                    type: string
+                zero_ddl_runtime:
+                    type: boolean
+            type: object
+        ApiOpenAPIProviderMigrationRevision:
+            properties:
+                bundle_hash:
+                    type: string
+                created_at:
+                    format: date-time
+                    type: string
+                destructive:
+                    type: boolean
+                finished_at:
+                    format: date-time
+                    nullable: true
+                    type: string
+                from_schema_version:
+                    type: integer
+                id:
+                    type: string
+                installation_id:
+                    type: string
+                last_error:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                provider_plugin_id:
+                    type: string
+                requires_manual_review:
+                    type: boolean
+                reviewed_at:
+                    format: date-time
+                    nullable: true
+                    type: string
+                reviewed_by_user_id:
+                    type: string
+                revision:
+                    example: 001_create_tables
+                    type: string
+                rls_bypass:
+                    type: boolean
+                schema_name:
+                    type: string
+                started_at:
+                    format: date-time
+                    nullable: true
+                    type: string
+                status:
+                    example: review_required
+                    type: string
+                steps:
+                    items:
+                        $ref: '#/components/schemas/ApiOpenAPIProviderMigrationStep'
+                    type: array
+                to_schema_version:
+                    type: integer
+                updated_at:
+                    format: date-time
+                    type: string
+            type: object
+        ApiOpenAPIProviderMigrationStep:
+            properties:
+                backfill:
+                    type: boolean
+                created_at:
+                    format: date-time
+                    type: string
+                destructive:
+                    type: boolean
+                error:
+                    type: string
+                finished_at:
+                    format: date-time
+                    nullable: true
+                    type: string
+                id:
+                    type: string
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                precondition:
+                    type: string
+                provider_plugin_id:
+                    type: string
+                recovery_action:
+                    type: string
+                revision_id:
+                    type: string
+                rls_bypass:
+                    type: boolean
+                started_at:
+                    format: date-time
+                    nullable: true
+                    type: string
+                statement_hash:
+                    type: string
+                statement_kind:
+                    example: create_table
+                    type: string
+                status:
+                    example: planned
+                    type: string
+                step_index:
+                    type: integer
+                tenant_scope_reviewed:
+                    type: boolean
+                updated_at:
+                    format: date-time
+                    type: string
             type: object
         ApiOpenAPIProviderRequestContext:
             properties:
@@ -2705,6 +2914,68 @@ components:
                     type: object
                 space_id:
                     type: string
+            type: object
+        ApiProviderMigrationReviewRequest:
+            properties:
+                approved:
+                    type: boolean
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                notes:
+                    type: string
+            type: object
+        ApiProviderMigrationRevisionRequest:
+            properties:
+                bundle_hash:
+                    type: string
+                destructive:
+                    type: boolean
+                from_schema_version:
+                    type: integer
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                provider_plugin_id:
+                    type: string
+                requires_manual_review:
+                    type: boolean
+                revision:
+                    type: string
+                rls_bypass:
+                    type: boolean
+                steps:
+                    items:
+                        $ref: '#/components/schemas/ApiProviderMigrationStepRequest'
+                    nullable: true
+                    type: array
+                to_schema_version:
+                    type: integer
+            type: object
+        ApiProviderMigrationStepRequest:
+            properties:
+                backfill:
+                    type: boolean
+                destructive:
+                    type: boolean
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                precondition:
+                    type: string
+                recovery_action:
+                    type: string
+                rls_bypass:
+                    type: boolean
+                statement_hash:
+                    type: string
+                statement_kind:
+                    type: string
+                tenant_scope_reviewed:
+                    type: boolean
             type: object
         ApiProviderRequestContextRequest:
             properties:
@@ -5782,6 +6053,209 @@ paths:
             summary: Validate plugin manifest
             tags:
                 - Plugins
+    /api/v1/provider-installations:
+        get:
+            description: Lists Core-owned installation records for Provider runtimes that declared a direct database data plane. These records define schema and role governance; they do not expose credentials.
+            operationId: listProviderInstallations
+            parameters:
+                - in: query
+                  name: provider_plugin_id
+                  schema:
+                    type: string
+                - in: query
+                  name: status
+                  schema:
+                    type: string
+                - in: query
+                  name: app_id
+                  schema:
+                    type: string
+                - in: query
+                  name: limit
+                  schema:
+                    maximum: 200
+                    minimum: 1
+                    type: integer
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIProviderInstallation'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: List provider installations
+            tags:
+                - Provider Governance
+    /api/v1/provider-installations/{provider_installation_id}:
+        get:
+            operationId: getProviderInstallation
+            parameters:
+                - in: path
+                  name: provider_installation_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIProviderInstallation'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Get a provider installation
+            tags:
+                - Provider Governance
+    /api/v1/provider-migration-revisions:
+        get:
+            description: Lists hash-only Provider migration revision ledgers. Raw provider SQL is intentionally not accepted by this API.
+            operationId: listProviderMigrationRevisions
+            parameters:
+                - in: query
+                  name: provider_plugin_id
+                  schema:
+                    type: string
+                - in: query
+                  name: installation_id
+                  schema:
+                    type: string
+                - in: query
+                  name: status
+                  schema:
+                    type: string
+                - in: query
+                  name: limit
+                  schema:
+                    maximum: 200
+                    minimum: 1
+                    type: integer
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIProviderMigrationRevision'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: List provider migration revisions
+            tags:
+                - Provider Governance
+        post:
+            description: Records a Provider migration plan as bundle and statement hashes plus review flags. Core rejects secret-like metadata and raw SQL text at this boundary.
+            operationId: createProviderMigrationRevision
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiProviderMigrationRevisionRequest'
+                required: true
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIProviderMigrationRevision'
+                    description: Created
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Create a provider migration revision plan
+            tags:
+                - Provider Governance
+    /api/v1/provider-migration-revisions/{provider_migration_revision_id}:
+        get:
+            operationId: getProviderMigrationRevision
+            parameters:
+                - in: path
+                  name: provider_migration_revision_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIProviderMigrationRevision'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Get a provider migration revision
+            tags:
+                - Provider Governance
+    /api/v1/provider-migration-revisions/{provider_migration_revision_id}/review:
+        post:
+            description: Approves or rejects a Provider migration revision that includes destructive, backfill, RLS-bypass, or manually reviewed steps.
+            operationId: reviewProviderMigrationRevision
+            parameters:
+                - in: path
+                  name: provider_migration_revision_id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiProviderMigrationReviewRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPIProviderMigrationRevision'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Review a provider migration revision
+            tags:
+                - Provider Governance
     /api/v1/provider-request-contexts:
         post:
             description: Provider runtimes use this provider-bound API to obtain a short-lived opaque token. Inside a provider database transaction, the runtime calls plystra.set_verified_context(token); RLS policies then read plystra.current_space_id() and related verified GUC helpers. Core stores only a token hash and returns the plaintext token once.
@@ -8685,8 +9159,12 @@ tags:
       name: Capabilities
     - description: Core-tracked revocable grants for governed plugin-to-plugin capability invocation.
       name: Capability Grants
+    - description: Core-owned provider installation and migration governance ledgers for direct-DB Provider runtimes.
+      name: Provider Governance
     - description: Preview plugin metadata, lifecycle flags, settings, and generated metadata; not a stable plugin runtime.
       name: Plugins
+    - description: App-scoped Local Plugins governed by the same substrate as reusable plugins.
+      name: App Modules
     - description: Preview template catalog and install-flow metadata; not a stable template ecosystem.
       name: Templates
 x-tagGroups:
@@ -8727,5 +9205,7 @@ x-tagGroups:
       tags:
         - Capabilities
         - Capability Grants
+        - Provider Governance
         - Plugins
+        - App Modules
         - Templates

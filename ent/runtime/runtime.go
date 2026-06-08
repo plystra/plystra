@@ -24,6 +24,9 @@ import (
 	"github.com/plystra/core/ent/pluginadminmenu"
 	"github.com/plystra/core/ent/pluginsettingsdefinition"
 	"github.com/plystra/core/ent/pluginsettingsvalue"
+	"github.com/plystra/core/ent/providerinstallation"
+	"github.com/plystra/core/ent/providermigrationrevision"
+	"github.com/plystra/core/ent/providermigrationstep"
 	"github.com/plystra/core/ent/providerrequestcontext"
 	"github.com/plystra/core/ent/resource"
 	"github.com/plystra/core/ent/resourceaction"
@@ -779,6 +782,190 @@ func init() {
 	pluginsettingsvalueDescID := pluginsettingsvalueFields[0].Descriptor()
 	// pluginsettingsvalue.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	pluginsettingsvalue.IDValidator = pluginsettingsvalueDescID.Validators[0].(func(string) error)
+	providerinstallationFields := schema.ProviderInstallation{}.Fields()
+	_ = providerinstallationFields
+	// providerinstallationDescProviderPluginID is the schema descriptor for provider_plugin_id field.
+	providerinstallationDescProviderPluginID := providerinstallationFields[1].Descriptor()
+	// providerinstallation.ProviderPluginIDValidator is a validator for the "provider_plugin_id" field. It is called by the builders before save.
+	providerinstallation.ProviderPluginIDValidator = providerinstallationDescProviderPluginID.Validators[0].(func(string) error)
+	// providerinstallationDescPluginType is the schema descriptor for plugin_type field.
+	providerinstallationDescPluginType := providerinstallationFields[2].Descriptor()
+	// providerinstallation.PluginTypeValidator is a validator for the "plugin_type" field. It is called by the builders before save.
+	providerinstallation.PluginTypeValidator = providerinstallationDescPluginType.Validators[0].(func(string) error)
+	// providerinstallationDescPluginScope is the schema descriptor for plugin_scope field.
+	providerinstallationDescPluginScope := providerinstallationFields[3].Descriptor()
+	// providerinstallation.PluginScopeValidator is a validator for the "plugin_scope" field. It is called by the builders before save.
+	providerinstallation.PluginScopeValidator = providerinstallationDescPluginScope.Validators[0].(func(string) error)
+	// providerinstallationDescSchemaName is the schema descriptor for schema_name field.
+	providerinstallationDescSchemaName := providerinstallationFields[6].Descriptor()
+	// providerinstallation.SchemaNameValidator is a validator for the "schema_name" field. It is called by the builders before save.
+	providerinstallation.SchemaNameValidator = providerinstallationDescSchemaName.Validators[0].(func(string) error)
+	// providerinstallationDescMigratorRole is the schema descriptor for migrator_role field.
+	providerinstallationDescMigratorRole := providerinstallationFields[7].Descriptor()
+	// providerinstallation.MigratorRoleValidator is a validator for the "migrator_role" field. It is called by the builders before save.
+	providerinstallation.MigratorRoleValidator = providerinstallationDescMigratorRole.Validators[0].(func(string) error)
+	// providerinstallationDescRuntimeRole is the schema descriptor for runtime_role field.
+	providerinstallationDescRuntimeRole := providerinstallationFields[8].Descriptor()
+	// providerinstallation.RuntimeRoleValidator is a validator for the "runtime_role" field. It is called by the builders before save.
+	providerinstallation.RuntimeRoleValidator = providerinstallationDescRuntimeRole.Validators[0].(func(string) error)
+	// providerinstallationDescSchemaVersion is the schema descriptor for schema_version field.
+	providerinstallationDescSchemaVersion := providerinstallationFields[9].Descriptor()
+	// providerinstallation.DefaultSchemaVersion holds the default value on creation for the schema_version field.
+	providerinstallation.DefaultSchemaVersion = providerinstallationDescSchemaVersion.Default.(int)
+	// providerinstallationDescRuntimeSchemaMin is the schema descriptor for runtime_schema_min field.
+	providerinstallationDescRuntimeSchemaMin := providerinstallationFields[10].Descriptor()
+	// providerinstallation.DefaultRuntimeSchemaMin holds the default value on creation for the runtime_schema_min field.
+	providerinstallation.DefaultRuntimeSchemaMin = providerinstallationDescRuntimeSchemaMin.Default.(int)
+	// providerinstallationDescRuntimeSchemaMax is the schema descriptor for runtime_schema_max field.
+	providerinstallationDescRuntimeSchemaMax := providerinstallationFields[11].Descriptor()
+	// providerinstallation.DefaultRuntimeSchemaMax holds the default value on creation for the runtime_schema_max field.
+	providerinstallation.DefaultRuntimeSchemaMax = providerinstallationDescRuntimeSchemaMax.Default.(int)
+	// providerinstallationDescRuntimeSchemaPreferred is the schema descriptor for runtime_schema_preferred field.
+	providerinstallationDescRuntimeSchemaPreferred := providerinstallationFields[12].Descriptor()
+	// providerinstallation.DefaultRuntimeSchemaPreferred holds the default value on creation for the runtime_schema_preferred field.
+	providerinstallation.DefaultRuntimeSchemaPreferred = providerinstallationDescRuntimeSchemaPreferred.Default.(int)
+	// providerinstallationDescRlsRequired is the schema descriptor for rls_required field.
+	providerinstallationDescRlsRequired := providerinstallationFields[13].Descriptor()
+	// providerinstallation.DefaultRlsRequired holds the default value on creation for the rls_required field.
+	providerinstallation.DefaultRlsRequired = providerinstallationDescRlsRequired.Default.(bool)
+	// providerinstallationDescZeroDdlRuntime is the schema descriptor for zero_ddl_runtime field.
+	providerinstallationDescZeroDdlRuntime := providerinstallationFields[14].Descriptor()
+	// providerinstallation.DefaultZeroDdlRuntime holds the default value on creation for the zero_ddl_runtime field.
+	providerinstallation.DefaultZeroDdlRuntime = providerinstallationDescZeroDdlRuntime.Default.(bool)
+	// providerinstallationDescMutationJournalRequired is the schema descriptor for mutation_journal_required field.
+	providerinstallationDescMutationJournalRequired := providerinstallationFields[15].Descriptor()
+	// providerinstallation.DefaultMutationJournalRequired holds the default value on creation for the mutation_journal_required field.
+	providerinstallation.DefaultMutationJournalRequired = providerinstallationDescMutationJournalRequired.Default.(bool)
+	// providerinstallationDescStatus is the schema descriptor for status field.
+	providerinstallationDescStatus := providerinstallationFields[16].Descriptor()
+	// providerinstallation.DefaultStatus holds the default value on creation for the status field.
+	providerinstallation.DefaultStatus = providerinstallationDescStatus.Default.(string)
+	// providerinstallationDescCreatedAt is the schema descriptor for created_at field.
+	providerinstallationDescCreatedAt := providerinstallationFields[18].Descriptor()
+	// providerinstallation.DefaultCreatedAt holds the default value on creation for the created_at field.
+	providerinstallation.DefaultCreatedAt = providerinstallationDescCreatedAt.Default.(func() time.Time)
+	// providerinstallationDescUpdatedAt is the schema descriptor for updated_at field.
+	providerinstallationDescUpdatedAt := providerinstallationFields[19].Descriptor()
+	// providerinstallation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	providerinstallation.DefaultUpdatedAt = providerinstallationDescUpdatedAt.Default.(func() time.Time)
+	// providerinstallation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	providerinstallation.UpdateDefaultUpdatedAt = providerinstallationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// providerinstallationDescID is the schema descriptor for id field.
+	providerinstallationDescID := providerinstallationFields[0].Descriptor()
+	// providerinstallation.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	providerinstallation.IDValidator = providerinstallationDescID.Validators[0].(func(string) error)
+	providermigrationrevisionFields := schema.ProviderMigrationRevision{}.Fields()
+	_ = providermigrationrevisionFields
+	// providermigrationrevisionDescProviderPluginID is the schema descriptor for provider_plugin_id field.
+	providermigrationrevisionDescProviderPluginID := providermigrationrevisionFields[1].Descriptor()
+	// providermigrationrevision.ProviderPluginIDValidator is a validator for the "provider_plugin_id" field. It is called by the builders before save.
+	providermigrationrevision.ProviderPluginIDValidator = providermigrationrevisionDescProviderPluginID.Validators[0].(func(string) error)
+	// providermigrationrevisionDescInstallationID is the schema descriptor for installation_id field.
+	providermigrationrevisionDescInstallationID := providermigrationrevisionFields[2].Descriptor()
+	// providermigrationrevision.InstallationIDValidator is a validator for the "installation_id" field. It is called by the builders before save.
+	providermigrationrevision.InstallationIDValidator = providermigrationrevisionDescInstallationID.Validators[0].(func(string) error)
+	// providermigrationrevisionDescRevision is the schema descriptor for revision field.
+	providermigrationrevisionDescRevision := providermigrationrevisionFields[3].Descriptor()
+	// providermigrationrevision.RevisionValidator is a validator for the "revision" field. It is called by the builders before save.
+	providermigrationrevision.RevisionValidator = providermigrationrevisionDescRevision.Validators[0].(func(string) error)
+	// providermigrationrevisionDescBundleHash is the schema descriptor for bundle_hash field.
+	providermigrationrevisionDescBundleHash := providermigrationrevisionFields[4].Descriptor()
+	// providermigrationrevision.BundleHashValidator is a validator for the "bundle_hash" field. It is called by the builders before save.
+	providermigrationrevision.BundleHashValidator = providermigrationrevisionDescBundleHash.Validators[0].(func(string) error)
+	// providermigrationrevisionDescSchemaName is the schema descriptor for schema_name field.
+	providermigrationrevisionDescSchemaName := providermigrationrevisionFields[5].Descriptor()
+	// providermigrationrevision.SchemaNameValidator is a validator for the "schema_name" field. It is called by the builders before save.
+	providermigrationrevision.SchemaNameValidator = providermigrationrevisionDescSchemaName.Validators[0].(func(string) error)
+	// providermigrationrevisionDescFromSchemaVersion is the schema descriptor for from_schema_version field.
+	providermigrationrevisionDescFromSchemaVersion := providermigrationrevisionFields[6].Descriptor()
+	// providermigrationrevision.DefaultFromSchemaVersion holds the default value on creation for the from_schema_version field.
+	providermigrationrevision.DefaultFromSchemaVersion = providermigrationrevisionDescFromSchemaVersion.Default.(int)
+	// providermigrationrevisionDescToSchemaVersion is the schema descriptor for to_schema_version field.
+	providermigrationrevisionDescToSchemaVersion := providermigrationrevisionFields[7].Descriptor()
+	// providermigrationrevision.DefaultToSchemaVersion holds the default value on creation for the to_schema_version field.
+	providermigrationrevision.DefaultToSchemaVersion = providermigrationrevisionDescToSchemaVersion.Default.(int)
+	// providermigrationrevisionDescStatus is the schema descriptor for status field.
+	providermigrationrevisionDescStatus := providermigrationrevisionFields[8].Descriptor()
+	// providermigrationrevision.DefaultStatus holds the default value on creation for the status field.
+	providermigrationrevision.DefaultStatus = providermigrationrevisionDescStatus.Default.(string)
+	// providermigrationrevisionDescDestructive is the schema descriptor for destructive field.
+	providermigrationrevisionDescDestructive := providermigrationrevisionFields[9].Descriptor()
+	// providermigrationrevision.DefaultDestructive holds the default value on creation for the destructive field.
+	providermigrationrevision.DefaultDestructive = providermigrationrevisionDescDestructive.Default.(bool)
+	// providermigrationrevisionDescRlsBypass is the schema descriptor for rls_bypass field.
+	providermigrationrevisionDescRlsBypass := providermigrationrevisionFields[10].Descriptor()
+	// providermigrationrevision.DefaultRlsBypass holds the default value on creation for the rls_bypass field.
+	providermigrationrevision.DefaultRlsBypass = providermigrationrevisionDescRlsBypass.Default.(bool)
+	// providermigrationrevisionDescRequiresManualReview is the schema descriptor for requires_manual_review field.
+	providermigrationrevisionDescRequiresManualReview := providermigrationrevisionFields[11].Descriptor()
+	// providermigrationrevision.DefaultRequiresManualReview holds the default value on creation for the requires_manual_review field.
+	providermigrationrevision.DefaultRequiresManualReview = providermigrationrevisionDescRequiresManualReview.Default.(bool)
+	// providermigrationrevisionDescCreatedAt is the schema descriptor for created_at field.
+	providermigrationrevisionDescCreatedAt := providermigrationrevisionFields[18].Descriptor()
+	// providermigrationrevision.DefaultCreatedAt holds the default value on creation for the created_at field.
+	providermigrationrevision.DefaultCreatedAt = providermigrationrevisionDescCreatedAt.Default.(func() time.Time)
+	// providermigrationrevisionDescUpdatedAt is the schema descriptor for updated_at field.
+	providermigrationrevisionDescUpdatedAt := providermigrationrevisionFields[19].Descriptor()
+	// providermigrationrevision.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	providermigrationrevision.DefaultUpdatedAt = providermigrationrevisionDescUpdatedAt.Default.(func() time.Time)
+	// providermigrationrevision.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	providermigrationrevision.UpdateDefaultUpdatedAt = providermigrationrevisionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// providermigrationrevisionDescID is the schema descriptor for id field.
+	providermigrationrevisionDescID := providermigrationrevisionFields[0].Descriptor()
+	// providermigrationrevision.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	providermigrationrevision.IDValidator = providermigrationrevisionDescID.Validators[0].(func(string) error)
+	providermigrationstepFields := schema.ProviderMigrationStep{}.Fields()
+	_ = providermigrationstepFields
+	// providermigrationstepDescRevisionID is the schema descriptor for revision_id field.
+	providermigrationstepDescRevisionID := providermigrationstepFields[1].Descriptor()
+	// providermigrationstep.RevisionIDValidator is a validator for the "revision_id" field. It is called by the builders before save.
+	providermigrationstep.RevisionIDValidator = providermigrationstepDescRevisionID.Validators[0].(func(string) error)
+	// providermigrationstepDescProviderPluginID is the schema descriptor for provider_plugin_id field.
+	providermigrationstepDescProviderPluginID := providermigrationstepFields[2].Descriptor()
+	// providermigrationstep.ProviderPluginIDValidator is a validator for the "provider_plugin_id" field. It is called by the builders before save.
+	providermigrationstep.ProviderPluginIDValidator = providermigrationstepDescProviderPluginID.Validators[0].(func(string) error)
+	// providermigrationstepDescStatementHash is the schema descriptor for statement_hash field.
+	providermigrationstepDescStatementHash := providermigrationstepFields[4].Descriptor()
+	// providermigrationstep.StatementHashValidator is a validator for the "statement_hash" field. It is called by the builders before save.
+	providermigrationstep.StatementHashValidator = providermigrationstepDescStatementHash.Validators[0].(func(string) error)
+	// providermigrationstepDescStatementKind is the schema descriptor for statement_kind field.
+	providermigrationstepDescStatementKind := providermigrationstepFields[5].Descriptor()
+	// providermigrationstep.StatementKindValidator is a validator for the "statement_kind" field. It is called by the builders before save.
+	providermigrationstep.StatementKindValidator = providermigrationstepDescStatementKind.Validators[0].(func(string) error)
+	// providermigrationstepDescStatus is the schema descriptor for status field.
+	providermigrationstepDescStatus := providermigrationstepFields[6].Descriptor()
+	// providermigrationstep.DefaultStatus holds the default value on creation for the status field.
+	providermigrationstep.DefaultStatus = providermigrationstepDescStatus.Default.(string)
+	// providermigrationstepDescDestructive is the schema descriptor for destructive field.
+	providermigrationstepDescDestructive := providermigrationstepFields[7].Descriptor()
+	// providermigrationstep.DefaultDestructive holds the default value on creation for the destructive field.
+	providermigrationstep.DefaultDestructive = providermigrationstepDescDestructive.Default.(bool)
+	// providermigrationstepDescBackfill is the schema descriptor for backfill field.
+	providermigrationstepDescBackfill := providermigrationstepFields[8].Descriptor()
+	// providermigrationstep.DefaultBackfill holds the default value on creation for the backfill field.
+	providermigrationstep.DefaultBackfill = providermigrationstepDescBackfill.Default.(bool)
+	// providermigrationstepDescTenantScopeReviewed is the schema descriptor for tenant_scope_reviewed field.
+	providermigrationstepDescTenantScopeReviewed := providermigrationstepFields[9].Descriptor()
+	// providermigrationstep.DefaultTenantScopeReviewed holds the default value on creation for the tenant_scope_reviewed field.
+	providermigrationstep.DefaultTenantScopeReviewed = providermigrationstepDescTenantScopeReviewed.Default.(bool)
+	// providermigrationstepDescRlsBypass is the schema descriptor for rls_bypass field.
+	providermigrationstepDescRlsBypass := providermigrationstepFields[10].Descriptor()
+	// providermigrationstep.DefaultRlsBypass holds the default value on creation for the rls_bypass field.
+	providermigrationstep.DefaultRlsBypass = providermigrationstepDescRlsBypass.Default.(bool)
+	// providermigrationstepDescCreatedAt is the schema descriptor for created_at field.
+	providermigrationstepDescCreatedAt := providermigrationstepFields[17].Descriptor()
+	// providermigrationstep.DefaultCreatedAt holds the default value on creation for the created_at field.
+	providermigrationstep.DefaultCreatedAt = providermigrationstepDescCreatedAt.Default.(func() time.Time)
+	// providermigrationstepDescUpdatedAt is the schema descriptor for updated_at field.
+	providermigrationstepDescUpdatedAt := providermigrationstepFields[18].Descriptor()
+	// providermigrationstep.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	providermigrationstep.DefaultUpdatedAt = providermigrationstepDescUpdatedAt.Default.(func() time.Time)
+	// providermigrationstep.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	providermigrationstep.UpdateDefaultUpdatedAt = providermigrationstepDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// providermigrationstepDescID is the schema descriptor for id field.
+	providermigrationstepDescID := providermigrationstepFields[0].Descriptor()
+	// providermigrationstep.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	providermigrationstep.IDValidator = providermigrationstepDescID.Validators[0].(func(string) error)
 	providerrequestcontextFields := schema.ProviderRequestContext{}.Fields()
 	_ = providerrequestcontextFields
 	// providerrequestcontextDescTokenHash is the schema descriptor for token_hash field.

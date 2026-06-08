@@ -63,6 +63,15 @@ type PluginSettingsDefinition func(*sql.Selector)
 // PluginSettingsValue is the predicate function for pluginsettingsvalue builders.
 type PluginSettingsValue func(*sql.Selector)
 
+// ProviderInstallation is the predicate function for providerinstallation builders.
+type ProviderInstallation func(*sql.Selector)
+
+// ProviderMigrationRevision is the predicate function for providermigrationrevision builders.
+type ProviderMigrationRevision func(*sql.Selector)
+
+// ProviderMigrationStep is the predicate function for providermigrationstep builders.
+type ProviderMigrationStep func(*sql.Selector)
+
 // ProviderRequestContext is the predicate function for providerrequestcontext builders.
 type ProviderRequestContext func(*sql.Selector)
 

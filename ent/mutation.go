@@ -31,6 +31,9 @@ import (
 	"github.com/plystra/core/ent/pluginsettingsdefinition"
 	"github.com/plystra/core/ent/pluginsettingsvalue"
 	"github.com/plystra/core/ent/predicate"
+	"github.com/plystra/core/ent/providerinstallation"
+	"github.com/plystra/core/ent/providermigrationrevision"
+	"github.com/plystra/core/ent/providermigrationstep"
 	"github.com/plystra/core/ent/providerrequestcontext"
 	"github.com/plystra/core/ent/resource"
 	"github.com/plystra/core/ent/resourceaction"
@@ -73,6 +76,9 @@ const (
 	TypePluginAdminMenu           = "PluginAdminMenu"
 	TypePluginSettingsDefinition  = "PluginSettingsDefinition"
 	TypePluginSettingsValue       = "PluginSettingsValue"
+	TypeProviderInstallation      = "ProviderInstallation"
+	TypeProviderMigrationRevision = "ProviderMigrationRevision"
+	TypeProviderMigrationStep     = "ProviderMigrationStep"
 	TypeProviderRequestContext    = "ProviderRequestContext"
 	TypeResource                  = "Resource"
 	TypeResourceAction            = "ResourceAction"
@@ -21008,6 +21014,4471 @@ func (m *PluginSettingsValueMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *PluginSettingsValueMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown PluginSettingsValue edge %s", name)
+}
+
+// ProviderInstallationMutation represents an operation that mutates the ProviderInstallation nodes in the graph.
+type ProviderInstallationMutation struct {
+	config
+	op                          Op
+	typ                         string
+	id                          *string
+	provider_plugin_id          *string
+	plugin_type                 *string
+	plugin_scope                *string
+	app_id                      *string
+	trust_bundle_id             *string
+	schema_name                 *string
+	migrator_role               *string
+	runtime_role                *string
+	schema_version              *int
+	addschema_version           *int
+	runtime_schema_min          *int
+	addruntime_schema_min       *int
+	runtime_schema_max          *int
+	addruntime_schema_max       *int
+	runtime_schema_preferred    *int
+	addruntime_schema_preferred *int
+	rls_required                *bool
+	zero_ddl_runtime            *bool
+	mutation_journal_required   *bool
+	status                      *string
+	metadata                    *map[string]interface{}
+	created_at                  *time.Time
+	updated_at                  *time.Time
+	deleted_at                  *time.Time
+	clearedFields               map[string]struct{}
+	done                        bool
+	oldValue                    func(context.Context) (*ProviderInstallation, error)
+	predicates                  []predicate.ProviderInstallation
+}
+
+var _ ent.Mutation = (*ProviderInstallationMutation)(nil)
+
+// providerinstallationOption allows management of the mutation configuration using functional options.
+type providerinstallationOption func(*ProviderInstallationMutation)
+
+// newProviderInstallationMutation creates new mutation for the ProviderInstallation entity.
+func newProviderInstallationMutation(c config, op Op, opts ...providerinstallationOption) *ProviderInstallationMutation {
+	m := &ProviderInstallationMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeProviderInstallation,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withProviderInstallationID sets the ID field of the mutation.
+func withProviderInstallationID(id string) providerinstallationOption {
+	return func(m *ProviderInstallationMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ProviderInstallation
+		)
+		m.oldValue = func(ctx context.Context) (*ProviderInstallation, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ProviderInstallation.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withProviderInstallation sets the old ProviderInstallation of the mutation.
+func withProviderInstallation(node *ProviderInstallation) providerinstallationOption {
+	return func(m *ProviderInstallationMutation) {
+		m.oldValue = func(context.Context) (*ProviderInstallation, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ProviderInstallationMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ProviderInstallationMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ProviderInstallation entities.
+func (m *ProviderInstallationMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ProviderInstallationMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ProviderInstallationMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ProviderInstallation.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetProviderPluginID sets the "provider_plugin_id" field.
+func (m *ProviderInstallationMutation) SetProviderPluginID(s string) {
+	m.provider_plugin_id = &s
+}
+
+// ProviderPluginID returns the value of the "provider_plugin_id" field in the mutation.
+func (m *ProviderInstallationMutation) ProviderPluginID() (r string, exists bool) {
+	v := m.provider_plugin_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderPluginID returns the old "provider_plugin_id" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldProviderPluginID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderPluginID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderPluginID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderPluginID: %w", err)
+	}
+	return oldValue.ProviderPluginID, nil
+}
+
+// ResetProviderPluginID resets all changes to the "provider_plugin_id" field.
+func (m *ProviderInstallationMutation) ResetProviderPluginID() {
+	m.provider_plugin_id = nil
+}
+
+// SetPluginType sets the "plugin_type" field.
+func (m *ProviderInstallationMutation) SetPluginType(s string) {
+	m.plugin_type = &s
+}
+
+// PluginType returns the value of the "plugin_type" field in the mutation.
+func (m *ProviderInstallationMutation) PluginType() (r string, exists bool) {
+	v := m.plugin_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPluginType returns the old "plugin_type" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldPluginType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPluginType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPluginType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPluginType: %w", err)
+	}
+	return oldValue.PluginType, nil
+}
+
+// ResetPluginType resets all changes to the "plugin_type" field.
+func (m *ProviderInstallationMutation) ResetPluginType() {
+	m.plugin_type = nil
+}
+
+// SetPluginScope sets the "plugin_scope" field.
+func (m *ProviderInstallationMutation) SetPluginScope(s string) {
+	m.plugin_scope = &s
+}
+
+// PluginScope returns the value of the "plugin_scope" field in the mutation.
+func (m *ProviderInstallationMutation) PluginScope() (r string, exists bool) {
+	v := m.plugin_scope
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPluginScope returns the old "plugin_scope" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldPluginScope(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPluginScope is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPluginScope requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPluginScope: %w", err)
+	}
+	return oldValue.PluginScope, nil
+}
+
+// ResetPluginScope resets all changes to the "plugin_scope" field.
+func (m *ProviderInstallationMutation) ResetPluginScope() {
+	m.plugin_scope = nil
+}
+
+// SetAppID sets the "app_id" field.
+func (m *ProviderInstallationMutation) SetAppID(s string) {
+	m.app_id = &s
+}
+
+// AppID returns the value of the "app_id" field in the mutation.
+func (m *ProviderInstallationMutation) AppID() (r string, exists bool) {
+	v := m.app_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppID returns the old "app_id" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldAppID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppID: %w", err)
+	}
+	return oldValue.AppID, nil
+}
+
+// ClearAppID clears the value of the "app_id" field.
+func (m *ProviderInstallationMutation) ClearAppID() {
+	m.app_id = nil
+	m.clearedFields[providerinstallation.FieldAppID] = struct{}{}
+}
+
+// AppIDCleared returns if the "app_id" field was cleared in this mutation.
+func (m *ProviderInstallationMutation) AppIDCleared() bool {
+	_, ok := m.clearedFields[providerinstallation.FieldAppID]
+	return ok
+}
+
+// ResetAppID resets all changes to the "app_id" field.
+func (m *ProviderInstallationMutation) ResetAppID() {
+	m.app_id = nil
+	delete(m.clearedFields, providerinstallation.FieldAppID)
+}
+
+// SetTrustBundleID sets the "trust_bundle_id" field.
+func (m *ProviderInstallationMutation) SetTrustBundleID(s string) {
+	m.trust_bundle_id = &s
+}
+
+// TrustBundleID returns the value of the "trust_bundle_id" field in the mutation.
+func (m *ProviderInstallationMutation) TrustBundleID() (r string, exists bool) {
+	v := m.trust_bundle_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTrustBundleID returns the old "trust_bundle_id" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldTrustBundleID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTrustBundleID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTrustBundleID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTrustBundleID: %w", err)
+	}
+	return oldValue.TrustBundleID, nil
+}
+
+// ClearTrustBundleID clears the value of the "trust_bundle_id" field.
+func (m *ProviderInstallationMutation) ClearTrustBundleID() {
+	m.trust_bundle_id = nil
+	m.clearedFields[providerinstallation.FieldTrustBundleID] = struct{}{}
+}
+
+// TrustBundleIDCleared returns if the "trust_bundle_id" field was cleared in this mutation.
+func (m *ProviderInstallationMutation) TrustBundleIDCleared() bool {
+	_, ok := m.clearedFields[providerinstallation.FieldTrustBundleID]
+	return ok
+}
+
+// ResetTrustBundleID resets all changes to the "trust_bundle_id" field.
+func (m *ProviderInstallationMutation) ResetTrustBundleID() {
+	m.trust_bundle_id = nil
+	delete(m.clearedFields, providerinstallation.FieldTrustBundleID)
+}
+
+// SetSchemaName sets the "schema_name" field.
+func (m *ProviderInstallationMutation) SetSchemaName(s string) {
+	m.schema_name = &s
+}
+
+// SchemaName returns the value of the "schema_name" field in the mutation.
+func (m *ProviderInstallationMutation) SchemaName() (r string, exists bool) {
+	v := m.schema_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSchemaName returns the old "schema_name" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldSchemaName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSchemaName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSchemaName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSchemaName: %w", err)
+	}
+	return oldValue.SchemaName, nil
+}
+
+// ResetSchemaName resets all changes to the "schema_name" field.
+func (m *ProviderInstallationMutation) ResetSchemaName() {
+	m.schema_name = nil
+}
+
+// SetMigratorRole sets the "migrator_role" field.
+func (m *ProviderInstallationMutation) SetMigratorRole(s string) {
+	m.migrator_role = &s
+}
+
+// MigratorRole returns the value of the "migrator_role" field in the mutation.
+func (m *ProviderInstallationMutation) MigratorRole() (r string, exists bool) {
+	v := m.migrator_role
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMigratorRole returns the old "migrator_role" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldMigratorRole(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMigratorRole is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMigratorRole requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMigratorRole: %w", err)
+	}
+	return oldValue.MigratorRole, nil
+}
+
+// ResetMigratorRole resets all changes to the "migrator_role" field.
+func (m *ProviderInstallationMutation) ResetMigratorRole() {
+	m.migrator_role = nil
+}
+
+// SetRuntimeRole sets the "runtime_role" field.
+func (m *ProviderInstallationMutation) SetRuntimeRole(s string) {
+	m.runtime_role = &s
+}
+
+// RuntimeRole returns the value of the "runtime_role" field in the mutation.
+func (m *ProviderInstallationMutation) RuntimeRole() (r string, exists bool) {
+	v := m.runtime_role
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRuntimeRole returns the old "runtime_role" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldRuntimeRole(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRuntimeRole is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRuntimeRole requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRuntimeRole: %w", err)
+	}
+	return oldValue.RuntimeRole, nil
+}
+
+// ResetRuntimeRole resets all changes to the "runtime_role" field.
+func (m *ProviderInstallationMutation) ResetRuntimeRole() {
+	m.runtime_role = nil
+}
+
+// SetSchemaVersion sets the "schema_version" field.
+func (m *ProviderInstallationMutation) SetSchemaVersion(i int) {
+	m.schema_version = &i
+	m.addschema_version = nil
+}
+
+// SchemaVersion returns the value of the "schema_version" field in the mutation.
+func (m *ProviderInstallationMutation) SchemaVersion() (r int, exists bool) {
+	v := m.schema_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSchemaVersion returns the old "schema_version" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldSchemaVersion(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSchemaVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSchemaVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSchemaVersion: %w", err)
+	}
+	return oldValue.SchemaVersion, nil
+}
+
+// AddSchemaVersion adds i to the "schema_version" field.
+func (m *ProviderInstallationMutation) AddSchemaVersion(i int) {
+	if m.addschema_version != nil {
+		*m.addschema_version += i
+	} else {
+		m.addschema_version = &i
+	}
+}
+
+// AddedSchemaVersion returns the value that was added to the "schema_version" field in this mutation.
+func (m *ProviderInstallationMutation) AddedSchemaVersion() (r int, exists bool) {
+	v := m.addschema_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSchemaVersion resets all changes to the "schema_version" field.
+func (m *ProviderInstallationMutation) ResetSchemaVersion() {
+	m.schema_version = nil
+	m.addschema_version = nil
+}
+
+// SetRuntimeSchemaMin sets the "runtime_schema_min" field.
+func (m *ProviderInstallationMutation) SetRuntimeSchemaMin(i int) {
+	m.runtime_schema_min = &i
+	m.addruntime_schema_min = nil
+}
+
+// RuntimeSchemaMin returns the value of the "runtime_schema_min" field in the mutation.
+func (m *ProviderInstallationMutation) RuntimeSchemaMin() (r int, exists bool) {
+	v := m.runtime_schema_min
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRuntimeSchemaMin returns the old "runtime_schema_min" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldRuntimeSchemaMin(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRuntimeSchemaMin is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRuntimeSchemaMin requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRuntimeSchemaMin: %w", err)
+	}
+	return oldValue.RuntimeSchemaMin, nil
+}
+
+// AddRuntimeSchemaMin adds i to the "runtime_schema_min" field.
+func (m *ProviderInstallationMutation) AddRuntimeSchemaMin(i int) {
+	if m.addruntime_schema_min != nil {
+		*m.addruntime_schema_min += i
+	} else {
+		m.addruntime_schema_min = &i
+	}
+}
+
+// AddedRuntimeSchemaMin returns the value that was added to the "runtime_schema_min" field in this mutation.
+func (m *ProviderInstallationMutation) AddedRuntimeSchemaMin() (r int, exists bool) {
+	v := m.addruntime_schema_min
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRuntimeSchemaMin resets all changes to the "runtime_schema_min" field.
+func (m *ProviderInstallationMutation) ResetRuntimeSchemaMin() {
+	m.runtime_schema_min = nil
+	m.addruntime_schema_min = nil
+}
+
+// SetRuntimeSchemaMax sets the "runtime_schema_max" field.
+func (m *ProviderInstallationMutation) SetRuntimeSchemaMax(i int) {
+	m.runtime_schema_max = &i
+	m.addruntime_schema_max = nil
+}
+
+// RuntimeSchemaMax returns the value of the "runtime_schema_max" field in the mutation.
+func (m *ProviderInstallationMutation) RuntimeSchemaMax() (r int, exists bool) {
+	v := m.runtime_schema_max
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRuntimeSchemaMax returns the old "runtime_schema_max" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldRuntimeSchemaMax(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRuntimeSchemaMax is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRuntimeSchemaMax requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRuntimeSchemaMax: %w", err)
+	}
+	return oldValue.RuntimeSchemaMax, nil
+}
+
+// AddRuntimeSchemaMax adds i to the "runtime_schema_max" field.
+func (m *ProviderInstallationMutation) AddRuntimeSchemaMax(i int) {
+	if m.addruntime_schema_max != nil {
+		*m.addruntime_schema_max += i
+	} else {
+		m.addruntime_schema_max = &i
+	}
+}
+
+// AddedRuntimeSchemaMax returns the value that was added to the "runtime_schema_max" field in this mutation.
+func (m *ProviderInstallationMutation) AddedRuntimeSchemaMax() (r int, exists bool) {
+	v := m.addruntime_schema_max
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRuntimeSchemaMax resets all changes to the "runtime_schema_max" field.
+func (m *ProviderInstallationMutation) ResetRuntimeSchemaMax() {
+	m.runtime_schema_max = nil
+	m.addruntime_schema_max = nil
+}
+
+// SetRuntimeSchemaPreferred sets the "runtime_schema_preferred" field.
+func (m *ProviderInstallationMutation) SetRuntimeSchemaPreferred(i int) {
+	m.runtime_schema_preferred = &i
+	m.addruntime_schema_preferred = nil
+}
+
+// RuntimeSchemaPreferred returns the value of the "runtime_schema_preferred" field in the mutation.
+func (m *ProviderInstallationMutation) RuntimeSchemaPreferred() (r int, exists bool) {
+	v := m.runtime_schema_preferred
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRuntimeSchemaPreferred returns the old "runtime_schema_preferred" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldRuntimeSchemaPreferred(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRuntimeSchemaPreferred is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRuntimeSchemaPreferred requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRuntimeSchemaPreferred: %w", err)
+	}
+	return oldValue.RuntimeSchemaPreferred, nil
+}
+
+// AddRuntimeSchemaPreferred adds i to the "runtime_schema_preferred" field.
+func (m *ProviderInstallationMutation) AddRuntimeSchemaPreferred(i int) {
+	if m.addruntime_schema_preferred != nil {
+		*m.addruntime_schema_preferred += i
+	} else {
+		m.addruntime_schema_preferred = &i
+	}
+}
+
+// AddedRuntimeSchemaPreferred returns the value that was added to the "runtime_schema_preferred" field in this mutation.
+func (m *ProviderInstallationMutation) AddedRuntimeSchemaPreferred() (r int, exists bool) {
+	v := m.addruntime_schema_preferred
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRuntimeSchemaPreferred resets all changes to the "runtime_schema_preferred" field.
+func (m *ProviderInstallationMutation) ResetRuntimeSchemaPreferred() {
+	m.runtime_schema_preferred = nil
+	m.addruntime_schema_preferred = nil
+}
+
+// SetRlsRequired sets the "rls_required" field.
+func (m *ProviderInstallationMutation) SetRlsRequired(b bool) {
+	m.rls_required = &b
+}
+
+// RlsRequired returns the value of the "rls_required" field in the mutation.
+func (m *ProviderInstallationMutation) RlsRequired() (r bool, exists bool) {
+	v := m.rls_required
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRlsRequired returns the old "rls_required" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldRlsRequired(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRlsRequired is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRlsRequired requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRlsRequired: %w", err)
+	}
+	return oldValue.RlsRequired, nil
+}
+
+// ResetRlsRequired resets all changes to the "rls_required" field.
+func (m *ProviderInstallationMutation) ResetRlsRequired() {
+	m.rls_required = nil
+}
+
+// SetZeroDdlRuntime sets the "zero_ddl_runtime" field.
+func (m *ProviderInstallationMutation) SetZeroDdlRuntime(b bool) {
+	m.zero_ddl_runtime = &b
+}
+
+// ZeroDdlRuntime returns the value of the "zero_ddl_runtime" field in the mutation.
+func (m *ProviderInstallationMutation) ZeroDdlRuntime() (r bool, exists bool) {
+	v := m.zero_ddl_runtime
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldZeroDdlRuntime returns the old "zero_ddl_runtime" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldZeroDdlRuntime(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldZeroDdlRuntime is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldZeroDdlRuntime requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldZeroDdlRuntime: %w", err)
+	}
+	return oldValue.ZeroDdlRuntime, nil
+}
+
+// ResetZeroDdlRuntime resets all changes to the "zero_ddl_runtime" field.
+func (m *ProviderInstallationMutation) ResetZeroDdlRuntime() {
+	m.zero_ddl_runtime = nil
+}
+
+// SetMutationJournalRequired sets the "mutation_journal_required" field.
+func (m *ProviderInstallationMutation) SetMutationJournalRequired(b bool) {
+	m.mutation_journal_required = &b
+}
+
+// MutationJournalRequired returns the value of the "mutation_journal_required" field in the mutation.
+func (m *ProviderInstallationMutation) MutationJournalRequired() (r bool, exists bool) {
+	v := m.mutation_journal_required
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMutationJournalRequired returns the old "mutation_journal_required" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldMutationJournalRequired(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMutationJournalRequired is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMutationJournalRequired requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMutationJournalRequired: %w", err)
+	}
+	return oldValue.MutationJournalRequired, nil
+}
+
+// ResetMutationJournalRequired resets all changes to the "mutation_journal_required" field.
+func (m *ProviderInstallationMutation) ResetMutationJournalRequired() {
+	m.mutation_journal_required = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *ProviderInstallationMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *ProviderInstallationMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *ProviderInstallationMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *ProviderInstallationMutation) SetMetadata(value map[string]interface{}) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *ProviderInstallationMutation) Metadata() (r map[string]interface{}, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldMetadata(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *ProviderInstallationMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[providerinstallation.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *ProviderInstallationMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[providerinstallation.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *ProviderInstallationMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, providerinstallation.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ProviderInstallationMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ProviderInstallationMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ProviderInstallationMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ProviderInstallationMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ProviderInstallationMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ProviderInstallationMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *ProviderInstallationMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *ProviderInstallationMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the ProviderInstallation entity.
+// If the ProviderInstallation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderInstallationMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *ProviderInstallationMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[providerinstallation.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *ProviderInstallationMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[providerinstallation.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *ProviderInstallationMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, providerinstallation.FieldDeletedAt)
+}
+
+// Where appends a list predicates to the ProviderInstallationMutation builder.
+func (m *ProviderInstallationMutation) Where(ps ...predicate.ProviderInstallation) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ProviderInstallationMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ProviderInstallationMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ProviderInstallation, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ProviderInstallationMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ProviderInstallationMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ProviderInstallation).
+func (m *ProviderInstallationMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ProviderInstallationMutation) Fields() []string {
+	fields := make([]string, 0, 20)
+	if m.provider_plugin_id != nil {
+		fields = append(fields, providerinstallation.FieldProviderPluginID)
+	}
+	if m.plugin_type != nil {
+		fields = append(fields, providerinstallation.FieldPluginType)
+	}
+	if m.plugin_scope != nil {
+		fields = append(fields, providerinstallation.FieldPluginScope)
+	}
+	if m.app_id != nil {
+		fields = append(fields, providerinstallation.FieldAppID)
+	}
+	if m.trust_bundle_id != nil {
+		fields = append(fields, providerinstallation.FieldTrustBundleID)
+	}
+	if m.schema_name != nil {
+		fields = append(fields, providerinstallation.FieldSchemaName)
+	}
+	if m.migrator_role != nil {
+		fields = append(fields, providerinstallation.FieldMigratorRole)
+	}
+	if m.runtime_role != nil {
+		fields = append(fields, providerinstallation.FieldRuntimeRole)
+	}
+	if m.schema_version != nil {
+		fields = append(fields, providerinstallation.FieldSchemaVersion)
+	}
+	if m.runtime_schema_min != nil {
+		fields = append(fields, providerinstallation.FieldRuntimeSchemaMin)
+	}
+	if m.runtime_schema_max != nil {
+		fields = append(fields, providerinstallation.FieldRuntimeSchemaMax)
+	}
+	if m.runtime_schema_preferred != nil {
+		fields = append(fields, providerinstallation.FieldRuntimeSchemaPreferred)
+	}
+	if m.rls_required != nil {
+		fields = append(fields, providerinstallation.FieldRlsRequired)
+	}
+	if m.zero_ddl_runtime != nil {
+		fields = append(fields, providerinstallation.FieldZeroDdlRuntime)
+	}
+	if m.mutation_journal_required != nil {
+		fields = append(fields, providerinstallation.FieldMutationJournalRequired)
+	}
+	if m.status != nil {
+		fields = append(fields, providerinstallation.FieldStatus)
+	}
+	if m.metadata != nil {
+		fields = append(fields, providerinstallation.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, providerinstallation.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, providerinstallation.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, providerinstallation.FieldDeletedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ProviderInstallationMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case providerinstallation.FieldProviderPluginID:
+		return m.ProviderPluginID()
+	case providerinstallation.FieldPluginType:
+		return m.PluginType()
+	case providerinstallation.FieldPluginScope:
+		return m.PluginScope()
+	case providerinstallation.FieldAppID:
+		return m.AppID()
+	case providerinstallation.FieldTrustBundleID:
+		return m.TrustBundleID()
+	case providerinstallation.FieldSchemaName:
+		return m.SchemaName()
+	case providerinstallation.FieldMigratorRole:
+		return m.MigratorRole()
+	case providerinstallation.FieldRuntimeRole:
+		return m.RuntimeRole()
+	case providerinstallation.FieldSchemaVersion:
+		return m.SchemaVersion()
+	case providerinstallation.FieldRuntimeSchemaMin:
+		return m.RuntimeSchemaMin()
+	case providerinstallation.FieldRuntimeSchemaMax:
+		return m.RuntimeSchemaMax()
+	case providerinstallation.FieldRuntimeSchemaPreferred:
+		return m.RuntimeSchemaPreferred()
+	case providerinstallation.FieldRlsRequired:
+		return m.RlsRequired()
+	case providerinstallation.FieldZeroDdlRuntime:
+		return m.ZeroDdlRuntime()
+	case providerinstallation.FieldMutationJournalRequired:
+		return m.MutationJournalRequired()
+	case providerinstallation.FieldStatus:
+		return m.Status()
+	case providerinstallation.FieldMetadata:
+		return m.Metadata()
+	case providerinstallation.FieldCreatedAt:
+		return m.CreatedAt()
+	case providerinstallation.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case providerinstallation.FieldDeletedAt:
+		return m.DeletedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ProviderInstallationMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case providerinstallation.FieldProviderPluginID:
+		return m.OldProviderPluginID(ctx)
+	case providerinstallation.FieldPluginType:
+		return m.OldPluginType(ctx)
+	case providerinstallation.FieldPluginScope:
+		return m.OldPluginScope(ctx)
+	case providerinstallation.FieldAppID:
+		return m.OldAppID(ctx)
+	case providerinstallation.FieldTrustBundleID:
+		return m.OldTrustBundleID(ctx)
+	case providerinstallation.FieldSchemaName:
+		return m.OldSchemaName(ctx)
+	case providerinstallation.FieldMigratorRole:
+		return m.OldMigratorRole(ctx)
+	case providerinstallation.FieldRuntimeRole:
+		return m.OldRuntimeRole(ctx)
+	case providerinstallation.FieldSchemaVersion:
+		return m.OldSchemaVersion(ctx)
+	case providerinstallation.FieldRuntimeSchemaMin:
+		return m.OldRuntimeSchemaMin(ctx)
+	case providerinstallation.FieldRuntimeSchemaMax:
+		return m.OldRuntimeSchemaMax(ctx)
+	case providerinstallation.FieldRuntimeSchemaPreferred:
+		return m.OldRuntimeSchemaPreferred(ctx)
+	case providerinstallation.FieldRlsRequired:
+		return m.OldRlsRequired(ctx)
+	case providerinstallation.FieldZeroDdlRuntime:
+		return m.OldZeroDdlRuntime(ctx)
+	case providerinstallation.FieldMutationJournalRequired:
+		return m.OldMutationJournalRequired(ctx)
+	case providerinstallation.FieldStatus:
+		return m.OldStatus(ctx)
+	case providerinstallation.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case providerinstallation.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case providerinstallation.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case providerinstallation.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ProviderInstallation field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProviderInstallationMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case providerinstallation.FieldProviderPluginID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderPluginID(v)
+		return nil
+	case providerinstallation.FieldPluginType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPluginType(v)
+		return nil
+	case providerinstallation.FieldPluginScope:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPluginScope(v)
+		return nil
+	case providerinstallation.FieldAppID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppID(v)
+		return nil
+	case providerinstallation.FieldTrustBundleID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTrustBundleID(v)
+		return nil
+	case providerinstallation.FieldSchemaName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSchemaName(v)
+		return nil
+	case providerinstallation.FieldMigratorRole:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMigratorRole(v)
+		return nil
+	case providerinstallation.FieldRuntimeRole:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRuntimeRole(v)
+		return nil
+	case providerinstallation.FieldSchemaVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSchemaVersion(v)
+		return nil
+	case providerinstallation.FieldRuntimeSchemaMin:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRuntimeSchemaMin(v)
+		return nil
+	case providerinstallation.FieldRuntimeSchemaMax:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRuntimeSchemaMax(v)
+		return nil
+	case providerinstallation.FieldRuntimeSchemaPreferred:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRuntimeSchemaPreferred(v)
+		return nil
+	case providerinstallation.FieldRlsRequired:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRlsRequired(v)
+		return nil
+	case providerinstallation.FieldZeroDdlRuntime:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetZeroDdlRuntime(v)
+		return nil
+	case providerinstallation.FieldMutationJournalRequired:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMutationJournalRequired(v)
+		return nil
+	case providerinstallation.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case providerinstallation.FieldMetadata:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case providerinstallation.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case providerinstallation.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case providerinstallation.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderInstallation field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ProviderInstallationMutation) AddedFields() []string {
+	var fields []string
+	if m.addschema_version != nil {
+		fields = append(fields, providerinstallation.FieldSchemaVersion)
+	}
+	if m.addruntime_schema_min != nil {
+		fields = append(fields, providerinstallation.FieldRuntimeSchemaMin)
+	}
+	if m.addruntime_schema_max != nil {
+		fields = append(fields, providerinstallation.FieldRuntimeSchemaMax)
+	}
+	if m.addruntime_schema_preferred != nil {
+		fields = append(fields, providerinstallation.FieldRuntimeSchemaPreferred)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ProviderInstallationMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case providerinstallation.FieldSchemaVersion:
+		return m.AddedSchemaVersion()
+	case providerinstallation.FieldRuntimeSchemaMin:
+		return m.AddedRuntimeSchemaMin()
+	case providerinstallation.FieldRuntimeSchemaMax:
+		return m.AddedRuntimeSchemaMax()
+	case providerinstallation.FieldRuntimeSchemaPreferred:
+		return m.AddedRuntimeSchemaPreferred()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProviderInstallationMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case providerinstallation.FieldSchemaVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSchemaVersion(v)
+		return nil
+	case providerinstallation.FieldRuntimeSchemaMin:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRuntimeSchemaMin(v)
+		return nil
+	case providerinstallation.FieldRuntimeSchemaMax:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRuntimeSchemaMax(v)
+		return nil
+	case providerinstallation.FieldRuntimeSchemaPreferred:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRuntimeSchemaPreferred(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderInstallation numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ProviderInstallationMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(providerinstallation.FieldAppID) {
+		fields = append(fields, providerinstallation.FieldAppID)
+	}
+	if m.FieldCleared(providerinstallation.FieldTrustBundleID) {
+		fields = append(fields, providerinstallation.FieldTrustBundleID)
+	}
+	if m.FieldCleared(providerinstallation.FieldMetadata) {
+		fields = append(fields, providerinstallation.FieldMetadata)
+	}
+	if m.FieldCleared(providerinstallation.FieldDeletedAt) {
+		fields = append(fields, providerinstallation.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ProviderInstallationMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ProviderInstallationMutation) ClearField(name string) error {
+	switch name {
+	case providerinstallation.FieldAppID:
+		m.ClearAppID()
+		return nil
+	case providerinstallation.FieldTrustBundleID:
+		m.ClearTrustBundleID()
+		return nil
+	case providerinstallation.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	case providerinstallation.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderInstallation nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ProviderInstallationMutation) ResetField(name string) error {
+	switch name {
+	case providerinstallation.FieldProviderPluginID:
+		m.ResetProviderPluginID()
+		return nil
+	case providerinstallation.FieldPluginType:
+		m.ResetPluginType()
+		return nil
+	case providerinstallation.FieldPluginScope:
+		m.ResetPluginScope()
+		return nil
+	case providerinstallation.FieldAppID:
+		m.ResetAppID()
+		return nil
+	case providerinstallation.FieldTrustBundleID:
+		m.ResetTrustBundleID()
+		return nil
+	case providerinstallation.FieldSchemaName:
+		m.ResetSchemaName()
+		return nil
+	case providerinstallation.FieldMigratorRole:
+		m.ResetMigratorRole()
+		return nil
+	case providerinstallation.FieldRuntimeRole:
+		m.ResetRuntimeRole()
+		return nil
+	case providerinstallation.FieldSchemaVersion:
+		m.ResetSchemaVersion()
+		return nil
+	case providerinstallation.FieldRuntimeSchemaMin:
+		m.ResetRuntimeSchemaMin()
+		return nil
+	case providerinstallation.FieldRuntimeSchemaMax:
+		m.ResetRuntimeSchemaMax()
+		return nil
+	case providerinstallation.FieldRuntimeSchemaPreferred:
+		m.ResetRuntimeSchemaPreferred()
+		return nil
+	case providerinstallation.FieldRlsRequired:
+		m.ResetRlsRequired()
+		return nil
+	case providerinstallation.FieldZeroDdlRuntime:
+		m.ResetZeroDdlRuntime()
+		return nil
+	case providerinstallation.FieldMutationJournalRequired:
+		m.ResetMutationJournalRequired()
+		return nil
+	case providerinstallation.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case providerinstallation.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case providerinstallation.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case providerinstallation.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case providerinstallation.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderInstallation field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ProviderInstallationMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ProviderInstallationMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ProviderInstallationMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ProviderInstallationMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ProviderInstallationMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ProviderInstallationMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ProviderInstallationMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ProviderInstallation unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ProviderInstallationMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ProviderInstallation edge %s", name)
+}
+
+// ProviderMigrationRevisionMutation represents an operation that mutates the ProviderMigrationRevision nodes in the graph.
+type ProviderMigrationRevisionMutation struct {
+	config
+	op                     Op
+	typ                    string
+	id                     *string
+	provider_plugin_id     *string
+	installation_id        *string
+	revision               *string
+	bundle_hash            *string
+	schema_name            *string
+	from_schema_version    *int
+	addfrom_schema_version *int
+	to_schema_version      *int
+	addto_schema_version   *int
+	status                 *string
+	destructive            *bool
+	rls_bypass             *bool
+	requires_manual_review *bool
+	reviewed_by_user_id    *string
+	reviewed_at            *time.Time
+	started_at             *time.Time
+	finished_at            *time.Time
+	last_error             *string
+	metadata               *map[string]interface{}
+	created_at             *time.Time
+	updated_at             *time.Time
+	clearedFields          map[string]struct{}
+	done                   bool
+	oldValue               func(context.Context) (*ProviderMigrationRevision, error)
+	predicates             []predicate.ProviderMigrationRevision
+}
+
+var _ ent.Mutation = (*ProviderMigrationRevisionMutation)(nil)
+
+// providermigrationrevisionOption allows management of the mutation configuration using functional options.
+type providermigrationrevisionOption func(*ProviderMigrationRevisionMutation)
+
+// newProviderMigrationRevisionMutation creates new mutation for the ProviderMigrationRevision entity.
+func newProviderMigrationRevisionMutation(c config, op Op, opts ...providermigrationrevisionOption) *ProviderMigrationRevisionMutation {
+	m := &ProviderMigrationRevisionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeProviderMigrationRevision,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withProviderMigrationRevisionID sets the ID field of the mutation.
+func withProviderMigrationRevisionID(id string) providermigrationrevisionOption {
+	return func(m *ProviderMigrationRevisionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ProviderMigrationRevision
+		)
+		m.oldValue = func(ctx context.Context) (*ProviderMigrationRevision, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ProviderMigrationRevision.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withProviderMigrationRevision sets the old ProviderMigrationRevision of the mutation.
+func withProviderMigrationRevision(node *ProviderMigrationRevision) providermigrationrevisionOption {
+	return func(m *ProviderMigrationRevisionMutation) {
+		m.oldValue = func(context.Context) (*ProviderMigrationRevision, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ProviderMigrationRevisionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ProviderMigrationRevisionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ProviderMigrationRevision entities.
+func (m *ProviderMigrationRevisionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ProviderMigrationRevisionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ProviderMigrationRevisionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ProviderMigrationRevision.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetProviderPluginID sets the "provider_plugin_id" field.
+func (m *ProviderMigrationRevisionMutation) SetProviderPluginID(s string) {
+	m.provider_plugin_id = &s
+}
+
+// ProviderPluginID returns the value of the "provider_plugin_id" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) ProviderPluginID() (r string, exists bool) {
+	v := m.provider_plugin_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderPluginID returns the old "provider_plugin_id" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldProviderPluginID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderPluginID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderPluginID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderPluginID: %w", err)
+	}
+	return oldValue.ProviderPluginID, nil
+}
+
+// ResetProviderPluginID resets all changes to the "provider_plugin_id" field.
+func (m *ProviderMigrationRevisionMutation) ResetProviderPluginID() {
+	m.provider_plugin_id = nil
+}
+
+// SetInstallationID sets the "installation_id" field.
+func (m *ProviderMigrationRevisionMutation) SetInstallationID(s string) {
+	m.installation_id = &s
+}
+
+// InstallationID returns the value of the "installation_id" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) InstallationID() (r string, exists bool) {
+	v := m.installation_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInstallationID returns the old "installation_id" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldInstallationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInstallationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInstallationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInstallationID: %w", err)
+	}
+	return oldValue.InstallationID, nil
+}
+
+// ResetInstallationID resets all changes to the "installation_id" field.
+func (m *ProviderMigrationRevisionMutation) ResetInstallationID() {
+	m.installation_id = nil
+}
+
+// SetRevision sets the "revision" field.
+func (m *ProviderMigrationRevisionMutation) SetRevision(s string) {
+	m.revision = &s
+}
+
+// Revision returns the value of the "revision" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) Revision() (r string, exists bool) {
+	v := m.revision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRevision returns the old "revision" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldRevision(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRevision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRevision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRevision: %w", err)
+	}
+	return oldValue.Revision, nil
+}
+
+// ResetRevision resets all changes to the "revision" field.
+func (m *ProviderMigrationRevisionMutation) ResetRevision() {
+	m.revision = nil
+}
+
+// SetBundleHash sets the "bundle_hash" field.
+func (m *ProviderMigrationRevisionMutation) SetBundleHash(s string) {
+	m.bundle_hash = &s
+}
+
+// BundleHash returns the value of the "bundle_hash" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) BundleHash() (r string, exists bool) {
+	v := m.bundle_hash
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBundleHash returns the old "bundle_hash" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldBundleHash(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBundleHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBundleHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBundleHash: %w", err)
+	}
+	return oldValue.BundleHash, nil
+}
+
+// ResetBundleHash resets all changes to the "bundle_hash" field.
+func (m *ProviderMigrationRevisionMutation) ResetBundleHash() {
+	m.bundle_hash = nil
+}
+
+// SetSchemaName sets the "schema_name" field.
+func (m *ProviderMigrationRevisionMutation) SetSchemaName(s string) {
+	m.schema_name = &s
+}
+
+// SchemaName returns the value of the "schema_name" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) SchemaName() (r string, exists bool) {
+	v := m.schema_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSchemaName returns the old "schema_name" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldSchemaName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSchemaName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSchemaName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSchemaName: %w", err)
+	}
+	return oldValue.SchemaName, nil
+}
+
+// ResetSchemaName resets all changes to the "schema_name" field.
+func (m *ProviderMigrationRevisionMutation) ResetSchemaName() {
+	m.schema_name = nil
+}
+
+// SetFromSchemaVersion sets the "from_schema_version" field.
+func (m *ProviderMigrationRevisionMutation) SetFromSchemaVersion(i int) {
+	m.from_schema_version = &i
+	m.addfrom_schema_version = nil
+}
+
+// FromSchemaVersion returns the value of the "from_schema_version" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) FromSchemaVersion() (r int, exists bool) {
+	v := m.from_schema_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFromSchemaVersion returns the old "from_schema_version" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldFromSchemaVersion(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFromSchemaVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFromSchemaVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFromSchemaVersion: %w", err)
+	}
+	return oldValue.FromSchemaVersion, nil
+}
+
+// AddFromSchemaVersion adds i to the "from_schema_version" field.
+func (m *ProviderMigrationRevisionMutation) AddFromSchemaVersion(i int) {
+	if m.addfrom_schema_version != nil {
+		*m.addfrom_schema_version += i
+	} else {
+		m.addfrom_schema_version = &i
+	}
+}
+
+// AddedFromSchemaVersion returns the value that was added to the "from_schema_version" field in this mutation.
+func (m *ProviderMigrationRevisionMutation) AddedFromSchemaVersion() (r int, exists bool) {
+	v := m.addfrom_schema_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetFromSchemaVersion resets all changes to the "from_schema_version" field.
+func (m *ProviderMigrationRevisionMutation) ResetFromSchemaVersion() {
+	m.from_schema_version = nil
+	m.addfrom_schema_version = nil
+}
+
+// SetToSchemaVersion sets the "to_schema_version" field.
+func (m *ProviderMigrationRevisionMutation) SetToSchemaVersion(i int) {
+	m.to_schema_version = &i
+	m.addto_schema_version = nil
+}
+
+// ToSchemaVersion returns the value of the "to_schema_version" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) ToSchemaVersion() (r int, exists bool) {
+	v := m.to_schema_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldToSchemaVersion returns the old "to_schema_version" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldToSchemaVersion(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldToSchemaVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldToSchemaVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldToSchemaVersion: %w", err)
+	}
+	return oldValue.ToSchemaVersion, nil
+}
+
+// AddToSchemaVersion adds i to the "to_schema_version" field.
+func (m *ProviderMigrationRevisionMutation) AddToSchemaVersion(i int) {
+	if m.addto_schema_version != nil {
+		*m.addto_schema_version += i
+	} else {
+		m.addto_schema_version = &i
+	}
+}
+
+// AddedToSchemaVersion returns the value that was added to the "to_schema_version" field in this mutation.
+func (m *ProviderMigrationRevisionMutation) AddedToSchemaVersion() (r int, exists bool) {
+	v := m.addto_schema_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetToSchemaVersion resets all changes to the "to_schema_version" field.
+func (m *ProviderMigrationRevisionMutation) ResetToSchemaVersion() {
+	m.to_schema_version = nil
+	m.addto_schema_version = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *ProviderMigrationRevisionMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *ProviderMigrationRevisionMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetDestructive sets the "destructive" field.
+func (m *ProviderMigrationRevisionMutation) SetDestructive(b bool) {
+	m.destructive = &b
+}
+
+// Destructive returns the value of the "destructive" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) Destructive() (r bool, exists bool) {
+	v := m.destructive
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDestructive returns the old "destructive" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldDestructive(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDestructive is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDestructive requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDestructive: %w", err)
+	}
+	return oldValue.Destructive, nil
+}
+
+// ResetDestructive resets all changes to the "destructive" field.
+func (m *ProviderMigrationRevisionMutation) ResetDestructive() {
+	m.destructive = nil
+}
+
+// SetRlsBypass sets the "rls_bypass" field.
+func (m *ProviderMigrationRevisionMutation) SetRlsBypass(b bool) {
+	m.rls_bypass = &b
+}
+
+// RlsBypass returns the value of the "rls_bypass" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) RlsBypass() (r bool, exists bool) {
+	v := m.rls_bypass
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRlsBypass returns the old "rls_bypass" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldRlsBypass(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRlsBypass is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRlsBypass requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRlsBypass: %w", err)
+	}
+	return oldValue.RlsBypass, nil
+}
+
+// ResetRlsBypass resets all changes to the "rls_bypass" field.
+func (m *ProviderMigrationRevisionMutation) ResetRlsBypass() {
+	m.rls_bypass = nil
+}
+
+// SetRequiresManualReview sets the "requires_manual_review" field.
+func (m *ProviderMigrationRevisionMutation) SetRequiresManualReview(b bool) {
+	m.requires_manual_review = &b
+}
+
+// RequiresManualReview returns the value of the "requires_manual_review" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) RequiresManualReview() (r bool, exists bool) {
+	v := m.requires_manual_review
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRequiresManualReview returns the old "requires_manual_review" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldRequiresManualReview(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRequiresManualReview is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRequiresManualReview requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRequiresManualReview: %w", err)
+	}
+	return oldValue.RequiresManualReview, nil
+}
+
+// ResetRequiresManualReview resets all changes to the "requires_manual_review" field.
+func (m *ProviderMigrationRevisionMutation) ResetRequiresManualReview() {
+	m.requires_manual_review = nil
+}
+
+// SetReviewedByUserID sets the "reviewed_by_user_id" field.
+func (m *ProviderMigrationRevisionMutation) SetReviewedByUserID(s string) {
+	m.reviewed_by_user_id = &s
+}
+
+// ReviewedByUserID returns the value of the "reviewed_by_user_id" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) ReviewedByUserID() (r string, exists bool) {
+	v := m.reviewed_by_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReviewedByUserID returns the old "reviewed_by_user_id" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldReviewedByUserID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReviewedByUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReviewedByUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReviewedByUserID: %w", err)
+	}
+	return oldValue.ReviewedByUserID, nil
+}
+
+// ClearReviewedByUserID clears the value of the "reviewed_by_user_id" field.
+func (m *ProviderMigrationRevisionMutation) ClearReviewedByUserID() {
+	m.reviewed_by_user_id = nil
+	m.clearedFields[providermigrationrevision.FieldReviewedByUserID] = struct{}{}
+}
+
+// ReviewedByUserIDCleared returns if the "reviewed_by_user_id" field was cleared in this mutation.
+func (m *ProviderMigrationRevisionMutation) ReviewedByUserIDCleared() bool {
+	_, ok := m.clearedFields[providermigrationrevision.FieldReviewedByUserID]
+	return ok
+}
+
+// ResetReviewedByUserID resets all changes to the "reviewed_by_user_id" field.
+func (m *ProviderMigrationRevisionMutation) ResetReviewedByUserID() {
+	m.reviewed_by_user_id = nil
+	delete(m.clearedFields, providermigrationrevision.FieldReviewedByUserID)
+}
+
+// SetReviewedAt sets the "reviewed_at" field.
+func (m *ProviderMigrationRevisionMutation) SetReviewedAt(t time.Time) {
+	m.reviewed_at = &t
+}
+
+// ReviewedAt returns the value of the "reviewed_at" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) ReviewedAt() (r time.Time, exists bool) {
+	v := m.reviewed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReviewedAt returns the old "reviewed_at" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldReviewedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReviewedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReviewedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReviewedAt: %w", err)
+	}
+	return oldValue.ReviewedAt, nil
+}
+
+// ClearReviewedAt clears the value of the "reviewed_at" field.
+func (m *ProviderMigrationRevisionMutation) ClearReviewedAt() {
+	m.reviewed_at = nil
+	m.clearedFields[providermigrationrevision.FieldReviewedAt] = struct{}{}
+}
+
+// ReviewedAtCleared returns if the "reviewed_at" field was cleared in this mutation.
+func (m *ProviderMigrationRevisionMutation) ReviewedAtCleared() bool {
+	_, ok := m.clearedFields[providermigrationrevision.FieldReviewedAt]
+	return ok
+}
+
+// ResetReviewedAt resets all changes to the "reviewed_at" field.
+func (m *ProviderMigrationRevisionMutation) ResetReviewedAt() {
+	m.reviewed_at = nil
+	delete(m.clearedFields, providermigrationrevision.FieldReviewedAt)
+}
+
+// SetStartedAt sets the "started_at" field.
+func (m *ProviderMigrationRevisionMutation) SetStartedAt(t time.Time) {
+	m.started_at = &t
+}
+
+// StartedAt returns the value of the "started_at" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) StartedAt() (r time.Time, exists bool) {
+	v := m.started_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStartedAt returns the old "started_at" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldStartedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStartedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStartedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStartedAt: %w", err)
+	}
+	return oldValue.StartedAt, nil
+}
+
+// ClearStartedAt clears the value of the "started_at" field.
+func (m *ProviderMigrationRevisionMutation) ClearStartedAt() {
+	m.started_at = nil
+	m.clearedFields[providermigrationrevision.FieldStartedAt] = struct{}{}
+}
+
+// StartedAtCleared returns if the "started_at" field was cleared in this mutation.
+func (m *ProviderMigrationRevisionMutation) StartedAtCleared() bool {
+	_, ok := m.clearedFields[providermigrationrevision.FieldStartedAt]
+	return ok
+}
+
+// ResetStartedAt resets all changes to the "started_at" field.
+func (m *ProviderMigrationRevisionMutation) ResetStartedAt() {
+	m.started_at = nil
+	delete(m.clearedFields, providermigrationrevision.FieldStartedAt)
+}
+
+// SetFinishedAt sets the "finished_at" field.
+func (m *ProviderMigrationRevisionMutation) SetFinishedAt(t time.Time) {
+	m.finished_at = &t
+}
+
+// FinishedAt returns the value of the "finished_at" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) FinishedAt() (r time.Time, exists bool) {
+	v := m.finished_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFinishedAt returns the old "finished_at" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldFinishedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFinishedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFinishedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFinishedAt: %w", err)
+	}
+	return oldValue.FinishedAt, nil
+}
+
+// ClearFinishedAt clears the value of the "finished_at" field.
+func (m *ProviderMigrationRevisionMutation) ClearFinishedAt() {
+	m.finished_at = nil
+	m.clearedFields[providermigrationrevision.FieldFinishedAt] = struct{}{}
+}
+
+// FinishedAtCleared returns if the "finished_at" field was cleared in this mutation.
+func (m *ProviderMigrationRevisionMutation) FinishedAtCleared() bool {
+	_, ok := m.clearedFields[providermigrationrevision.FieldFinishedAt]
+	return ok
+}
+
+// ResetFinishedAt resets all changes to the "finished_at" field.
+func (m *ProviderMigrationRevisionMutation) ResetFinishedAt() {
+	m.finished_at = nil
+	delete(m.clearedFields, providermigrationrevision.FieldFinishedAt)
+}
+
+// SetLastError sets the "last_error" field.
+func (m *ProviderMigrationRevisionMutation) SetLastError(s string) {
+	m.last_error = &s
+}
+
+// LastError returns the value of the "last_error" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) LastError() (r string, exists bool) {
+	v := m.last_error
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastError returns the old "last_error" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldLastError(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastError is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastError requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastError: %w", err)
+	}
+	return oldValue.LastError, nil
+}
+
+// ClearLastError clears the value of the "last_error" field.
+func (m *ProviderMigrationRevisionMutation) ClearLastError() {
+	m.last_error = nil
+	m.clearedFields[providermigrationrevision.FieldLastError] = struct{}{}
+}
+
+// LastErrorCleared returns if the "last_error" field was cleared in this mutation.
+func (m *ProviderMigrationRevisionMutation) LastErrorCleared() bool {
+	_, ok := m.clearedFields[providermigrationrevision.FieldLastError]
+	return ok
+}
+
+// ResetLastError resets all changes to the "last_error" field.
+func (m *ProviderMigrationRevisionMutation) ResetLastError() {
+	m.last_error = nil
+	delete(m.clearedFields, providermigrationrevision.FieldLastError)
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *ProviderMigrationRevisionMutation) SetMetadata(value map[string]interface{}) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) Metadata() (r map[string]interface{}, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldMetadata(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *ProviderMigrationRevisionMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[providermigrationrevision.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *ProviderMigrationRevisionMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[providermigrationrevision.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *ProviderMigrationRevisionMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, providermigrationrevision.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ProviderMigrationRevisionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ProviderMigrationRevisionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ProviderMigrationRevisionMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ProviderMigrationRevisionMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ProviderMigrationRevision entity.
+// If the ProviderMigrationRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationRevisionMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ProviderMigrationRevisionMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the ProviderMigrationRevisionMutation builder.
+func (m *ProviderMigrationRevisionMutation) Where(ps ...predicate.ProviderMigrationRevision) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ProviderMigrationRevisionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ProviderMigrationRevisionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ProviderMigrationRevision, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ProviderMigrationRevisionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ProviderMigrationRevisionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ProviderMigrationRevision).
+func (m *ProviderMigrationRevisionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ProviderMigrationRevisionMutation) Fields() []string {
+	fields := make([]string, 0, 19)
+	if m.provider_plugin_id != nil {
+		fields = append(fields, providermigrationrevision.FieldProviderPluginID)
+	}
+	if m.installation_id != nil {
+		fields = append(fields, providermigrationrevision.FieldInstallationID)
+	}
+	if m.revision != nil {
+		fields = append(fields, providermigrationrevision.FieldRevision)
+	}
+	if m.bundle_hash != nil {
+		fields = append(fields, providermigrationrevision.FieldBundleHash)
+	}
+	if m.schema_name != nil {
+		fields = append(fields, providermigrationrevision.FieldSchemaName)
+	}
+	if m.from_schema_version != nil {
+		fields = append(fields, providermigrationrevision.FieldFromSchemaVersion)
+	}
+	if m.to_schema_version != nil {
+		fields = append(fields, providermigrationrevision.FieldToSchemaVersion)
+	}
+	if m.status != nil {
+		fields = append(fields, providermigrationrevision.FieldStatus)
+	}
+	if m.destructive != nil {
+		fields = append(fields, providermigrationrevision.FieldDestructive)
+	}
+	if m.rls_bypass != nil {
+		fields = append(fields, providermigrationrevision.FieldRlsBypass)
+	}
+	if m.requires_manual_review != nil {
+		fields = append(fields, providermigrationrevision.FieldRequiresManualReview)
+	}
+	if m.reviewed_by_user_id != nil {
+		fields = append(fields, providermigrationrevision.FieldReviewedByUserID)
+	}
+	if m.reviewed_at != nil {
+		fields = append(fields, providermigrationrevision.FieldReviewedAt)
+	}
+	if m.started_at != nil {
+		fields = append(fields, providermigrationrevision.FieldStartedAt)
+	}
+	if m.finished_at != nil {
+		fields = append(fields, providermigrationrevision.FieldFinishedAt)
+	}
+	if m.last_error != nil {
+		fields = append(fields, providermigrationrevision.FieldLastError)
+	}
+	if m.metadata != nil {
+		fields = append(fields, providermigrationrevision.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, providermigrationrevision.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, providermigrationrevision.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ProviderMigrationRevisionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case providermigrationrevision.FieldProviderPluginID:
+		return m.ProviderPluginID()
+	case providermigrationrevision.FieldInstallationID:
+		return m.InstallationID()
+	case providermigrationrevision.FieldRevision:
+		return m.Revision()
+	case providermigrationrevision.FieldBundleHash:
+		return m.BundleHash()
+	case providermigrationrevision.FieldSchemaName:
+		return m.SchemaName()
+	case providermigrationrevision.FieldFromSchemaVersion:
+		return m.FromSchemaVersion()
+	case providermigrationrevision.FieldToSchemaVersion:
+		return m.ToSchemaVersion()
+	case providermigrationrevision.FieldStatus:
+		return m.Status()
+	case providermigrationrevision.FieldDestructive:
+		return m.Destructive()
+	case providermigrationrevision.FieldRlsBypass:
+		return m.RlsBypass()
+	case providermigrationrevision.FieldRequiresManualReview:
+		return m.RequiresManualReview()
+	case providermigrationrevision.FieldReviewedByUserID:
+		return m.ReviewedByUserID()
+	case providermigrationrevision.FieldReviewedAt:
+		return m.ReviewedAt()
+	case providermigrationrevision.FieldStartedAt:
+		return m.StartedAt()
+	case providermigrationrevision.FieldFinishedAt:
+		return m.FinishedAt()
+	case providermigrationrevision.FieldLastError:
+		return m.LastError()
+	case providermigrationrevision.FieldMetadata:
+		return m.Metadata()
+	case providermigrationrevision.FieldCreatedAt:
+		return m.CreatedAt()
+	case providermigrationrevision.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ProviderMigrationRevisionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case providermigrationrevision.FieldProviderPluginID:
+		return m.OldProviderPluginID(ctx)
+	case providermigrationrevision.FieldInstallationID:
+		return m.OldInstallationID(ctx)
+	case providermigrationrevision.FieldRevision:
+		return m.OldRevision(ctx)
+	case providermigrationrevision.FieldBundleHash:
+		return m.OldBundleHash(ctx)
+	case providermigrationrevision.FieldSchemaName:
+		return m.OldSchemaName(ctx)
+	case providermigrationrevision.FieldFromSchemaVersion:
+		return m.OldFromSchemaVersion(ctx)
+	case providermigrationrevision.FieldToSchemaVersion:
+		return m.OldToSchemaVersion(ctx)
+	case providermigrationrevision.FieldStatus:
+		return m.OldStatus(ctx)
+	case providermigrationrevision.FieldDestructive:
+		return m.OldDestructive(ctx)
+	case providermigrationrevision.FieldRlsBypass:
+		return m.OldRlsBypass(ctx)
+	case providermigrationrevision.FieldRequiresManualReview:
+		return m.OldRequiresManualReview(ctx)
+	case providermigrationrevision.FieldReviewedByUserID:
+		return m.OldReviewedByUserID(ctx)
+	case providermigrationrevision.FieldReviewedAt:
+		return m.OldReviewedAt(ctx)
+	case providermigrationrevision.FieldStartedAt:
+		return m.OldStartedAt(ctx)
+	case providermigrationrevision.FieldFinishedAt:
+		return m.OldFinishedAt(ctx)
+	case providermigrationrevision.FieldLastError:
+		return m.OldLastError(ctx)
+	case providermigrationrevision.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case providermigrationrevision.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case providermigrationrevision.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ProviderMigrationRevision field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProviderMigrationRevisionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case providermigrationrevision.FieldProviderPluginID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderPluginID(v)
+		return nil
+	case providermigrationrevision.FieldInstallationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInstallationID(v)
+		return nil
+	case providermigrationrevision.FieldRevision:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRevision(v)
+		return nil
+	case providermigrationrevision.FieldBundleHash:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBundleHash(v)
+		return nil
+	case providermigrationrevision.FieldSchemaName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSchemaName(v)
+		return nil
+	case providermigrationrevision.FieldFromSchemaVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFromSchemaVersion(v)
+		return nil
+	case providermigrationrevision.FieldToSchemaVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetToSchemaVersion(v)
+		return nil
+	case providermigrationrevision.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case providermigrationrevision.FieldDestructive:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDestructive(v)
+		return nil
+	case providermigrationrevision.FieldRlsBypass:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRlsBypass(v)
+		return nil
+	case providermigrationrevision.FieldRequiresManualReview:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRequiresManualReview(v)
+		return nil
+	case providermigrationrevision.FieldReviewedByUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReviewedByUserID(v)
+		return nil
+	case providermigrationrevision.FieldReviewedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReviewedAt(v)
+		return nil
+	case providermigrationrevision.FieldStartedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStartedAt(v)
+		return nil
+	case providermigrationrevision.FieldFinishedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFinishedAt(v)
+		return nil
+	case providermigrationrevision.FieldLastError:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastError(v)
+		return nil
+	case providermigrationrevision.FieldMetadata:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case providermigrationrevision.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case providermigrationrevision.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderMigrationRevision field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ProviderMigrationRevisionMutation) AddedFields() []string {
+	var fields []string
+	if m.addfrom_schema_version != nil {
+		fields = append(fields, providermigrationrevision.FieldFromSchemaVersion)
+	}
+	if m.addto_schema_version != nil {
+		fields = append(fields, providermigrationrevision.FieldToSchemaVersion)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ProviderMigrationRevisionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case providermigrationrevision.FieldFromSchemaVersion:
+		return m.AddedFromSchemaVersion()
+	case providermigrationrevision.FieldToSchemaVersion:
+		return m.AddedToSchemaVersion()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProviderMigrationRevisionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case providermigrationrevision.FieldFromSchemaVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddFromSchemaVersion(v)
+		return nil
+	case providermigrationrevision.FieldToSchemaVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddToSchemaVersion(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderMigrationRevision numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ProviderMigrationRevisionMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(providermigrationrevision.FieldReviewedByUserID) {
+		fields = append(fields, providermigrationrevision.FieldReviewedByUserID)
+	}
+	if m.FieldCleared(providermigrationrevision.FieldReviewedAt) {
+		fields = append(fields, providermigrationrevision.FieldReviewedAt)
+	}
+	if m.FieldCleared(providermigrationrevision.FieldStartedAt) {
+		fields = append(fields, providermigrationrevision.FieldStartedAt)
+	}
+	if m.FieldCleared(providermigrationrevision.FieldFinishedAt) {
+		fields = append(fields, providermigrationrevision.FieldFinishedAt)
+	}
+	if m.FieldCleared(providermigrationrevision.FieldLastError) {
+		fields = append(fields, providermigrationrevision.FieldLastError)
+	}
+	if m.FieldCleared(providermigrationrevision.FieldMetadata) {
+		fields = append(fields, providermigrationrevision.FieldMetadata)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ProviderMigrationRevisionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ProviderMigrationRevisionMutation) ClearField(name string) error {
+	switch name {
+	case providermigrationrevision.FieldReviewedByUserID:
+		m.ClearReviewedByUserID()
+		return nil
+	case providermigrationrevision.FieldReviewedAt:
+		m.ClearReviewedAt()
+		return nil
+	case providermigrationrevision.FieldStartedAt:
+		m.ClearStartedAt()
+		return nil
+	case providermigrationrevision.FieldFinishedAt:
+		m.ClearFinishedAt()
+		return nil
+	case providermigrationrevision.FieldLastError:
+		m.ClearLastError()
+		return nil
+	case providermigrationrevision.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderMigrationRevision nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ProviderMigrationRevisionMutation) ResetField(name string) error {
+	switch name {
+	case providermigrationrevision.FieldProviderPluginID:
+		m.ResetProviderPluginID()
+		return nil
+	case providermigrationrevision.FieldInstallationID:
+		m.ResetInstallationID()
+		return nil
+	case providermigrationrevision.FieldRevision:
+		m.ResetRevision()
+		return nil
+	case providermigrationrevision.FieldBundleHash:
+		m.ResetBundleHash()
+		return nil
+	case providermigrationrevision.FieldSchemaName:
+		m.ResetSchemaName()
+		return nil
+	case providermigrationrevision.FieldFromSchemaVersion:
+		m.ResetFromSchemaVersion()
+		return nil
+	case providermigrationrevision.FieldToSchemaVersion:
+		m.ResetToSchemaVersion()
+		return nil
+	case providermigrationrevision.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case providermigrationrevision.FieldDestructive:
+		m.ResetDestructive()
+		return nil
+	case providermigrationrevision.FieldRlsBypass:
+		m.ResetRlsBypass()
+		return nil
+	case providermigrationrevision.FieldRequiresManualReview:
+		m.ResetRequiresManualReview()
+		return nil
+	case providermigrationrevision.FieldReviewedByUserID:
+		m.ResetReviewedByUserID()
+		return nil
+	case providermigrationrevision.FieldReviewedAt:
+		m.ResetReviewedAt()
+		return nil
+	case providermigrationrevision.FieldStartedAt:
+		m.ResetStartedAt()
+		return nil
+	case providermigrationrevision.FieldFinishedAt:
+		m.ResetFinishedAt()
+		return nil
+	case providermigrationrevision.FieldLastError:
+		m.ResetLastError()
+		return nil
+	case providermigrationrevision.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case providermigrationrevision.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case providermigrationrevision.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderMigrationRevision field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ProviderMigrationRevisionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ProviderMigrationRevisionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ProviderMigrationRevisionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ProviderMigrationRevisionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ProviderMigrationRevisionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ProviderMigrationRevisionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ProviderMigrationRevisionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ProviderMigrationRevision unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ProviderMigrationRevisionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ProviderMigrationRevision edge %s", name)
+}
+
+// ProviderMigrationStepMutation represents an operation that mutates the ProviderMigrationStep nodes in the graph.
+type ProviderMigrationStepMutation struct {
+	config
+	op                    Op
+	typ                   string
+	id                    *string
+	revision_id           *string
+	provider_plugin_id    *string
+	step_index            *int
+	addstep_index         *int
+	statement_hash        *string
+	statement_kind        *string
+	status                *string
+	destructive           *bool
+	backfill              *bool
+	tenant_scope_reviewed *bool
+	rls_bypass            *bool
+	precondition          *string
+	recovery_action       *string
+	started_at            *time.Time
+	finished_at           *time.Time
+	error                 *string
+	metadata              *map[string]interface{}
+	created_at            *time.Time
+	updated_at            *time.Time
+	clearedFields         map[string]struct{}
+	done                  bool
+	oldValue              func(context.Context) (*ProviderMigrationStep, error)
+	predicates            []predicate.ProviderMigrationStep
+}
+
+var _ ent.Mutation = (*ProviderMigrationStepMutation)(nil)
+
+// providermigrationstepOption allows management of the mutation configuration using functional options.
+type providermigrationstepOption func(*ProviderMigrationStepMutation)
+
+// newProviderMigrationStepMutation creates new mutation for the ProviderMigrationStep entity.
+func newProviderMigrationStepMutation(c config, op Op, opts ...providermigrationstepOption) *ProviderMigrationStepMutation {
+	m := &ProviderMigrationStepMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeProviderMigrationStep,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withProviderMigrationStepID sets the ID field of the mutation.
+func withProviderMigrationStepID(id string) providermigrationstepOption {
+	return func(m *ProviderMigrationStepMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ProviderMigrationStep
+		)
+		m.oldValue = func(ctx context.Context) (*ProviderMigrationStep, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ProviderMigrationStep.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withProviderMigrationStep sets the old ProviderMigrationStep of the mutation.
+func withProviderMigrationStep(node *ProviderMigrationStep) providermigrationstepOption {
+	return func(m *ProviderMigrationStepMutation) {
+		m.oldValue = func(context.Context) (*ProviderMigrationStep, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ProviderMigrationStepMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ProviderMigrationStepMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ProviderMigrationStep entities.
+func (m *ProviderMigrationStepMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ProviderMigrationStepMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ProviderMigrationStepMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ProviderMigrationStep.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetRevisionID sets the "revision_id" field.
+func (m *ProviderMigrationStepMutation) SetRevisionID(s string) {
+	m.revision_id = &s
+}
+
+// RevisionID returns the value of the "revision_id" field in the mutation.
+func (m *ProviderMigrationStepMutation) RevisionID() (r string, exists bool) {
+	v := m.revision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRevisionID returns the old "revision_id" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldRevisionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRevisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRevisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRevisionID: %w", err)
+	}
+	return oldValue.RevisionID, nil
+}
+
+// ResetRevisionID resets all changes to the "revision_id" field.
+func (m *ProviderMigrationStepMutation) ResetRevisionID() {
+	m.revision_id = nil
+}
+
+// SetProviderPluginID sets the "provider_plugin_id" field.
+func (m *ProviderMigrationStepMutation) SetProviderPluginID(s string) {
+	m.provider_plugin_id = &s
+}
+
+// ProviderPluginID returns the value of the "provider_plugin_id" field in the mutation.
+func (m *ProviderMigrationStepMutation) ProviderPluginID() (r string, exists bool) {
+	v := m.provider_plugin_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderPluginID returns the old "provider_plugin_id" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldProviderPluginID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderPluginID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderPluginID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderPluginID: %w", err)
+	}
+	return oldValue.ProviderPluginID, nil
+}
+
+// ResetProviderPluginID resets all changes to the "provider_plugin_id" field.
+func (m *ProviderMigrationStepMutation) ResetProviderPluginID() {
+	m.provider_plugin_id = nil
+}
+
+// SetStepIndex sets the "step_index" field.
+func (m *ProviderMigrationStepMutation) SetStepIndex(i int) {
+	m.step_index = &i
+	m.addstep_index = nil
+}
+
+// StepIndex returns the value of the "step_index" field in the mutation.
+func (m *ProviderMigrationStepMutation) StepIndex() (r int, exists bool) {
+	v := m.step_index
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStepIndex returns the old "step_index" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldStepIndex(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStepIndex is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStepIndex requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStepIndex: %w", err)
+	}
+	return oldValue.StepIndex, nil
+}
+
+// AddStepIndex adds i to the "step_index" field.
+func (m *ProviderMigrationStepMutation) AddStepIndex(i int) {
+	if m.addstep_index != nil {
+		*m.addstep_index += i
+	} else {
+		m.addstep_index = &i
+	}
+}
+
+// AddedStepIndex returns the value that was added to the "step_index" field in this mutation.
+func (m *ProviderMigrationStepMutation) AddedStepIndex() (r int, exists bool) {
+	v := m.addstep_index
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetStepIndex resets all changes to the "step_index" field.
+func (m *ProviderMigrationStepMutation) ResetStepIndex() {
+	m.step_index = nil
+	m.addstep_index = nil
+}
+
+// SetStatementHash sets the "statement_hash" field.
+func (m *ProviderMigrationStepMutation) SetStatementHash(s string) {
+	m.statement_hash = &s
+}
+
+// StatementHash returns the value of the "statement_hash" field in the mutation.
+func (m *ProviderMigrationStepMutation) StatementHash() (r string, exists bool) {
+	v := m.statement_hash
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatementHash returns the old "statement_hash" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldStatementHash(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatementHash is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatementHash requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatementHash: %w", err)
+	}
+	return oldValue.StatementHash, nil
+}
+
+// ResetStatementHash resets all changes to the "statement_hash" field.
+func (m *ProviderMigrationStepMutation) ResetStatementHash() {
+	m.statement_hash = nil
+}
+
+// SetStatementKind sets the "statement_kind" field.
+func (m *ProviderMigrationStepMutation) SetStatementKind(s string) {
+	m.statement_kind = &s
+}
+
+// StatementKind returns the value of the "statement_kind" field in the mutation.
+func (m *ProviderMigrationStepMutation) StatementKind() (r string, exists bool) {
+	v := m.statement_kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatementKind returns the old "statement_kind" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldStatementKind(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatementKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatementKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatementKind: %w", err)
+	}
+	return oldValue.StatementKind, nil
+}
+
+// ResetStatementKind resets all changes to the "statement_kind" field.
+func (m *ProviderMigrationStepMutation) ResetStatementKind() {
+	m.statement_kind = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *ProviderMigrationStepMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *ProviderMigrationStepMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *ProviderMigrationStepMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetDestructive sets the "destructive" field.
+func (m *ProviderMigrationStepMutation) SetDestructive(b bool) {
+	m.destructive = &b
+}
+
+// Destructive returns the value of the "destructive" field in the mutation.
+func (m *ProviderMigrationStepMutation) Destructive() (r bool, exists bool) {
+	v := m.destructive
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDestructive returns the old "destructive" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldDestructive(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDestructive is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDestructive requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDestructive: %w", err)
+	}
+	return oldValue.Destructive, nil
+}
+
+// ResetDestructive resets all changes to the "destructive" field.
+func (m *ProviderMigrationStepMutation) ResetDestructive() {
+	m.destructive = nil
+}
+
+// SetBackfill sets the "backfill" field.
+func (m *ProviderMigrationStepMutation) SetBackfill(b bool) {
+	m.backfill = &b
+}
+
+// Backfill returns the value of the "backfill" field in the mutation.
+func (m *ProviderMigrationStepMutation) Backfill() (r bool, exists bool) {
+	v := m.backfill
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBackfill returns the old "backfill" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldBackfill(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBackfill is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBackfill requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBackfill: %w", err)
+	}
+	return oldValue.Backfill, nil
+}
+
+// ResetBackfill resets all changes to the "backfill" field.
+func (m *ProviderMigrationStepMutation) ResetBackfill() {
+	m.backfill = nil
+}
+
+// SetTenantScopeReviewed sets the "tenant_scope_reviewed" field.
+func (m *ProviderMigrationStepMutation) SetTenantScopeReviewed(b bool) {
+	m.tenant_scope_reviewed = &b
+}
+
+// TenantScopeReviewed returns the value of the "tenant_scope_reviewed" field in the mutation.
+func (m *ProviderMigrationStepMutation) TenantScopeReviewed() (r bool, exists bool) {
+	v := m.tenant_scope_reviewed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTenantScopeReviewed returns the old "tenant_scope_reviewed" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldTenantScopeReviewed(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTenantScopeReviewed is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTenantScopeReviewed requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantScopeReviewed: %w", err)
+	}
+	return oldValue.TenantScopeReviewed, nil
+}
+
+// ResetTenantScopeReviewed resets all changes to the "tenant_scope_reviewed" field.
+func (m *ProviderMigrationStepMutation) ResetTenantScopeReviewed() {
+	m.tenant_scope_reviewed = nil
+}
+
+// SetRlsBypass sets the "rls_bypass" field.
+func (m *ProviderMigrationStepMutation) SetRlsBypass(b bool) {
+	m.rls_bypass = &b
+}
+
+// RlsBypass returns the value of the "rls_bypass" field in the mutation.
+func (m *ProviderMigrationStepMutation) RlsBypass() (r bool, exists bool) {
+	v := m.rls_bypass
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRlsBypass returns the old "rls_bypass" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldRlsBypass(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRlsBypass is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRlsBypass requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRlsBypass: %w", err)
+	}
+	return oldValue.RlsBypass, nil
+}
+
+// ResetRlsBypass resets all changes to the "rls_bypass" field.
+func (m *ProviderMigrationStepMutation) ResetRlsBypass() {
+	m.rls_bypass = nil
+}
+
+// SetPrecondition sets the "precondition" field.
+func (m *ProviderMigrationStepMutation) SetPrecondition(s string) {
+	m.precondition = &s
+}
+
+// Precondition returns the value of the "precondition" field in the mutation.
+func (m *ProviderMigrationStepMutation) Precondition() (r string, exists bool) {
+	v := m.precondition
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrecondition returns the old "precondition" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldPrecondition(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrecondition is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrecondition requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrecondition: %w", err)
+	}
+	return oldValue.Precondition, nil
+}
+
+// ClearPrecondition clears the value of the "precondition" field.
+func (m *ProviderMigrationStepMutation) ClearPrecondition() {
+	m.precondition = nil
+	m.clearedFields[providermigrationstep.FieldPrecondition] = struct{}{}
+}
+
+// PreconditionCleared returns if the "precondition" field was cleared in this mutation.
+func (m *ProviderMigrationStepMutation) PreconditionCleared() bool {
+	_, ok := m.clearedFields[providermigrationstep.FieldPrecondition]
+	return ok
+}
+
+// ResetPrecondition resets all changes to the "precondition" field.
+func (m *ProviderMigrationStepMutation) ResetPrecondition() {
+	m.precondition = nil
+	delete(m.clearedFields, providermigrationstep.FieldPrecondition)
+}
+
+// SetRecoveryAction sets the "recovery_action" field.
+func (m *ProviderMigrationStepMutation) SetRecoveryAction(s string) {
+	m.recovery_action = &s
+}
+
+// RecoveryAction returns the value of the "recovery_action" field in the mutation.
+func (m *ProviderMigrationStepMutation) RecoveryAction() (r string, exists bool) {
+	v := m.recovery_action
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRecoveryAction returns the old "recovery_action" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldRecoveryAction(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRecoveryAction is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRecoveryAction requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRecoveryAction: %w", err)
+	}
+	return oldValue.RecoveryAction, nil
+}
+
+// ClearRecoveryAction clears the value of the "recovery_action" field.
+func (m *ProviderMigrationStepMutation) ClearRecoveryAction() {
+	m.recovery_action = nil
+	m.clearedFields[providermigrationstep.FieldRecoveryAction] = struct{}{}
+}
+
+// RecoveryActionCleared returns if the "recovery_action" field was cleared in this mutation.
+func (m *ProviderMigrationStepMutation) RecoveryActionCleared() bool {
+	_, ok := m.clearedFields[providermigrationstep.FieldRecoveryAction]
+	return ok
+}
+
+// ResetRecoveryAction resets all changes to the "recovery_action" field.
+func (m *ProviderMigrationStepMutation) ResetRecoveryAction() {
+	m.recovery_action = nil
+	delete(m.clearedFields, providermigrationstep.FieldRecoveryAction)
+}
+
+// SetStartedAt sets the "started_at" field.
+func (m *ProviderMigrationStepMutation) SetStartedAt(t time.Time) {
+	m.started_at = &t
+}
+
+// StartedAt returns the value of the "started_at" field in the mutation.
+func (m *ProviderMigrationStepMutation) StartedAt() (r time.Time, exists bool) {
+	v := m.started_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStartedAt returns the old "started_at" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldStartedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStartedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStartedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStartedAt: %w", err)
+	}
+	return oldValue.StartedAt, nil
+}
+
+// ClearStartedAt clears the value of the "started_at" field.
+func (m *ProviderMigrationStepMutation) ClearStartedAt() {
+	m.started_at = nil
+	m.clearedFields[providermigrationstep.FieldStartedAt] = struct{}{}
+}
+
+// StartedAtCleared returns if the "started_at" field was cleared in this mutation.
+func (m *ProviderMigrationStepMutation) StartedAtCleared() bool {
+	_, ok := m.clearedFields[providermigrationstep.FieldStartedAt]
+	return ok
+}
+
+// ResetStartedAt resets all changes to the "started_at" field.
+func (m *ProviderMigrationStepMutation) ResetStartedAt() {
+	m.started_at = nil
+	delete(m.clearedFields, providermigrationstep.FieldStartedAt)
+}
+
+// SetFinishedAt sets the "finished_at" field.
+func (m *ProviderMigrationStepMutation) SetFinishedAt(t time.Time) {
+	m.finished_at = &t
+}
+
+// FinishedAt returns the value of the "finished_at" field in the mutation.
+func (m *ProviderMigrationStepMutation) FinishedAt() (r time.Time, exists bool) {
+	v := m.finished_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFinishedAt returns the old "finished_at" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldFinishedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFinishedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFinishedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFinishedAt: %w", err)
+	}
+	return oldValue.FinishedAt, nil
+}
+
+// ClearFinishedAt clears the value of the "finished_at" field.
+func (m *ProviderMigrationStepMutation) ClearFinishedAt() {
+	m.finished_at = nil
+	m.clearedFields[providermigrationstep.FieldFinishedAt] = struct{}{}
+}
+
+// FinishedAtCleared returns if the "finished_at" field was cleared in this mutation.
+func (m *ProviderMigrationStepMutation) FinishedAtCleared() bool {
+	_, ok := m.clearedFields[providermigrationstep.FieldFinishedAt]
+	return ok
+}
+
+// ResetFinishedAt resets all changes to the "finished_at" field.
+func (m *ProviderMigrationStepMutation) ResetFinishedAt() {
+	m.finished_at = nil
+	delete(m.clearedFields, providermigrationstep.FieldFinishedAt)
+}
+
+// SetError sets the "error" field.
+func (m *ProviderMigrationStepMutation) SetError(s string) {
+	m.error = &s
+}
+
+// Error returns the value of the "error" field in the mutation.
+func (m *ProviderMigrationStepMutation) Error() (r string, exists bool) {
+	v := m.error
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldError returns the old "error" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldError(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldError is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldError requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldError: %w", err)
+	}
+	return oldValue.Error, nil
+}
+
+// ClearError clears the value of the "error" field.
+func (m *ProviderMigrationStepMutation) ClearError() {
+	m.error = nil
+	m.clearedFields[providermigrationstep.FieldError] = struct{}{}
+}
+
+// ErrorCleared returns if the "error" field was cleared in this mutation.
+func (m *ProviderMigrationStepMutation) ErrorCleared() bool {
+	_, ok := m.clearedFields[providermigrationstep.FieldError]
+	return ok
+}
+
+// ResetError resets all changes to the "error" field.
+func (m *ProviderMigrationStepMutation) ResetError() {
+	m.error = nil
+	delete(m.clearedFields, providermigrationstep.FieldError)
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *ProviderMigrationStepMutation) SetMetadata(value map[string]interface{}) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *ProviderMigrationStepMutation) Metadata() (r map[string]interface{}, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldMetadata(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *ProviderMigrationStepMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[providermigrationstep.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *ProviderMigrationStepMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[providermigrationstep.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *ProviderMigrationStepMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, providermigrationstep.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ProviderMigrationStepMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ProviderMigrationStepMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ProviderMigrationStepMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ProviderMigrationStepMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ProviderMigrationStepMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ProviderMigrationStep entity.
+// If the ProviderMigrationStep object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderMigrationStepMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ProviderMigrationStepMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the ProviderMigrationStepMutation builder.
+func (m *ProviderMigrationStepMutation) Where(ps ...predicate.ProviderMigrationStep) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ProviderMigrationStepMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ProviderMigrationStepMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ProviderMigrationStep, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ProviderMigrationStepMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ProviderMigrationStepMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ProviderMigrationStep).
+func (m *ProviderMigrationStepMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ProviderMigrationStepMutation) Fields() []string {
+	fields := make([]string, 0, 18)
+	if m.revision_id != nil {
+		fields = append(fields, providermigrationstep.FieldRevisionID)
+	}
+	if m.provider_plugin_id != nil {
+		fields = append(fields, providermigrationstep.FieldProviderPluginID)
+	}
+	if m.step_index != nil {
+		fields = append(fields, providermigrationstep.FieldStepIndex)
+	}
+	if m.statement_hash != nil {
+		fields = append(fields, providermigrationstep.FieldStatementHash)
+	}
+	if m.statement_kind != nil {
+		fields = append(fields, providermigrationstep.FieldStatementKind)
+	}
+	if m.status != nil {
+		fields = append(fields, providermigrationstep.FieldStatus)
+	}
+	if m.destructive != nil {
+		fields = append(fields, providermigrationstep.FieldDestructive)
+	}
+	if m.backfill != nil {
+		fields = append(fields, providermigrationstep.FieldBackfill)
+	}
+	if m.tenant_scope_reviewed != nil {
+		fields = append(fields, providermigrationstep.FieldTenantScopeReviewed)
+	}
+	if m.rls_bypass != nil {
+		fields = append(fields, providermigrationstep.FieldRlsBypass)
+	}
+	if m.precondition != nil {
+		fields = append(fields, providermigrationstep.FieldPrecondition)
+	}
+	if m.recovery_action != nil {
+		fields = append(fields, providermigrationstep.FieldRecoveryAction)
+	}
+	if m.started_at != nil {
+		fields = append(fields, providermigrationstep.FieldStartedAt)
+	}
+	if m.finished_at != nil {
+		fields = append(fields, providermigrationstep.FieldFinishedAt)
+	}
+	if m.error != nil {
+		fields = append(fields, providermigrationstep.FieldError)
+	}
+	if m.metadata != nil {
+		fields = append(fields, providermigrationstep.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, providermigrationstep.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, providermigrationstep.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ProviderMigrationStepMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case providermigrationstep.FieldRevisionID:
+		return m.RevisionID()
+	case providermigrationstep.FieldProviderPluginID:
+		return m.ProviderPluginID()
+	case providermigrationstep.FieldStepIndex:
+		return m.StepIndex()
+	case providermigrationstep.FieldStatementHash:
+		return m.StatementHash()
+	case providermigrationstep.FieldStatementKind:
+		return m.StatementKind()
+	case providermigrationstep.FieldStatus:
+		return m.Status()
+	case providermigrationstep.FieldDestructive:
+		return m.Destructive()
+	case providermigrationstep.FieldBackfill:
+		return m.Backfill()
+	case providermigrationstep.FieldTenantScopeReviewed:
+		return m.TenantScopeReviewed()
+	case providermigrationstep.FieldRlsBypass:
+		return m.RlsBypass()
+	case providermigrationstep.FieldPrecondition:
+		return m.Precondition()
+	case providermigrationstep.FieldRecoveryAction:
+		return m.RecoveryAction()
+	case providermigrationstep.FieldStartedAt:
+		return m.StartedAt()
+	case providermigrationstep.FieldFinishedAt:
+		return m.FinishedAt()
+	case providermigrationstep.FieldError:
+		return m.Error()
+	case providermigrationstep.FieldMetadata:
+		return m.Metadata()
+	case providermigrationstep.FieldCreatedAt:
+		return m.CreatedAt()
+	case providermigrationstep.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ProviderMigrationStepMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case providermigrationstep.FieldRevisionID:
+		return m.OldRevisionID(ctx)
+	case providermigrationstep.FieldProviderPluginID:
+		return m.OldProviderPluginID(ctx)
+	case providermigrationstep.FieldStepIndex:
+		return m.OldStepIndex(ctx)
+	case providermigrationstep.FieldStatementHash:
+		return m.OldStatementHash(ctx)
+	case providermigrationstep.FieldStatementKind:
+		return m.OldStatementKind(ctx)
+	case providermigrationstep.FieldStatus:
+		return m.OldStatus(ctx)
+	case providermigrationstep.FieldDestructive:
+		return m.OldDestructive(ctx)
+	case providermigrationstep.FieldBackfill:
+		return m.OldBackfill(ctx)
+	case providermigrationstep.FieldTenantScopeReviewed:
+		return m.OldTenantScopeReviewed(ctx)
+	case providermigrationstep.FieldRlsBypass:
+		return m.OldRlsBypass(ctx)
+	case providermigrationstep.FieldPrecondition:
+		return m.OldPrecondition(ctx)
+	case providermigrationstep.FieldRecoveryAction:
+		return m.OldRecoveryAction(ctx)
+	case providermigrationstep.FieldStartedAt:
+		return m.OldStartedAt(ctx)
+	case providermigrationstep.FieldFinishedAt:
+		return m.OldFinishedAt(ctx)
+	case providermigrationstep.FieldError:
+		return m.OldError(ctx)
+	case providermigrationstep.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case providermigrationstep.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case providermigrationstep.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ProviderMigrationStep field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProviderMigrationStepMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case providermigrationstep.FieldRevisionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRevisionID(v)
+		return nil
+	case providermigrationstep.FieldProviderPluginID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderPluginID(v)
+		return nil
+	case providermigrationstep.FieldStepIndex:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStepIndex(v)
+		return nil
+	case providermigrationstep.FieldStatementHash:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatementHash(v)
+		return nil
+	case providermigrationstep.FieldStatementKind:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatementKind(v)
+		return nil
+	case providermigrationstep.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case providermigrationstep.FieldDestructive:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDestructive(v)
+		return nil
+	case providermigrationstep.FieldBackfill:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBackfill(v)
+		return nil
+	case providermigrationstep.FieldTenantScopeReviewed:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTenantScopeReviewed(v)
+		return nil
+	case providermigrationstep.FieldRlsBypass:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRlsBypass(v)
+		return nil
+	case providermigrationstep.FieldPrecondition:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrecondition(v)
+		return nil
+	case providermigrationstep.FieldRecoveryAction:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRecoveryAction(v)
+		return nil
+	case providermigrationstep.FieldStartedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStartedAt(v)
+		return nil
+	case providermigrationstep.FieldFinishedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFinishedAt(v)
+		return nil
+	case providermigrationstep.FieldError:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetError(v)
+		return nil
+	case providermigrationstep.FieldMetadata:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case providermigrationstep.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case providermigrationstep.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderMigrationStep field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ProviderMigrationStepMutation) AddedFields() []string {
+	var fields []string
+	if m.addstep_index != nil {
+		fields = append(fields, providermigrationstep.FieldStepIndex)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ProviderMigrationStepMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case providermigrationstep.FieldStepIndex:
+		return m.AddedStepIndex()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ProviderMigrationStepMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case providermigrationstep.FieldStepIndex:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddStepIndex(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderMigrationStep numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ProviderMigrationStepMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(providermigrationstep.FieldPrecondition) {
+		fields = append(fields, providermigrationstep.FieldPrecondition)
+	}
+	if m.FieldCleared(providermigrationstep.FieldRecoveryAction) {
+		fields = append(fields, providermigrationstep.FieldRecoveryAction)
+	}
+	if m.FieldCleared(providermigrationstep.FieldStartedAt) {
+		fields = append(fields, providermigrationstep.FieldStartedAt)
+	}
+	if m.FieldCleared(providermigrationstep.FieldFinishedAt) {
+		fields = append(fields, providermigrationstep.FieldFinishedAt)
+	}
+	if m.FieldCleared(providermigrationstep.FieldError) {
+		fields = append(fields, providermigrationstep.FieldError)
+	}
+	if m.FieldCleared(providermigrationstep.FieldMetadata) {
+		fields = append(fields, providermigrationstep.FieldMetadata)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ProviderMigrationStepMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ProviderMigrationStepMutation) ClearField(name string) error {
+	switch name {
+	case providermigrationstep.FieldPrecondition:
+		m.ClearPrecondition()
+		return nil
+	case providermigrationstep.FieldRecoveryAction:
+		m.ClearRecoveryAction()
+		return nil
+	case providermigrationstep.FieldStartedAt:
+		m.ClearStartedAt()
+		return nil
+	case providermigrationstep.FieldFinishedAt:
+		m.ClearFinishedAt()
+		return nil
+	case providermigrationstep.FieldError:
+		m.ClearError()
+		return nil
+	case providermigrationstep.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderMigrationStep nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ProviderMigrationStepMutation) ResetField(name string) error {
+	switch name {
+	case providermigrationstep.FieldRevisionID:
+		m.ResetRevisionID()
+		return nil
+	case providermigrationstep.FieldProviderPluginID:
+		m.ResetProviderPluginID()
+		return nil
+	case providermigrationstep.FieldStepIndex:
+		m.ResetStepIndex()
+		return nil
+	case providermigrationstep.FieldStatementHash:
+		m.ResetStatementHash()
+		return nil
+	case providermigrationstep.FieldStatementKind:
+		m.ResetStatementKind()
+		return nil
+	case providermigrationstep.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case providermigrationstep.FieldDestructive:
+		m.ResetDestructive()
+		return nil
+	case providermigrationstep.FieldBackfill:
+		m.ResetBackfill()
+		return nil
+	case providermigrationstep.FieldTenantScopeReviewed:
+		m.ResetTenantScopeReviewed()
+		return nil
+	case providermigrationstep.FieldRlsBypass:
+		m.ResetRlsBypass()
+		return nil
+	case providermigrationstep.FieldPrecondition:
+		m.ResetPrecondition()
+		return nil
+	case providermigrationstep.FieldRecoveryAction:
+		m.ResetRecoveryAction()
+		return nil
+	case providermigrationstep.FieldStartedAt:
+		m.ResetStartedAt()
+		return nil
+	case providermigrationstep.FieldFinishedAt:
+		m.ResetFinishedAt()
+		return nil
+	case providermigrationstep.FieldError:
+		m.ResetError()
+		return nil
+	case providermigrationstep.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case providermigrationstep.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case providermigrationstep.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ProviderMigrationStep field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ProviderMigrationStepMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ProviderMigrationStepMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ProviderMigrationStepMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ProviderMigrationStepMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ProviderMigrationStepMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ProviderMigrationStepMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ProviderMigrationStepMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ProviderMigrationStep unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ProviderMigrationStepMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ProviderMigrationStep edge %s", name)
 }
 
 // ProviderRequestContextMutation represents an operation that mutates the ProviderRequestContext nodes in the graph.

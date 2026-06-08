@@ -31,6 +31,9 @@ import (
 	"github.com/plystra/core/ent/pluginadminmenu"
 	"github.com/plystra/core/ent/pluginsettingsdefinition"
 	"github.com/plystra/core/ent/pluginsettingsvalue"
+	"github.com/plystra/core/ent/providerinstallation"
+	"github.com/plystra/core/ent/providermigrationrevision"
+	"github.com/plystra/core/ent/providermigrationstep"
 	"github.com/plystra/core/ent/providerrequestcontext"
 	"github.com/plystra/core/ent/resource"
 	"github.com/plystra/core/ent/resourceaction"
@@ -122,6 +125,9 @@ func checkColumn(t, c string) error {
 			pluginadminmenu.Table:           pluginadminmenu.ValidColumn,
 			pluginsettingsdefinition.Table:  pluginsettingsdefinition.ValidColumn,
 			pluginsettingsvalue.Table:       pluginsettingsvalue.ValidColumn,
+			providerinstallation.Table:      providerinstallation.ValidColumn,
+			providermigrationrevision.Table: providermigrationrevision.ValidColumn,
+			providermigrationstep.Table:     providermigrationstep.ValidColumn,
 			providerrequestcontext.Table:    providerrequestcontext.ValidColumn,
 			resource.Table:                  resource.ValidColumn,
 			resourceaction.Table:            resourceaction.ValidColumn,

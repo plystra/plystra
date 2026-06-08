@@ -821,6 +821,169 @@ var (
 			},
 		},
 	}
+	// ProviderInstallationsColumns holds the columns for the "provider_installations" table.
+	ProviderInstallationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "provider_plugin_id", Type: field.TypeString},
+		{Name: "plugin_type", Type: field.TypeString},
+		{Name: "plugin_scope", Type: field.TypeString},
+		{Name: "app_id", Type: field.TypeString, Nullable: true},
+		{Name: "trust_bundle_id", Type: field.TypeString, Nullable: true},
+		{Name: "schema_name", Type: field.TypeString},
+		{Name: "migrator_role", Type: field.TypeString},
+		{Name: "runtime_role", Type: field.TypeString},
+		{Name: "schema_version", Type: field.TypeInt, Default: schema.Expr("0")},
+		{Name: "runtime_schema_min", Type: field.TypeInt, Default: schema.Expr("0")},
+		{Name: "runtime_schema_max", Type: field.TypeInt, Default: schema.Expr("0")},
+		{Name: "runtime_schema_preferred", Type: field.TypeInt, Default: schema.Expr("0")},
+		{Name: "rls_required", Type: field.TypeBool, Default: schema.Expr("true")},
+		{Name: "zero_ddl_runtime", Type: field.TypeBool, Default: schema.Expr("true")},
+		{Name: "mutation_journal_required", Type: field.TypeBool, Default: schema.Expr("false")},
+		{Name: "status", Type: field.TypeString, Default: schema.Expr("'planned'")},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, Default: schema.Expr("'{}'::jsonb")},
+		{Name: "created_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+		{Name: "updated_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+	}
+	// ProviderInstallationsTable holds the schema information for the "provider_installations" table.
+	ProviderInstallationsTable = &schema.Table{
+		Name:       "provider_installations",
+		Columns:    ProviderInstallationsColumns,
+		PrimaryKey: []*schema.Column{ProviderInstallationsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "providerinstallation_provider_plugin_id",
+				Unique:  true,
+				Columns: []*schema.Column{ProviderInstallationsColumns[1]},
+			},
+			{
+				Name:    "providerinstallation_schema_name",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderInstallationsColumns[6]},
+			},
+			{
+				Name:    "providerinstallation_runtime_role",
+				Unique:  true,
+				Columns: []*schema.Column{ProviderInstallationsColumns[8]},
+			},
+			{
+				Name:    "providerinstallation_migrator_role",
+				Unique:  true,
+				Columns: []*schema.Column{ProviderInstallationsColumns[7]},
+			},
+			{
+				Name:    "providerinstallation_plugin_type_plugin_scope_status",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderInstallationsColumns[2], ProviderInstallationsColumns[3], ProviderInstallationsColumns[16]},
+			},
+			{
+				Name:    "providerinstallation_app_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderInstallationsColumns[4], ProviderInstallationsColumns[16]},
+			},
+			{
+				Name:    "providerinstallation_trust_bundle_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderInstallationsColumns[5], ProviderInstallationsColumns[16]},
+			},
+		},
+	}
+	// ProviderMigrationRevisionsColumns holds the columns for the "provider_migration_revisions" table.
+	ProviderMigrationRevisionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "provider_plugin_id", Type: field.TypeString},
+		{Name: "installation_id", Type: field.TypeString},
+		{Name: "revision", Type: field.TypeString},
+		{Name: "bundle_hash", Type: field.TypeString},
+		{Name: "schema_name", Type: field.TypeString},
+		{Name: "from_schema_version", Type: field.TypeInt, Default: schema.Expr("0")},
+		{Name: "to_schema_version", Type: field.TypeInt, Default: schema.Expr("0")},
+		{Name: "status", Type: field.TypeString, Default: schema.Expr("'planned'")},
+		{Name: "destructive", Type: field.TypeBool, Default: schema.Expr("false")},
+		{Name: "rls_bypass", Type: field.TypeBool, Default: schema.Expr("false")},
+		{Name: "requires_manual_review", Type: field.TypeBool, Default: schema.Expr("false")},
+		{Name: "reviewed_by_user_id", Type: field.TypeString, Nullable: true},
+		{Name: "reviewed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "started_at", Type: field.TypeTime, Nullable: true},
+		{Name: "finished_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_error", Type: field.TypeString, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, Default: schema.Expr("'{}'::jsonb")},
+		{Name: "created_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+		{Name: "updated_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+	}
+	// ProviderMigrationRevisionsTable holds the schema information for the "provider_migration_revisions" table.
+	ProviderMigrationRevisionsTable = &schema.Table{
+		Name:       "provider_migration_revisions",
+		Columns:    ProviderMigrationRevisionsColumns,
+		PrimaryKey: []*schema.Column{ProviderMigrationRevisionsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "providermigrationrevision_provider_plugin_id_revision",
+				Unique:  true,
+				Columns: []*schema.Column{ProviderMigrationRevisionsColumns[1], ProviderMigrationRevisionsColumns[3]},
+			},
+			{
+				Name:    "providermigrationrevision_installation_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderMigrationRevisionsColumns[2], ProviderMigrationRevisionsColumns[8]},
+			},
+			{
+				Name:    "providermigrationrevision_provider_plugin_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderMigrationRevisionsColumns[1], ProviderMigrationRevisionsColumns[8]},
+			},
+			{
+				Name:    "providermigrationrevision_bundle_hash",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderMigrationRevisionsColumns[4]},
+			},
+		},
+	}
+	// ProviderMigrationStepsColumns holds the columns for the "provider_migration_steps" table.
+	ProviderMigrationStepsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "revision_id", Type: field.TypeString},
+		{Name: "provider_plugin_id", Type: field.TypeString},
+		{Name: "step_index", Type: field.TypeInt},
+		{Name: "statement_hash", Type: field.TypeString},
+		{Name: "statement_kind", Type: field.TypeString},
+		{Name: "status", Type: field.TypeString, Default: schema.Expr("'planned'")},
+		{Name: "destructive", Type: field.TypeBool, Default: schema.Expr("false")},
+		{Name: "backfill", Type: field.TypeBool, Default: schema.Expr("false")},
+		{Name: "tenant_scope_reviewed", Type: field.TypeBool, Default: schema.Expr("false")},
+		{Name: "rls_bypass", Type: field.TypeBool, Default: schema.Expr("false")},
+		{Name: "precondition", Type: field.TypeString, Nullable: true},
+		{Name: "recovery_action", Type: field.TypeString, Nullable: true},
+		{Name: "started_at", Type: field.TypeTime, Nullable: true},
+		{Name: "finished_at", Type: field.TypeTime, Nullable: true},
+		{Name: "error", Type: field.TypeString, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, Default: schema.Expr("'{}'::jsonb")},
+		{Name: "created_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+		{Name: "updated_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+	}
+	// ProviderMigrationStepsTable holds the schema information for the "provider_migration_steps" table.
+	ProviderMigrationStepsTable = &schema.Table{
+		Name:       "provider_migration_steps",
+		Columns:    ProviderMigrationStepsColumns,
+		PrimaryKey: []*schema.Column{ProviderMigrationStepsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "providermigrationstep_revision_id_step_index",
+				Unique:  true,
+				Columns: []*schema.Column{ProviderMigrationStepsColumns[1], ProviderMigrationStepsColumns[3]},
+			},
+			{
+				Name:    "providermigrationstep_provider_plugin_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderMigrationStepsColumns[2], ProviderMigrationStepsColumns[6]},
+			},
+			{
+				Name:    "providermigrationstep_statement_hash",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderMigrationStepsColumns[4]},
+			},
+		},
+	}
 	// ProviderRequestContextsColumns holds the columns for the "provider_request_contexts" table.
 	ProviderRequestContextsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -1182,6 +1345,9 @@ var (
 		PluginAdminMenusTable,
 		PluginSettingsDefinitionsTable,
 		PluginSettingsValuesTable,
+		ProviderInstallationsTable,
+		ProviderMigrationRevisionsTable,
+		ProviderMigrationStepsTable,
 		ProviderRequestContextsTable,
 		ResourcesTable,
 		ResourceActionsTable,

@@ -237,6 +237,42 @@ func (f PluginSettingsValueFunc) Mutate(ctx context.Context, m ent.Mutation) (en
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PluginSettingsValueMutation", m)
 }
 
+// The ProviderInstallationFunc type is an adapter to allow the use of ordinary
+// function as ProviderInstallation mutator.
+type ProviderInstallationFunc func(context.Context, *ent.ProviderInstallationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProviderInstallationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProviderInstallationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProviderInstallationMutation", m)
+}
+
+// The ProviderMigrationRevisionFunc type is an adapter to allow the use of ordinary
+// function as ProviderMigrationRevision mutator.
+type ProviderMigrationRevisionFunc func(context.Context, *ent.ProviderMigrationRevisionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProviderMigrationRevisionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProviderMigrationRevisionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProviderMigrationRevisionMutation", m)
+}
+
+// The ProviderMigrationStepFunc type is an adapter to allow the use of ordinary
+// function as ProviderMigrationStep mutator.
+type ProviderMigrationStepFunc func(context.Context, *ent.ProviderMigrationStepMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ProviderMigrationStepFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ProviderMigrationStepMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProviderMigrationStepMutation", m)
+}
+
 // The ProviderRequestContextFunc type is an adapter to allow the use of ordinary
 // function as ProviderRequestContext mutator.
 type ProviderRequestContextFunc func(context.Context, *ent.ProviderRequestContextMutation) (ent.Value, error)

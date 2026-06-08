@@ -692,6 +692,76 @@ type openAPIProviderRequestContext struct {
 	UpdatedAt               string         `json:"updated_at" format:"date-time"`
 }
 
+type openAPIProviderInstallation struct {
+	ID                      string         `json:"id"`
+	ProviderPluginID        string         `json:"provider_plugin_id"`
+	PluginType              string         `json:"plugin_type" example:"plugin"`
+	PluginScope             string         `json:"plugin_scope" example:"public"`
+	AppID                   string         `json:"app_id,omitempty"`
+	TrustBundleID           string         `json:"trust_bundle_id,omitempty"`
+	SchemaName              string         `json:"schema_name" example:"plg_email_smtp"`
+	MigratorRole            string         `json:"migrator_role" example:"plg_email_smtp_migrator_owner"`
+	RuntimeRole             string         `json:"runtime_role" example:"plg_email_smtp_runtime"`
+	SchemaVersion           int            `json:"schema_version"`
+	RuntimeSchemaMin        int            `json:"runtime_schema_min"`
+	RuntimeSchemaMax        int            `json:"runtime_schema_max"`
+	RuntimeSchemaPreferred  int            `json:"runtime_schema_preferred"`
+	RLSRequired             bool           `json:"rls_required"`
+	ZeroDDLRuntime          bool           `json:"zero_ddl_runtime"`
+	MutationJournalRequired bool           `json:"mutation_journal_required"`
+	Status                  string         `json:"status" example:"planned"`
+	Metadata                map[string]any `json:"metadata"`
+	CreatedAt               string         `json:"created_at" format:"date-time"`
+	UpdatedAt               string         `json:"updated_at" format:"date-time"`
+	DeletedAt               *time.Time     `json:"deleted_at,omitempty"`
+}
+
+type openAPIProviderMigrationRevision struct {
+	ID                   string                         `json:"id"`
+	ProviderPluginID     string                         `json:"provider_plugin_id"`
+	InstallationID       string                         `json:"installation_id"`
+	Revision             string                         `json:"revision" example:"001_create_tables"`
+	BundleHash           string                         `json:"bundle_hash"`
+	SchemaName           string                         `json:"schema_name"`
+	FromSchemaVersion    int                            `json:"from_schema_version"`
+	ToSchemaVersion      int                            `json:"to_schema_version"`
+	Status               string                         `json:"status" example:"review_required"`
+	Destructive          bool                           `json:"destructive"`
+	RLSBypass            bool                           `json:"rls_bypass"`
+	RequiresManualReview bool                           `json:"requires_manual_review"`
+	ReviewedByUserID     string                         `json:"reviewed_by_user_id,omitempty"`
+	ReviewedAt           *time.Time                     `json:"reviewed_at,omitempty"`
+	StartedAt            *time.Time                     `json:"started_at,omitempty"`
+	FinishedAt           *time.Time                     `json:"finished_at,omitempty"`
+	LastError            string                         `json:"last_error,omitempty"`
+	Metadata             map[string]any                 `json:"metadata"`
+	Steps                []openAPIProviderMigrationStep `json:"steps,omitempty"`
+	CreatedAt            string                         `json:"created_at" format:"date-time"`
+	UpdatedAt            string                         `json:"updated_at" format:"date-time"`
+}
+
+type openAPIProviderMigrationStep struct {
+	ID                  string         `json:"id"`
+	RevisionID          string         `json:"revision_id"`
+	ProviderPluginID    string         `json:"provider_plugin_id"`
+	StepIndex           int            `json:"step_index"`
+	StatementHash       string         `json:"statement_hash"`
+	StatementKind       string         `json:"statement_kind" example:"create_table"`
+	Status              string         `json:"status" example:"planned"`
+	Destructive         bool           `json:"destructive"`
+	Backfill            bool           `json:"backfill"`
+	TenantScopeReviewed bool           `json:"tenant_scope_reviewed"`
+	RLSBypass           bool           `json:"rls_bypass"`
+	Precondition        string         `json:"precondition,omitempty"`
+	RecoveryAction      string         `json:"recovery_action,omitempty"`
+	StartedAt           *time.Time     `json:"started_at,omitempty"`
+	FinishedAt          *time.Time     `json:"finished_at,omitempty"`
+	Error               string         `json:"error,omitempty"`
+	Metadata            map[string]any `json:"metadata"`
+	CreatedAt           string         `json:"created_at" format:"date-time"`
+	UpdatedAt           string         `json:"updated_at" format:"date-time"`
+}
+
 type openAPIActionExecution struct {
 	ActionExecutionID           string         `json:"action_execution_id"`
 	SpaceID                     string         `json:"space_id"`
@@ -796,7 +866,7 @@ func GenerateOpenAPI(version string) (*openapi3.Spec, error) {
 		{Name: "Identity", Tags: []string{"Users", "Spaces", "Groups", "Members", "User Members"}},
 		{Name: "Resources", Tags: []string{"Resource Types", "Resources", "App Data", "Data Console"}},
 		{Name: "Audit", Tags: []string{"Audit"}},
-		{Name: "Extensions", Tags: []string{"Capabilities", "Capability Grants", "Plugins", "Templates"}},
+		{Name: "Extensions", Tags: []string{"Capabilities", "Capability Grants", "Provider Governance", "Plugins", "App Modules", "Templates"}},
 	})
 	for _, route := range openAPIRoutes() {
 		oc, err := reflector.NewOperationContext(route.Method, route.Path)
@@ -934,7 +1004,9 @@ func openAPITags() []openapi3.Tag {
 		{"Audit", "Append-only audit log query endpoints."},
 		{"Capabilities", "Installed system capability states and services."},
 		{"Capability Grants", "Core-tracked revocable grants for governed plugin-to-plugin capability invocation."},
+		{"Provider Governance", "Core-owned provider installation and migration governance ledgers for direct-DB Provider runtimes."},
 		{"Plugins", "Preview plugin metadata, lifecycle flags, settings, and generated metadata; not a stable plugin runtime."},
+		{"App Modules", "App-scoped Local Plugins governed by the same substrate as reusable plugins."},
 		{"Templates", "Preview template catalog and install-flow metadata; not a stable template ecosystem."},
 	}
 	out := make([]openapi3.Tag, 0, len(tags))
@@ -1005,6 +1077,28 @@ func openAPIRoutes() []openAPIRoute {
 			BindingID string `path:"binding_id"`
 		}), Response: new(openAPIEnvelope[openAPICapabilityProviderBinding]), Security: openAPIAdmin},
 		{Method: http.MethodPost, Path: "/api/v1/provider-request-contexts", Tag: "Capability Grants", ID: "issueProviderRequestContext", Summary: "Issue a provider database request context", Description: "Provider runtimes use this provider-bound API to obtain a short-lived opaque token. Inside a provider database transaction, the runtime calls plystra.set_verified_context(token); RLS policies then read plystra.current_space_id() and related verified GUC helpers. Core stores only a token hash and returns the plaintext token once.", Body: new(providerRequestContextRequest), Response: new(openAPIEnvelope[openAPIProviderRequestContext]), Status: http.StatusCreated, Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/provider-installations", Tag: "Provider Governance", ID: "listProviderInstallations", Summary: "List provider installations", Description: "Lists Core-owned installation records for Provider runtimes that declared a direct database data plane. These records define schema and role governance; they do not expose credentials.", Params: new(struct {
+			ProviderPluginID string `query:"provider_plugin_id"`
+			Status           string `query:"status"`
+			AppID            string `query:"app_id"`
+			Limit            int    `query:"limit" minimum:"1" maximum:"200"`
+		}), Response: new(openAPIListEnvelope[openAPIProviderInstallation]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/provider-installations/{provider_installation_id}", Tag: "Provider Governance", ID: "getProviderInstallation", Summary: "Get a provider installation", Params: new(struct {
+			ProviderInstallationID string `path:"provider_installation_id"`
+		}), Response: new(openAPIEnvelope[openAPIProviderInstallation]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/provider-migration-revisions", Tag: "Provider Governance", ID: "listProviderMigrationRevisions", Summary: "List provider migration revisions", Description: "Lists hash-only Provider migration revision ledgers. Raw provider SQL is intentionally not accepted by this API.", Params: new(struct {
+			ProviderPluginID string `query:"provider_plugin_id"`
+			InstallationID   string `query:"installation_id"`
+			Status           string `query:"status"`
+			Limit            int    `query:"limit" minimum:"1" maximum:"200"`
+		}), Response: new(openAPIListEnvelope[openAPIProviderMigrationRevision]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/provider-migration-revisions", Tag: "Provider Governance", ID: "createProviderMigrationRevision", Summary: "Create a provider migration revision plan", Description: "Records a Provider migration plan as bundle and statement hashes plus review flags. Core rejects secret-like metadata and raw SQL text at this boundary.", Body: new(providerMigrationRevisionRequest), Response: new(openAPIEnvelope[openAPIProviderMigrationRevision]), Status: http.StatusCreated, Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/provider-migration-revisions/{provider_migration_revision_id}", Tag: "Provider Governance", ID: "getProviderMigrationRevision", Summary: "Get a provider migration revision", Params: new(struct {
+			ProviderMigrationRevisionID string `path:"provider_migration_revision_id"`
+		}), Response: new(openAPIEnvelope[openAPIProviderMigrationRevision]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/provider-migration-revisions/{provider_migration_revision_id}/review", Tag: "Provider Governance", ID: "reviewProviderMigrationRevision", Summary: "Review a provider migration revision", Description: "Approves or rejects a Provider migration revision that includes destructive, backfill, RLS-bypass, or manually reviewed steps.", Params: new(struct {
+			ProviderMigrationRevisionID string `path:"provider_migration_revision_id"`
+		}), Body: new(providerMigrationReviewRequest), Response: new(openAPIEnvelope[openAPIProviderMigrationRevision]), Security: openAPIAdmin},
 		{Method: http.MethodGet, Path: "/api/v1/action-executions", Tag: "Action Gateway", ID: "listActionExecutions", Summary: "List Action Gateway executions", Description: "Lists Core-owned controlled_action execution ledger rows for a Space without exposing business request payloads.", Params: new(struct {
 			SpaceID      string `query:"space_id"`
 			Capability   string `query:"capability"`

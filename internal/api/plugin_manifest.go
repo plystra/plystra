@@ -86,9 +86,10 @@ func (s *Server) handlePluginInstall(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pluginID := "plugin_" + safeIdentifier(req.Manifest.ID)
+	var pluginRow *coreent.Plugin
 	existing, err := client.Plugin.Query().Where(entplugin.Key(req.Manifest.ID)).Only(r.Context())
 	if coreent.IsNotFound(err) {
-		_, err = client.Plugin.Create().
+		pluginRow, err = client.Plugin.Create().
 			SetID(pluginID).
 			SetKey(req.Manifest.ID).
 			SetName(req.Manifest.Name).
@@ -126,8 +127,12 @@ func (s *Server) handlePluginInstall(w http.ResponseWriter, r *http.Request) {
 		} else {
 			update.SetDescription(req.Manifest.Description)
 		}
-		err = update.Exec(r.Context())
+		if err = update.Exec(r.Context()); err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to install plugin metadata.", err.Error())
+			return
+		}
 		pluginID = existing.ID
+		pluginRow, err = client.Plugin.Query().Where(entplugin.ID(pluginID)).Only(r.Context())
 	}
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to install plugin metadata.", err.Error())
@@ -135,6 +140,10 @@ func (s *Server) handlePluginInstall(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := s.installPluginManifestMetadata(r.Context(), pluginID, req.Manifest); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to install plugin declarations.", err.Error())
+		return
+	}
+	if err := s.ensureProviderInstallationForManifest(r.Context(), pluginID, req.Manifest, pluginRow); err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to install provider data-plane governance.", err.Error())
 		return
 	}
 	s.invalidateCapabilityProviderCacheForPlugin(r.Context(), req.Manifest.ID)

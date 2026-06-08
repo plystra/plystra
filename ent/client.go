@@ -33,6 +33,9 @@ import (
 	"github.com/plystra/core/ent/pluginadminmenu"
 	"github.com/plystra/core/ent/pluginsettingsdefinition"
 	"github.com/plystra/core/ent/pluginsettingsvalue"
+	"github.com/plystra/core/ent/providerinstallation"
+	"github.com/plystra/core/ent/providermigrationrevision"
+	"github.com/plystra/core/ent/providermigrationstep"
 	"github.com/plystra/core/ent/providerrequestcontext"
 	"github.com/plystra/core/ent/resource"
 	"github.com/plystra/core/ent/resourceaction"
@@ -90,6 +93,12 @@ type Client struct {
 	PluginSettingsDefinition *PluginSettingsDefinitionClient
 	// PluginSettingsValue is the client for interacting with the PluginSettingsValue builders.
 	PluginSettingsValue *PluginSettingsValueClient
+	// ProviderInstallation is the client for interacting with the ProviderInstallation builders.
+	ProviderInstallation *ProviderInstallationClient
+	// ProviderMigrationRevision is the client for interacting with the ProviderMigrationRevision builders.
+	ProviderMigrationRevision *ProviderMigrationRevisionClient
+	// ProviderMigrationStep is the client for interacting with the ProviderMigrationStep builders.
+	ProviderMigrationStep *ProviderMigrationStepClient
 	// ProviderRequestContext is the client for interacting with the ProviderRequestContext builders.
 	ProviderRequestContext *ProviderRequestContextClient
 	// Resource is the client for interacting with the Resource builders.
@@ -144,6 +153,9 @@ func (c *Client) init() {
 	c.PluginAdminMenu = NewPluginAdminMenuClient(c.config)
 	c.PluginSettingsDefinition = NewPluginSettingsDefinitionClient(c.config)
 	c.PluginSettingsValue = NewPluginSettingsValueClient(c.config)
+	c.ProviderInstallation = NewProviderInstallationClient(c.config)
+	c.ProviderMigrationRevision = NewProviderMigrationRevisionClient(c.config)
+	c.ProviderMigrationStep = NewProviderMigrationStepClient(c.config)
 	c.ProviderRequestContext = NewProviderRequestContextClient(c.config)
 	c.Resource = NewResourceClient(c.config)
 	c.ResourceAction = NewResourceActionClient(c.config)
@@ -267,6 +279,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PluginAdminMenu:           NewPluginAdminMenuClient(cfg),
 		PluginSettingsDefinition:  NewPluginSettingsDefinitionClient(cfg),
 		PluginSettingsValue:       NewPluginSettingsValueClient(cfg),
+		ProviderInstallation:      NewProviderInstallationClient(cfg),
+		ProviderMigrationRevision: NewProviderMigrationRevisionClient(cfg),
+		ProviderMigrationStep:     NewProviderMigrationStepClient(cfg),
 		ProviderRequestContext:    NewProviderRequestContextClient(cfg),
 		Resource:                  NewResourceClient(cfg),
 		ResourceAction:            NewResourceActionClient(cfg),
@@ -317,6 +332,9 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PluginAdminMenu:           NewPluginAdminMenuClient(cfg),
 		PluginSettingsDefinition:  NewPluginSettingsDefinitionClient(cfg),
 		PluginSettingsValue:       NewPluginSettingsValueClient(cfg),
+		ProviderInstallation:      NewProviderInstallationClient(cfg),
+		ProviderMigrationRevision: NewProviderMigrationRevisionClient(cfg),
+		ProviderMigrationStep:     NewProviderMigrationStepClient(cfg),
 		ProviderRequestContext:    NewProviderRequestContextClient(cfg),
 		Resource:                  NewResourceClient(cfg),
 		ResourceAction:            NewResourceActionClient(cfg),
@@ -362,7 +380,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.AppDataRecordRevision, c.AuditEventType, c.AuditLog, c.BackgroundJob,
 		c.CapabilityGrant, c.CapabilityProviderBinding, c.Group, c.Member,
 		c.MemberRole, c.Permission, c.Plugin, c.PluginAdminMenu,
-		c.PluginSettingsDefinition, c.PluginSettingsValue, c.ProviderRequestContext,
+		c.PluginSettingsDefinition, c.PluginSettingsValue, c.ProviderInstallation,
+		c.ProviderMigrationRevision, c.ProviderMigrationStep, c.ProviderRequestContext,
 		c.Resource, c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role,
 		c.RolePermission, c.Session, c.Space, c.TemplateInstallation, c.User,
 		c.UserMember,
@@ -379,7 +398,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.AppDataRecordRevision, c.AuditEventType, c.AuditLog, c.BackgroundJob,
 		c.CapabilityGrant, c.CapabilityProviderBinding, c.Group, c.Member,
 		c.MemberRole, c.Permission, c.Plugin, c.PluginAdminMenu,
-		c.PluginSettingsDefinition, c.PluginSettingsValue, c.ProviderRequestContext,
+		c.PluginSettingsDefinition, c.PluginSettingsValue, c.ProviderInstallation,
+		c.ProviderMigrationRevision, c.ProviderMigrationStep, c.ProviderRequestContext,
 		c.Resource, c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role,
 		c.RolePermission, c.Session, c.Space, c.TemplateInstallation, c.User,
 		c.UserMember,
@@ -429,6 +449,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PluginSettingsDefinition.mutate(ctx, m)
 	case *PluginSettingsValueMutation:
 		return c.PluginSettingsValue.mutate(ctx, m)
+	case *ProviderInstallationMutation:
+		return c.ProviderInstallation.mutate(ctx, m)
+	case *ProviderMigrationRevisionMutation:
+		return c.ProviderMigrationRevision.mutate(ctx, m)
+	case *ProviderMigrationStepMutation:
+		return c.ProviderMigrationStep.mutate(ctx, m)
 	case *ProviderRequestContextMutation:
 		return c.ProviderRequestContext.mutate(ctx, m)
 	case *ResourceMutation:
@@ -2986,6 +3012,405 @@ func (c *PluginSettingsValueClient) mutate(ctx context.Context, m *PluginSetting
 	}
 }
 
+// ProviderInstallationClient is a client for the ProviderInstallation schema.
+type ProviderInstallationClient struct {
+	config
+}
+
+// NewProviderInstallationClient returns a client for the ProviderInstallation from the given config.
+func NewProviderInstallationClient(c config) *ProviderInstallationClient {
+	return &ProviderInstallationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `providerinstallation.Hooks(f(g(h())))`.
+func (c *ProviderInstallationClient) Use(hooks ...Hook) {
+	c.hooks.ProviderInstallation = append(c.hooks.ProviderInstallation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `providerinstallation.Intercept(f(g(h())))`.
+func (c *ProviderInstallationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ProviderInstallation = append(c.inters.ProviderInstallation, interceptors...)
+}
+
+// Create returns a builder for creating a ProviderInstallation entity.
+func (c *ProviderInstallationClient) Create() *ProviderInstallationCreate {
+	mutation := newProviderInstallationMutation(c.config, OpCreate)
+	return &ProviderInstallationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ProviderInstallation entities.
+func (c *ProviderInstallationClient) CreateBulk(builders ...*ProviderInstallationCreate) *ProviderInstallationCreateBulk {
+	return &ProviderInstallationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProviderInstallationClient) MapCreateBulk(slice any, setFunc func(*ProviderInstallationCreate, int)) *ProviderInstallationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProviderInstallationCreateBulk{err: fmt.Errorf("calling to ProviderInstallationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProviderInstallationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ProviderInstallationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ProviderInstallation.
+func (c *ProviderInstallationClient) Update() *ProviderInstallationUpdate {
+	mutation := newProviderInstallationMutation(c.config, OpUpdate)
+	return &ProviderInstallationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProviderInstallationClient) UpdateOne(_m *ProviderInstallation) *ProviderInstallationUpdateOne {
+	mutation := newProviderInstallationMutation(c.config, OpUpdateOne, withProviderInstallation(_m))
+	return &ProviderInstallationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProviderInstallationClient) UpdateOneID(id string) *ProviderInstallationUpdateOne {
+	mutation := newProviderInstallationMutation(c.config, OpUpdateOne, withProviderInstallationID(id))
+	return &ProviderInstallationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ProviderInstallation.
+func (c *ProviderInstallationClient) Delete() *ProviderInstallationDelete {
+	mutation := newProviderInstallationMutation(c.config, OpDelete)
+	return &ProviderInstallationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProviderInstallationClient) DeleteOne(_m *ProviderInstallation) *ProviderInstallationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProviderInstallationClient) DeleteOneID(id string) *ProviderInstallationDeleteOne {
+	builder := c.Delete().Where(providerinstallation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProviderInstallationDeleteOne{builder}
+}
+
+// Query returns a query builder for ProviderInstallation.
+func (c *ProviderInstallationClient) Query() *ProviderInstallationQuery {
+	return &ProviderInstallationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProviderInstallation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ProviderInstallation entity by its id.
+func (c *ProviderInstallationClient) Get(ctx context.Context, id string) (*ProviderInstallation, error) {
+	return c.Query().Where(providerinstallation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProviderInstallationClient) GetX(ctx context.Context, id string) *ProviderInstallation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ProviderInstallationClient) Hooks() []Hook {
+	return c.hooks.ProviderInstallation
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProviderInstallationClient) Interceptors() []Interceptor {
+	return c.inters.ProviderInstallation
+}
+
+func (c *ProviderInstallationClient) mutate(ctx context.Context, m *ProviderInstallationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProviderInstallationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProviderInstallationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProviderInstallationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProviderInstallationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ProviderInstallation mutation op: %q", m.Op())
+	}
+}
+
+// ProviderMigrationRevisionClient is a client for the ProviderMigrationRevision schema.
+type ProviderMigrationRevisionClient struct {
+	config
+}
+
+// NewProviderMigrationRevisionClient returns a client for the ProviderMigrationRevision from the given config.
+func NewProviderMigrationRevisionClient(c config) *ProviderMigrationRevisionClient {
+	return &ProviderMigrationRevisionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `providermigrationrevision.Hooks(f(g(h())))`.
+func (c *ProviderMigrationRevisionClient) Use(hooks ...Hook) {
+	c.hooks.ProviderMigrationRevision = append(c.hooks.ProviderMigrationRevision, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `providermigrationrevision.Intercept(f(g(h())))`.
+func (c *ProviderMigrationRevisionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ProviderMigrationRevision = append(c.inters.ProviderMigrationRevision, interceptors...)
+}
+
+// Create returns a builder for creating a ProviderMigrationRevision entity.
+func (c *ProviderMigrationRevisionClient) Create() *ProviderMigrationRevisionCreate {
+	mutation := newProviderMigrationRevisionMutation(c.config, OpCreate)
+	return &ProviderMigrationRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ProviderMigrationRevision entities.
+func (c *ProviderMigrationRevisionClient) CreateBulk(builders ...*ProviderMigrationRevisionCreate) *ProviderMigrationRevisionCreateBulk {
+	return &ProviderMigrationRevisionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProviderMigrationRevisionClient) MapCreateBulk(slice any, setFunc func(*ProviderMigrationRevisionCreate, int)) *ProviderMigrationRevisionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProviderMigrationRevisionCreateBulk{err: fmt.Errorf("calling to ProviderMigrationRevisionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProviderMigrationRevisionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ProviderMigrationRevisionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ProviderMigrationRevision.
+func (c *ProviderMigrationRevisionClient) Update() *ProviderMigrationRevisionUpdate {
+	mutation := newProviderMigrationRevisionMutation(c.config, OpUpdate)
+	return &ProviderMigrationRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProviderMigrationRevisionClient) UpdateOne(_m *ProviderMigrationRevision) *ProviderMigrationRevisionUpdateOne {
+	mutation := newProviderMigrationRevisionMutation(c.config, OpUpdateOne, withProviderMigrationRevision(_m))
+	return &ProviderMigrationRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProviderMigrationRevisionClient) UpdateOneID(id string) *ProviderMigrationRevisionUpdateOne {
+	mutation := newProviderMigrationRevisionMutation(c.config, OpUpdateOne, withProviderMigrationRevisionID(id))
+	return &ProviderMigrationRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ProviderMigrationRevision.
+func (c *ProviderMigrationRevisionClient) Delete() *ProviderMigrationRevisionDelete {
+	mutation := newProviderMigrationRevisionMutation(c.config, OpDelete)
+	return &ProviderMigrationRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProviderMigrationRevisionClient) DeleteOne(_m *ProviderMigrationRevision) *ProviderMigrationRevisionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProviderMigrationRevisionClient) DeleteOneID(id string) *ProviderMigrationRevisionDeleteOne {
+	builder := c.Delete().Where(providermigrationrevision.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProviderMigrationRevisionDeleteOne{builder}
+}
+
+// Query returns a query builder for ProviderMigrationRevision.
+func (c *ProviderMigrationRevisionClient) Query() *ProviderMigrationRevisionQuery {
+	return &ProviderMigrationRevisionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProviderMigrationRevision},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ProviderMigrationRevision entity by its id.
+func (c *ProviderMigrationRevisionClient) Get(ctx context.Context, id string) (*ProviderMigrationRevision, error) {
+	return c.Query().Where(providermigrationrevision.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProviderMigrationRevisionClient) GetX(ctx context.Context, id string) *ProviderMigrationRevision {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ProviderMigrationRevisionClient) Hooks() []Hook {
+	return c.hooks.ProviderMigrationRevision
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProviderMigrationRevisionClient) Interceptors() []Interceptor {
+	return c.inters.ProviderMigrationRevision
+}
+
+func (c *ProviderMigrationRevisionClient) mutate(ctx context.Context, m *ProviderMigrationRevisionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProviderMigrationRevisionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProviderMigrationRevisionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProviderMigrationRevisionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProviderMigrationRevisionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ProviderMigrationRevision mutation op: %q", m.Op())
+	}
+}
+
+// ProviderMigrationStepClient is a client for the ProviderMigrationStep schema.
+type ProviderMigrationStepClient struct {
+	config
+}
+
+// NewProviderMigrationStepClient returns a client for the ProviderMigrationStep from the given config.
+func NewProviderMigrationStepClient(c config) *ProviderMigrationStepClient {
+	return &ProviderMigrationStepClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `providermigrationstep.Hooks(f(g(h())))`.
+func (c *ProviderMigrationStepClient) Use(hooks ...Hook) {
+	c.hooks.ProviderMigrationStep = append(c.hooks.ProviderMigrationStep, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `providermigrationstep.Intercept(f(g(h())))`.
+func (c *ProviderMigrationStepClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ProviderMigrationStep = append(c.inters.ProviderMigrationStep, interceptors...)
+}
+
+// Create returns a builder for creating a ProviderMigrationStep entity.
+func (c *ProviderMigrationStepClient) Create() *ProviderMigrationStepCreate {
+	mutation := newProviderMigrationStepMutation(c.config, OpCreate)
+	return &ProviderMigrationStepCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ProviderMigrationStep entities.
+func (c *ProviderMigrationStepClient) CreateBulk(builders ...*ProviderMigrationStepCreate) *ProviderMigrationStepCreateBulk {
+	return &ProviderMigrationStepCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ProviderMigrationStepClient) MapCreateBulk(slice any, setFunc func(*ProviderMigrationStepCreate, int)) *ProviderMigrationStepCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ProviderMigrationStepCreateBulk{err: fmt.Errorf("calling to ProviderMigrationStepClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ProviderMigrationStepCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ProviderMigrationStepCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ProviderMigrationStep.
+func (c *ProviderMigrationStepClient) Update() *ProviderMigrationStepUpdate {
+	mutation := newProviderMigrationStepMutation(c.config, OpUpdate)
+	return &ProviderMigrationStepUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ProviderMigrationStepClient) UpdateOne(_m *ProviderMigrationStep) *ProviderMigrationStepUpdateOne {
+	mutation := newProviderMigrationStepMutation(c.config, OpUpdateOne, withProviderMigrationStep(_m))
+	return &ProviderMigrationStepUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ProviderMigrationStepClient) UpdateOneID(id string) *ProviderMigrationStepUpdateOne {
+	mutation := newProviderMigrationStepMutation(c.config, OpUpdateOne, withProviderMigrationStepID(id))
+	return &ProviderMigrationStepUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ProviderMigrationStep.
+func (c *ProviderMigrationStepClient) Delete() *ProviderMigrationStepDelete {
+	mutation := newProviderMigrationStepMutation(c.config, OpDelete)
+	return &ProviderMigrationStepDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ProviderMigrationStepClient) DeleteOne(_m *ProviderMigrationStep) *ProviderMigrationStepDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ProviderMigrationStepClient) DeleteOneID(id string) *ProviderMigrationStepDeleteOne {
+	builder := c.Delete().Where(providermigrationstep.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ProviderMigrationStepDeleteOne{builder}
+}
+
+// Query returns a query builder for ProviderMigrationStep.
+func (c *ProviderMigrationStepClient) Query() *ProviderMigrationStepQuery {
+	return &ProviderMigrationStepQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeProviderMigrationStep},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ProviderMigrationStep entity by its id.
+func (c *ProviderMigrationStepClient) Get(ctx context.Context, id string) (*ProviderMigrationStep, error) {
+	return c.Query().Where(providermigrationstep.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ProviderMigrationStepClient) GetX(ctx context.Context, id string) *ProviderMigrationStep {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ProviderMigrationStepClient) Hooks() []Hook {
+	return c.hooks.ProviderMigrationStep
+}
+
+// Interceptors returns the client interceptors.
+func (c *ProviderMigrationStepClient) Interceptors() []Interceptor {
+	return c.inters.ProviderMigrationStep
+}
+
+func (c *ProviderMigrationStepClient) mutate(ctx context.Context, m *ProviderMigrationStepMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ProviderMigrationStepCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ProviderMigrationStepUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ProviderMigrationStepUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ProviderMigrationStepDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ProviderMigrationStep mutation op: %q", m.Op())
+	}
+}
+
 // ProviderRequestContextClient is a client for the ProviderRequestContext schema.
 type ProviderRequestContextClient struct {
 	config
@@ -4589,7 +5014,8 @@ type (
 		AppDataRecordRevision, AuditEventType, AuditLog, BackgroundJob,
 		CapabilityGrant, CapabilityProviderBinding, Group, Member, MemberRole,
 		Permission, Plugin, PluginAdminMenu, PluginSettingsDefinition,
-		PluginSettingsValue, ProviderRequestContext, Resource, ResourceAction,
+		PluginSettingsValue, ProviderInstallation, ProviderMigrationRevision,
+		ProviderMigrationStep, ProviderRequestContext, Resource, ResourceAction,
 		ResourceMapping, ResourceType, Role, RolePermission, Session, Space,
 		TemplateInstallation, User, UserMember []ent.Hook
 	}
@@ -4598,7 +5024,8 @@ type (
 		AppDataRecordRevision, AuditEventType, AuditLog, BackgroundJob,
 		CapabilityGrant, CapabilityProviderBinding, Group, Member, MemberRole,
 		Permission, Plugin, PluginAdminMenu, PluginSettingsDefinition,
-		PluginSettingsValue, ProviderRequestContext, Resource, ResourceAction,
+		PluginSettingsValue, ProviderInstallation, ProviderMigrationRevision,
+		ProviderMigrationStep, ProviderRequestContext, Resource, ResourceAction,
 		ResourceMapping, ResourceType, Role, RolePermission, Session, Space,
 		TemplateInstallation, User, UserMember []ent.Interceptor
 	}
