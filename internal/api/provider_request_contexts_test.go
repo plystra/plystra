@@ -32,6 +32,9 @@ func TestValidateProviderRequestContextRequest(t *testing.T) {
 			MemberID:     "member_1",
 			UserMemberID: "um_1",
 		},
+		Capability:        "workflow.approval",
+		Operation:         "create_request",
+		CapabilityGrantID: "grant_1",
 	}
 	if err := validateProviderRequestContextRequest(valid); err != nil {
 		t.Fatalf("valid request failed: %v", err)
@@ -45,5 +48,34 @@ func TestValidateProviderRequestContextRequest(t *testing.T) {
 	withSecretMetadata.Metadata = map[string]any{"api_token": "do-not-store"}
 	if err := validateProviderRequestContextRequest(withSecretMetadata); err == nil || !strings.Contains(err.Error(), "secret-like key") {
 		t.Fatalf("secret-like metadata should fail, got %v", err)
+	}
+	missingBinding := valid
+	missingBinding.CapabilityGrantID = ""
+	if err := validateProviderRequestContextRequest(missingBinding); err == nil || !strings.Contains(err.Error(), "capability_grant_id or action_execution_id") {
+		t.Fatalf("missing authorization binding should fail, got %v", err)
+	}
+	doubleBinding := valid
+	doubleBinding.ActionExecutionID = "act_1"
+	if err := validateProviderRequestContextRequest(doubleBinding); err == nil || !strings.Contains(err.Error(), "mutually exclusive") {
+		t.Fatalf("double authorization binding should fail, got %v", err)
+	}
+	grantWithoutCapability := valid
+	grantWithoutCapability.Capability = ""
+	if err := validateProviderRequestContextRequest(grantWithoutCapability); err == nil || !strings.Contains(err.Error(), "capability and operation are required") {
+		t.Fatalf("grant binding without capability should fail, got %v", err)
+	}
+	actionWithCapability := valid
+	actionWithCapability.CapabilityGrantID = ""
+	actionWithCapability.ActionExecutionID = "act_1"
+	if err := validateProviderRequestContextRequest(actionWithCapability); err == nil || !strings.Contains(err.Error(), "must be omitted") {
+		t.Fatalf("action binding with explicit capability should fail, got %v", err)
+	}
+	actionOnly := valid
+	actionOnly.Capability = ""
+	actionOnly.Operation = ""
+	actionOnly.CapabilityGrantID = ""
+	actionOnly.ActionExecutionID = "act_1"
+	if err := validateProviderRequestContextRequest(actionOnly); err != nil {
+		t.Fatalf("valid action binding request failed: %v", err)
 	}
 }

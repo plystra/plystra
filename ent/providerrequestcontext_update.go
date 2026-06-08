@@ -116,6 +116,86 @@ func (_u *ProviderRequestContextUpdate) ClearActorUserMemberID() *ProviderReques
 	return _u
 }
 
+// SetCapability sets the "capability" field.
+func (_u *ProviderRequestContextUpdate) SetCapability(v string) *ProviderRequestContextUpdate {
+	_u.mutation.SetCapability(v)
+	return _u
+}
+
+// SetNillableCapability sets the "capability" field if the given value is not nil.
+func (_u *ProviderRequestContextUpdate) SetNillableCapability(v *string) *ProviderRequestContextUpdate {
+	if v != nil {
+		_u.SetCapability(*v)
+	}
+	return _u
+}
+
+// ClearCapability clears the value of the "capability" field.
+func (_u *ProviderRequestContextUpdate) ClearCapability() *ProviderRequestContextUpdate {
+	_u.mutation.ClearCapability()
+	return _u
+}
+
+// SetOperation sets the "operation" field.
+func (_u *ProviderRequestContextUpdate) SetOperation(v string) *ProviderRequestContextUpdate {
+	_u.mutation.SetOperation(v)
+	return _u
+}
+
+// SetNillableOperation sets the "operation" field if the given value is not nil.
+func (_u *ProviderRequestContextUpdate) SetNillableOperation(v *string) *ProviderRequestContextUpdate {
+	if v != nil {
+		_u.SetOperation(*v)
+	}
+	return _u
+}
+
+// ClearOperation clears the value of the "operation" field.
+func (_u *ProviderRequestContextUpdate) ClearOperation() *ProviderRequestContextUpdate {
+	_u.mutation.ClearOperation()
+	return _u
+}
+
+// SetCapabilityGrantID sets the "capability_grant_id" field.
+func (_u *ProviderRequestContextUpdate) SetCapabilityGrantID(v string) *ProviderRequestContextUpdate {
+	_u.mutation.SetCapabilityGrantID(v)
+	return _u
+}
+
+// SetNillableCapabilityGrantID sets the "capability_grant_id" field if the given value is not nil.
+func (_u *ProviderRequestContextUpdate) SetNillableCapabilityGrantID(v *string) *ProviderRequestContextUpdate {
+	if v != nil {
+		_u.SetCapabilityGrantID(*v)
+	}
+	return _u
+}
+
+// ClearCapabilityGrantID clears the value of the "capability_grant_id" field.
+func (_u *ProviderRequestContextUpdate) ClearCapabilityGrantID() *ProviderRequestContextUpdate {
+	_u.mutation.ClearCapabilityGrantID()
+	return _u
+}
+
+// SetActionExecutionID sets the "action_execution_id" field.
+func (_u *ProviderRequestContextUpdate) SetActionExecutionID(v string) *ProviderRequestContextUpdate {
+	_u.mutation.SetActionExecutionID(v)
+	return _u
+}
+
+// SetNillableActionExecutionID sets the "action_execution_id" field if the given value is not nil.
+func (_u *ProviderRequestContextUpdate) SetNillableActionExecutionID(v *string) *ProviderRequestContextUpdate {
+	if v != nil {
+		_u.SetActionExecutionID(*v)
+	}
+	return _u
+}
+
+// ClearActionExecutionID clears the value of the "action_execution_id" field.
+func (_u *ProviderRequestContextUpdate) ClearActionExecutionID() *ProviderRequestContextUpdate {
+	_u.mutation.ClearActionExecutionID()
+	return _u
+}
+
 // SetAuthorizationDecisionID sets the "authorization_decision_id" field.
 func (_u *ProviderRequestContextUpdate) SetAuthorizationDecisionID(v string) *ProviderRequestContextUpdate {
 	_u.mutation.SetAuthorizationDecisionID(v)
@@ -374,6 +454,30 @@ func (_u *ProviderRequestContextUpdate) sqlSave(ctx context.Context) (_node int,
 	if _u.mutation.ActorUserMemberIDCleared() {
 		_spec.ClearField(providerrequestcontext.FieldActorUserMemberID, field.TypeString)
 	}
+	if value, ok := _u.mutation.Capability(); ok {
+		_spec.SetField(providerrequestcontext.FieldCapability, field.TypeString, value)
+	}
+	if _u.mutation.CapabilityCleared() {
+		_spec.ClearField(providerrequestcontext.FieldCapability, field.TypeString)
+	}
+	if value, ok := _u.mutation.Operation(); ok {
+		_spec.SetField(providerrequestcontext.FieldOperation, field.TypeString, value)
+	}
+	if _u.mutation.OperationCleared() {
+		_spec.ClearField(providerrequestcontext.FieldOperation, field.TypeString)
+	}
+	if value, ok := _u.mutation.CapabilityGrantID(); ok {
+		_spec.SetField(providerrequestcontext.FieldCapabilityGrantID, field.TypeString, value)
+	}
+	if _u.mutation.CapabilityGrantIDCleared() {
+		_spec.ClearField(providerrequestcontext.FieldCapabilityGrantID, field.TypeString)
+	}
+	if value, ok := _u.mutation.ActionExecutionID(); ok {
+		_spec.SetField(providerrequestcontext.FieldActionExecutionID, field.TypeString, value)
+	}
+	if _u.mutation.ActionExecutionIDCleared() {
+		_spec.ClearField(providerrequestcontext.FieldActionExecutionID, field.TypeString)
+	}
 	if value, ok := _u.mutation.AuthorizationDecisionID(); ok {
 		_spec.SetField(providerrequestcontext.FieldAuthorizationDecisionID, field.TypeString, value)
 	}
@@ -530,6 +634,86 @@ func (_u *ProviderRequestContextUpdateOne) SetNillableActorUserMemberID(v *strin
 // ClearActorUserMemberID clears the value of the "actor_user_member_id" field.
 func (_u *ProviderRequestContextUpdateOne) ClearActorUserMemberID() *ProviderRequestContextUpdateOne {
 	_u.mutation.ClearActorUserMemberID()
+	return _u
+}
+
+// SetCapability sets the "capability" field.
+func (_u *ProviderRequestContextUpdateOne) SetCapability(v string) *ProviderRequestContextUpdateOne {
+	_u.mutation.SetCapability(v)
+	return _u
+}
+
+// SetNillableCapability sets the "capability" field if the given value is not nil.
+func (_u *ProviderRequestContextUpdateOne) SetNillableCapability(v *string) *ProviderRequestContextUpdateOne {
+	if v != nil {
+		_u.SetCapability(*v)
+	}
+	return _u
+}
+
+// ClearCapability clears the value of the "capability" field.
+func (_u *ProviderRequestContextUpdateOne) ClearCapability() *ProviderRequestContextUpdateOne {
+	_u.mutation.ClearCapability()
+	return _u
+}
+
+// SetOperation sets the "operation" field.
+func (_u *ProviderRequestContextUpdateOne) SetOperation(v string) *ProviderRequestContextUpdateOne {
+	_u.mutation.SetOperation(v)
+	return _u
+}
+
+// SetNillableOperation sets the "operation" field if the given value is not nil.
+func (_u *ProviderRequestContextUpdateOne) SetNillableOperation(v *string) *ProviderRequestContextUpdateOne {
+	if v != nil {
+		_u.SetOperation(*v)
+	}
+	return _u
+}
+
+// ClearOperation clears the value of the "operation" field.
+func (_u *ProviderRequestContextUpdateOne) ClearOperation() *ProviderRequestContextUpdateOne {
+	_u.mutation.ClearOperation()
+	return _u
+}
+
+// SetCapabilityGrantID sets the "capability_grant_id" field.
+func (_u *ProviderRequestContextUpdateOne) SetCapabilityGrantID(v string) *ProviderRequestContextUpdateOne {
+	_u.mutation.SetCapabilityGrantID(v)
+	return _u
+}
+
+// SetNillableCapabilityGrantID sets the "capability_grant_id" field if the given value is not nil.
+func (_u *ProviderRequestContextUpdateOne) SetNillableCapabilityGrantID(v *string) *ProviderRequestContextUpdateOne {
+	if v != nil {
+		_u.SetCapabilityGrantID(*v)
+	}
+	return _u
+}
+
+// ClearCapabilityGrantID clears the value of the "capability_grant_id" field.
+func (_u *ProviderRequestContextUpdateOne) ClearCapabilityGrantID() *ProviderRequestContextUpdateOne {
+	_u.mutation.ClearCapabilityGrantID()
+	return _u
+}
+
+// SetActionExecutionID sets the "action_execution_id" field.
+func (_u *ProviderRequestContextUpdateOne) SetActionExecutionID(v string) *ProviderRequestContextUpdateOne {
+	_u.mutation.SetActionExecutionID(v)
+	return _u
+}
+
+// SetNillableActionExecutionID sets the "action_execution_id" field if the given value is not nil.
+func (_u *ProviderRequestContextUpdateOne) SetNillableActionExecutionID(v *string) *ProviderRequestContextUpdateOne {
+	if v != nil {
+		_u.SetActionExecutionID(*v)
+	}
+	return _u
+}
+
+// ClearActionExecutionID clears the value of the "action_execution_id" field.
+func (_u *ProviderRequestContextUpdateOne) ClearActionExecutionID() *ProviderRequestContextUpdateOne {
+	_u.mutation.ClearActionExecutionID()
 	return _u
 }
 
@@ -820,6 +1004,30 @@ func (_u *ProviderRequestContextUpdateOne) sqlSave(ctx context.Context) (_node *
 	}
 	if _u.mutation.ActorUserMemberIDCleared() {
 		_spec.ClearField(providerrequestcontext.FieldActorUserMemberID, field.TypeString)
+	}
+	if value, ok := _u.mutation.Capability(); ok {
+		_spec.SetField(providerrequestcontext.FieldCapability, field.TypeString, value)
+	}
+	if _u.mutation.CapabilityCleared() {
+		_spec.ClearField(providerrequestcontext.FieldCapability, field.TypeString)
+	}
+	if value, ok := _u.mutation.Operation(); ok {
+		_spec.SetField(providerrequestcontext.FieldOperation, field.TypeString, value)
+	}
+	if _u.mutation.OperationCleared() {
+		_spec.ClearField(providerrequestcontext.FieldOperation, field.TypeString)
+	}
+	if value, ok := _u.mutation.CapabilityGrantID(); ok {
+		_spec.SetField(providerrequestcontext.FieldCapabilityGrantID, field.TypeString, value)
+	}
+	if _u.mutation.CapabilityGrantIDCleared() {
+		_spec.ClearField(providerrequestcontext.FieldCapabilityGrantID, field.TypeString)
+	}
+	if value, ok := _u.mutation.ActionExecutionID(); ok {
+		_spec.SetField(providerrequestcontext.FieldActionExecutionID, field.TypeString, value)
+	}
+	if _u.mutation.ActionExecutionIDCleared() {
+		_spec.ClearField(providerrequestcontext.FieldActionExecutionID, field.TypeString)
 	}
 	if value, ok := _u.mutation.AuthorizationDecisionID(); ok {
 		_spec.SetField(providerrequestcontext.FieldAuthorizationDecisionID, field.TypeString, value)

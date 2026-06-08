@@ -25,6 +25,14 @@ const (
 	FieldActorMemberID = "actor_member_id"
 	// FieldActorUserMemberID holds the string denoting the actor_user_member_id field in the database.
 	FieldActorUserMemberID = "actor_user_member_id"
+	// FieldCapability holds the string denoting the capability field in the database.
+	FieldCapability = "capability"
+	// FieldOperation holds the string denoting the operation field in the database.
+	FieldOperation = "operation"
+	// FieldCapabilityGrantID holds the string denoting the capability_grant_id field in the database.
+	FieldCapabilityGrantID = "capability_grant_id"
+	// FieldActionExecutionID holds the string denoting the action_execution_id field in the database.
+	FieldActionExecutionID = "action_execution_id"
 	// FieldAuthorizationDecisionID holds the string denoting the authorization_decision_id field in the database.
 	FieldAuthorizationDecisionID = "authorization_decision_id"
 	// FieldRequestID holds the string denoting the request_id field in the database.
@@ -60,6 +68,10 @@ var Columns = []string{
 	FieldActorUserID,
 	FieldActorMemberID,
 	FieldActorUserMemberID,
+	FieldCapability,
+	FieldOperation,
+	FieldCapabilityGrantID,
+	FieldActionExecutionID,
 	FieldAuthorizationDecisionID,
 	FieldRequestID,
 	FieldPurpose,
@@ -138,6 +150,26 @@ func ByActorMemberID(opts ...sql.OrderTermOption) OrderOption {
 // ByActorUserMemberID orders the results by the actor_user_member_id field.
 func ByActorUserMemberID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldActorUserMemberID, opts...).ToFunc()
+}
+
+// ByCapability orders the results by the capability field.
+func ByCapability(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCapability, opts...).ToFunc()
+}
+
+// ByOperation orders the results by the operation field.
+func ByOperation(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOperation, opts...).ToFunc()
+}
+
+// ByCapabilityGrantID orders the results by the capability_grant_id field.
+func ByCapabilityGrantID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCapabilityGrantID, opts...).ToFunc()
+}
+
+// ByActionExecutionID orders the results by the action_execution_id field.
+func ByActionExecutionID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldActionExecutionID, opts...).ToFunc()
 }
 
 // ByAuthorizationDecisionID orders the results by the authorization_decision_id field.

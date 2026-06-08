@@ -69,7 +69,7 @@ func adminRequirementFor(method, path, querySpaceID string) adminRequirement {
 		return adminRequirement{PermissionKey: "plugins:" + readOrManage, SpaceID: querySpaceID}
 	}
 	if path == "/api/v1/provider-request-contexts" {
-		return adminRequirement{PermissionKey: "capabilities:invoke", SpaceID: querySpaceID}
+		return adminRequirement{PermissionKey: "capabilities:manage", SpaceID: querySpaceID}
 	}
 	if path == "/api/v1/provider-installations" || strings.HasPrefix(path, "/api/v1/provider-installations/") {
 		return adminRequirement{PermissionKey: "plugins:" + readOrManage}

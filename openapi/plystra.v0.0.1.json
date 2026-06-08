@@ -12706,6 +12706,9 @@
       "ApiOpenAPIProviderRequestContext": {
         "type": "object",
         "properties": {
+          "action_execution_id": {
+            "type": "string"
+          },
           "actor_member_id": {
             "type": "string"
           },
@@ -12716,6 +12719,12 @@
             "type": "string"
           },
           "authorization_decision_id": {
+            "type": "string"
+          },
+          "capability": {
+            "type": "string"
+          },
+          "capability_grant_id": {
             "type": "string"
           },
           "context_token": {
@@ -12736,6 +12745,9 @@
             "type": "object",
             "additionalProperties": {},
             "nullable": true
+          },
+          "operation": {
+            "type": "string"
           },
           "provider_plugin_id": {
             "type": "string"
@@ -13503,16 +13515,28 @@
       "ApiProviderRequestContextRequest": {
         "type": "object",
         "properties": {
+          "action_execution_id": {
+            "type": "string"
+          },
           "actor": {
             "$ref": "#/components/schemas/AuthzActorContext"
           },
           "authorization_decision_id": {
             "type": "string"
           },
+          "capability": {
+            "type": "string"
+          },
+          "capability_grant_id": {
+            "type": "string"
+          },
           "metadata": {
             "type": "object",
             "additionalProperties": {},
             "nullable": true
+          },
+          "operation": {
+            "type": "string"
           },
           "provider_plugin_id": {
             "type": "string"

@@ -80,6 +80,62 @@ func (_c *ProviderRequestContextCreate) SetNillableActorUserMemberID(v *string) 
 	return _c
 }
 
+// SetCapability sets the "capability" field.
+func (_c *ProviderRequestContextCreate) SetCapability(v string) *ProviderRequestContextCreate {
+	_c.mutation.SetCapability(v)
+	return _c
+}
+
+// SetNillableCapability sets the "capability" field if the given value is not nil.
+func (_c *ProviderRequestContextCreate) SetNillableCapability(v *string) *ProviderRequestContextCreate {
+	if v != nil {
+		_c.SetCapability(*v)
+	}
+	return _c
+}
+
+// SetOperation sets the "operation" field.
+func (_c *ProviderRequestContextCreate) SetOperation(v string) *ProviderRequestContextCreate {
+	_c.mutation.SetOperation(v)
+	return _c
+}
+
+// SetNillableOperation sets the "operation" field if the given value is not nil.
+func (_c *ProviderRequestContextCreate) SetNillableOperation(v *string) *ProviderRequestContextCreate {
+	if v != nil {
+		_c.SetOperation(*v)
+	}
+	return _c
+}
+
+// SetCapabilityGrantID sets the "capability_grant_id" field.
+func (_c *ProviderRequestContextCreate) SetCapabilityGrantID(v string) *ProviderRequestContextCreate {
+	_c.mutation.SetCapabilityGrantID(v)
+	return _c
+}
+
+// SetNillableCapabilityGrantID sets the "capability_grant_id" field if the given value is not nil.
+func (_c *ProviderRequestContextCreate) SetNillableCapabilityGrantID(v *string) *ProviderRequestContextCreate {
+	if v != nil {
+		_c.SetCapabilityGrantID(*v)
+	}
+	return _c
+}
+
+// SetActionExecutionID sets the "action_execution_id" field.
+func (_c *ProviderRequestContextCreate) SetActionExecutionID(v string) *ProviderRequestContextCreate {
+	_c.mutation.SetActionExecutionID(v)
+	return _c
+}
+
+// SetNillableActionExecutionID sets the "action_execution_id" field if the given value is not nil.
+func (_c *ProviderRequestContextCreate) SetNillableActionExecutionID(v *string) *ProviderRequestContextCreate {
+	if v != nil {
+		_c.SetActionExecutionID(*v)
+	}
+	return _c
+}
+
 // SetAuthorizationDecisionID sets the "authorization_decision_id" field.
 func (_c *ProviderRequestContextCreate) SetAuthorizationDecisionID(v string) *ProviderRequestContextCreate {
 	_c.mutation.SetAuthorizationDecisionID(v)
@@ -365,6 +421,22 @@ func (_c *ProviderRequestContextCreate) createSpec() (*ProviderRequestContext, *
 	if value, ok := _c.mutation.ActorUserMemberID(); ok {
 		_spec.SetField(providerrequestcontext.FieldActorUserMemberID, field.TypeString, value)
 		_node.ActorUserMemberID = &value
+	}
+	if value, ok := _c.mutation.Capability(); ok {
+		_spec.SetField(providerrequestcontext.FieldCapability, field.TypeString, value)
+		_node.Capability = &value
+	}
+	if value, ok := _c.mutation.Operation(); ok {
+		_spec.SetField(providerrequestcontext.FieldOperation, field.TypeString, value)
+		_node.Operation = &value
+	}
+	if value, ok := _c.mutation.CapabilityGrantID(); ok {
+		_spec.SetField(providerrequestcontext.FieldCapabilityGrantID, field.TypeString, value)
+		_node.CapabilityGrantID = &value
+	}
+	if value, ok := _c.mutation.ActionExecutionID(); ok {
+		_spec.SetField(providerrequestcontext.FieldActionExecutionID, field.TypeString, value)
+		_node.ActionExecutionID = &value
 	}
 	if value, ok := _c.mutation.AuthorizationDecisionID(); ok {
 		_spec.SetField(providerrequestcontext.FieldAuthorizationDecisionID, field.TypeString, value)

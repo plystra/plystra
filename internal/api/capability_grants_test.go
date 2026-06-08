@@ -22,6 +22,7 @@ import (
 	entmemberrole "github.com/plystra/core/ent/memberrole"
 	entpermission "github.com/plystra/core/ent/permission"
 	entplugin "github.com/plystra/core/ent/plugin"
+	entproviderrequestcontext "github.com/plystra/core/ent/providerrequestcontext"
 	entresource "github.com/plystra/core/ent/resource"
 	entresourceaction "github.com/plystra/core/ent/resourceaction"
 	entresourcemapping "github.com/plystra/core/ent/resourcemapping"
@@ -103,6 +104,7 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 	var issuedGrantID string
 	var issuedGrantToken string
 	var issuedTargetIdempotencyKey string
+	var issuedGrantDecisionID string
 
 	t.Run("issues and reissues mediated grant by caller idempotency key", func(t *testing.T) {
 		body := capabilityGrantIssueBody(fixture, "invoice.inv_123.approval.v1")
@@ -117,6 +119,7 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		if issuedGrantID == "" || issuedTargetIdempotencyKey == "" {
 			t.Fatalf("grant_id and target_idempotency_key must be present: %#v", data)
 		}
+		issuedGrantDecisionID = requireStringField(t, data, "decision_id")
 		target := requireObjectField(t, data, "target")
 		if target["provider_id"] != fixture.ProviderPluginID {
 			t.Fatalf("target provider_id = %#v, want %q", target["provider_id"], fixture.ProviderPluginID)
@@ -188,6 +191,42 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		principal := requireObjectField(t, data, "principal")
 		if principal["user_id"] != fixture.PrincipalUserID || principal["member_id"] != fixture.PrincipalMemberID {
 			t.Fatalf("principal metadata mismatch: %#v", principal)
+		}
+	})
+
+	t.Run("issues provider request context only for active mediated grant", func(t *testing.T) {
+		if issuedGrantID == "" {
+			t.Fatalf("grant was not issued")
+		}
+		body := providerRequestContextBody(fixture)
+		body["capability_grant_id"] = issuedGrantID
+		body["capability"] = fixture.MediatedCapabilityID
+		body["operation"] = "create_request"
+		body["authorization_decision_id"] = issuedGrantDecisionID
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/provider-request-contexts", fixture.SpaceID), fixture.ProviderAPIKey, body)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("provider context from grant status = %d, want 201, body=%s", rec.Code, rec.Body.String())
+		}
+		data := decodeCapabilityGrantData(t, rec)
+		if requireStringField(t, data, "context_token") == "" {
+			t.Fatalf("context token missing: %#v", data)
+		}
+		if data["capability_grant_id"] != issuedGrantID {
+			t.Fatalf("capability_grant_id = %#v, want %q", data["capability_grant_id"], issuedGrantID)
+		}
+		if data["capability"] != fixture.MediatedCapabilityID || data["operation"] != "create_request" {
+			t.Fatalf("capability operation mismatch: %#v", data)
+		}
+
+		wrongActor := providerRequestContextBody(fixture)
+		wrongActor["capability_grant_id"] = issuedGrantID
+		wrongActor["capability"] = fixture.MediatedCapabilityID
+		wrongActor["operation"] = "create_request"
+		actor := requireObjectField(t, wrongActor, "actor")
+		actor["member_id"] = "member_wrong_" + fixture.Suffix
+		denied := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/provider-request-contexts", fixture.SpaceID), fixture.ProviderAPIKey, wrongActor)
+		if denied.Code != http.StatusForbidden {
+			t.Fatalf("provider context wrong actor status = %d, want 403, body=%s", denied.Code, denied.Body.String())
 		}
 	})
 
@@ -716,6 +755,21 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 			t.Fatalf("decision_id missing: %#v", data)
 		}
 
+		contextBody := providerRequestContextBody(fixture)
+		contextBody["action_execution_id"] = actionExecutionID
+		contextBody["authorization_decision_id"] = requireStringField(t, data, "decision_id")
+		context := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/provider-request-contexts", fixture.SpaceID), fixture.ProviderAPIKey, contextBody)
+		if context.Code != http.StatusCreated {
+			t.Fatalf("provider context from action status = %d, want 201, body=%s", context.Code, context.Body.String())
+		}
+		contextData := decodeCapabilityGrantData(t, context)
+		if contextData["action_execution_id"] != actionExecutionID {
+			t.Fatalf("action_execution_id = %#v, want %q", contextData["action_execution_id"], actionExecutionID)
+		}
+		if contextData["capability"] != fixture.BrokeredCapabilityID || contextData["operation"] != "charge" {
+			t.Fatalf("action context capability operation mismatch: %#v", contextData)
+		}
+
 		replay := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/action-executions", fixture.SpaceID), fixture.APIKey, body)
 		if replay.Code != http.StatusOK {
 			t.Fatalf("begin replay status = %d, want 200, body=%s", replay.Code, replay.Body.String())
@@ -757,6 +811,11 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		}
 		if completed["completed_at"] == nil {
 			t.Fatalf("completed_at missing: %#v", completed)
+		}
+
+		contextAfterCompletion := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/provider-request-contexts", fixture.SpaceID), fixture.ProviderAPIKey, contextBody)
+		if contextAfterCompletion.Code != http.StatusForbidden {
+			t.Fatalf("provider context after action completion status = %d, want 403, body=%s", contextAfterCompletion.Code, contextAfterCompletion.Body.String())
 		}
 
 		completeReplay := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/action-executions/"+actionExecutionID+"/complete", fixture.SpaceID), fixture.ProviderAPIKey, map[string]any{
@@ -1361,6 +1420,8 @@ func cleanupCapabilityGrantFixture(ctx context.Context, t *testing.T, client *co
 	ignore("capability grants", err)
 	_, err = client.ActionExecution.Delete().Where(entactionexecution.SpaceID(fixture.SpaceID)).Exec(ctx)
 	ignore("action executions", err)
+	_, err = client.ProviderRequestContext.Delete().Where(entproviderrequestcontext.SpaceID(fixture.SpaceID)).Exec(ctx)
+	ignore("provider request contexts", err)
 	_, err = client.CapabilityProviderBinding.Delete().Where(entcapabilityproviderbinding.SpaceID(fixture.SpaceID)).Exec(ctx)
 	ignore("capability provider bindings", err)
 	_, err = client.AuditLog.Delete().Where(entauditlog.SpaceID(fixture.SpaceID)).Exec(ctx)
@@ -1464,6 +1525,23 @@ func actionExecutionBeginBody(fixture capabilityGrantFixture, idempotencyKey str
 		"idempotency_key": idempotencyKey,
 		"correlation_id":  "cor_action_execution_" + fixture.Suffix,
 		"metadata":        map[string]any{"test": "action_execution"},
+	}
+}
+
+func providerRequestContextBody(fixture capabilityGrantFixture) map[string]any {
+	return map[string]any{
+		"provider_plugin_id": fixture.ProviderPluginID,
+		"space_id":           fixture.SpaceID,
+		"actor": map[string]any{
+			"user_id":        fixture.PrincipalUserID,
+			"member_id":      fixture.PrincipalMemberID,
+			"user_member_id": fixture.PrincipalUserMemberID,
+		},
+		"purpose": "capability_execution_test",
+		"ttl_ms":  60000,
+		"metadata": map[string]any{
+			"test": "provider_request_context",
+		},
 	}
 }
 

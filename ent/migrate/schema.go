@@ -993,6 +993,10 @@ var (
 		{Name: "actor_user_id", Type: field.TypeString, Nullable: true},
 		{Name: "actor_member_id", Type: field.TypeString, Nullable: true},
 		{Name: "actor_user_member_id", Type: field.TypeString, Nullable: true},
+		{Name: "capability", Type: field.TypeString, Nullable: true},
+		{Name: "operation", Type: field.TypeString, Nullable: true},
+		{Name: "capability_grant_id", Type: field.TypeString, Nullable: true},
+		{Name: "action_execution_id", Type: field.TypeString, Nullable: true},
 		{Name: "authorization_decision_id", Type: field.TypeString, Nullable: true},
 		{Name: "request_id", Type: field.TypeString, Nullable: true},
 		{Name: "purpose", Type: field.TypeString, Nullable: true},
@@ -1019,22 +1023,32 @@ var (
 			{
 				Name:    "providerrequestcontext_provider_plugin_id_status",
 				Unique:  false,
-				Columns: []*schema.Column{ProviderRequestContextsColumns[2], ProviderRequestContextsColumns[10]},
+				Columns: []*schema.Column{ProviderRequestContextsColumns[2], ProviderRequestContextsColumns[14]},
 			},
 			{
 				Name:    "providerrequestcontext_space_id_status",
 				Unique:  false,
-				Columns: []*schema.Column{ProviderRequestContextsColumns[3], ProviderRequestContextsColumns[10]},
+				Columns: []*schema.Column{ProviderRequestContextsColumns[3], ProviderRequestContextsColumns[14]},
 			},
 			{
 				Name:    "providerrequestcontext_expires_at",
 				Unique:  false,
-				Columns: []*schema.Column{ProviderRequestContextsColumns[11]},
+				Columns: []*schema.Column{ProviderRequestContextsColumns[15]},
+			},
+			{
+				Name:    "providerrequestcontext_capability_grant_id",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderRequestContextsColumns[9]},
+			},
+			{
+				Name:    "providerrequestcontext_action_execution_id",
+				Unique:  false,
+				Columns: []*schema.Column{ProviderRequestContextsColumns[10]},
 			},
 			{
 				Name:    "providerrequestcontext_authorization_decision_id",
 				Unique:  false,
-				Columns: []*schema.Column{ProviderRequestContextsColumns[7]},
+				Columns: []*schema.Column{ProviderRequestContextsColumns[11]},
 			},
 		},
 	}

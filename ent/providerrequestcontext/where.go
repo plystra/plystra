@@ -94,6 +94,26 @@ func ActorUserMemberID(v string) predicate.ProviderRequestContext {
 	return predicate.ProviderRequestContext(sql.FieldEQ(FieldActorUserMemberID, v))
 }
 
+// Capability applies equality check predicate on the "capability" field. It's identical to CapabilityEQ.
+func Capability(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldEQ(FieldCapability, v))
+}
+
+// Operation applies equality check predicate on the "operation" field. It's identical to OperationEQ.
+func Operation(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldEQ(FieldOperation, v))
+}
+
+// CapabilityGrantID applies equality check predicate on the "capability_grant_id" field. It's identical to CapabilityGrantIDEQ.
+func CapabilityGrantID(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldEQ(FieldCapabilityGrantID, v))
+}
+
+// ActionExecutionID applies equality check predicate on the "action_execution_id" field. It's identical to ActionExecutionIDEQ.
+func ActionExecutionID(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldEQ(FieldActionExecutionID, v))
+}
+
 // AuthorizationDecisionID applies equality check predicate on the "authorization_decision_id" field. It's identical to AuthorizationDecisionIDEQ.
 func AuthorizationDecisionID(v string) predicate.ProviderRequestContext {
 	return predicate.ProviderRequestContext(sql.FieldEQ(FieldAuthorizationDecisionID, v))
@@ -562,6 +582,306 @@ func ActorUserMemberIDEqualFold(v string) predicate.ProviderRequestContext {
 // ActorUserMemberIDContainsFold applies the ContainsFold predicate on the "actor_user_member_id" field.
 func ActorUserMemberIDContainsFold(v string) predicate.ProviderRequestContext {
 	return predicate.ProviderRequestContext(sql.FieldContainsFold(FieldActorUserMemberID, v))
+}
+
+// CapabilityEQ applies the EQ predicate on the "capability" field.
+func CapabilityEQ(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldEQ(FieldCapability, v))
+}
+
+// CapabilityNEQ applies the NEQ predicate on the "capability" field.
+func CapabilityNEQ(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldNEQ(FieldCapability, v))
+}
+
+// CapabilityIn applies the In predicate on the "capability" field.
+func CapabilityIn(vs ...string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldIn(FieldCapability, vs...))
+}
+
+// CapabilityNotIn applies the NotIn predicate on the "capability" field.
+func CapabilityNotIn(vs ...string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldNotIn(FieldCapability, vs...))
+}
+
+// CapabilityGT applies the GT predicate on the "capability" field.
+func CapabilityGT(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldGT(FieldCapability, v))
+}
+
+// CapabilityGTE applies the GTE predicate on the "capability" field.
+func CapabilityGTE(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldGTE(FieldCapability, v))
+}
+
+// CapabilityLT applies the LT predicate on the "capability" field.
+func CapabilityLT(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldLT(FieldCapability, v))
+}
+
+// CapabilityLTE applies the LTE predicate on the "capability" field.
+func CapabilityLTE(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldLTE(FieldCapability, v))
+}
+
+// CapabilityContains applies the Contains predicate on the "capability" field.
+func CapabilityContains(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldContains(FieldCapability, v))
+}
+
+// CapabilityHasPrefix applies the HasPrefix predicate on the "capability" field.
+func CapabilityHasPrefix(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldHasPrefix(FieldCapability, v))
+}
+
+// CapabilityHasSuffix applies the HasSuffix predicate on the "capability" field.
+func CapabilityHasSuffix(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldHasSuffix(FieldCapability, v))
+}
+
+// CapabilityIsNil applies the IsNil predicate on the "capability" field.
+func CapabilityIsNil() predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldIsNull(FieldCapability))
+}
+
+// CapabilityNotNil applies the NotNil predicate on the "capability" field.
+func CapabilityNotNil() predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldNotNull(FieldCapability))
+}
+
+// CapabilityEqualFold applies the EqualFold predicate on the "capability" field.
+func CapabilityEqualFold(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldEqualFold(FieldCapability, v))
+}
+
+// CapabilityContainsFold applies the ContainsFold predicate on the "capability" field.
+func CapabilityContainsFold(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldContainsFold(FieldCapability, v))
+}
+
+// OperationEQ applies the EQ predicate on the "operation" field.
+func OperationEQ(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldEQ(FieldOperation, v))
+}
+
+// OperationNEQ applies the NEQ predicate on the "operation" field.
+func OperationNEQ(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldNEQ(FieldOperation, v))
+}
+
+// OperationIn applies the In predicate on the "operation" field.
+func OperationIn(vs ...string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldIn(FieldOperation, vs...))
+}
+
+// OperationNotIn applies the NotIn predicate on the "operation" field.
+func OperationNotIn(vs ...string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldNotIn(FieldOperation, vs...))
+}
+
+// OperationGT applies the GT predicate on the "operation" field.
+func OperationGT(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldGT(FieldOperation, v))
+}
+
+// OperationGTE applies the GTE predicate on the "operation" field.
+func OperationGTE(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldGTE(FieldOperation, v))
+}
+
+// OperationLT applies the LT predicate on the "operation" field.
+func OperationLT(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldLT(FieldOperation, v))
+}
+
+// OperationLTE applies the LTE predicate on the "operation" field.
+func OperationLTE(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldLTE(FieldOperation, v))
+}
+
+// OperationContains applies the Contains predicate on the "operation" field.
+func OperationContains(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldContains(FieldOperation, v))
+}
+
+// OperationHasPrefix applies the HasPrefix predicate on the "operation" field.
+func OperationHasPrefix(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldHasPrefix(FieldOperation, v))
+}
+
+// OperationHasSuffix applies the HasSuffix predicate on the "operation" field.
+func OperationHasSuffix(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldHasSuffix(FieldOperation, v))
+}
+
+// OperationIsNil applies the IsNil predicate on the "operation" field.
+func OperationIsNil() predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldIsNull(FieldOperation))
+}
+
+// OperationNotNil applies the NotNil predicate on the "operation" field.
+func OperationNotNil() predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldNotNull(FieldOperation))
+}
+
+// OperationEqualFold applies the EqualFold predicate on the "operation" field.
+func OperationEqualFold(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldEqualFold(FieldOperation, v))
+}
+
+// OperationContainsFold applies the ContainsFold predicate on the "operation" field.
+func OperationContainsFold(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldContainsFold(FieldOperation, v))
+}
+
+// CapabilityGrantIDEQ applies the EQ predicate on the "capability_grant_id" field.
+func CapabilityGrantIDEQ(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldEQ(FieldCapabilityGrantID, v))
+}
+
+// CapabilityGrantIDNEQ applies the NEQ predicate on the "capability_grant_id" field.
+func CapabilityGrantIDNEQ(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldNEQ(FieldCapabilityGrantID, v))
+}
+
+// CapabilityGrantIDIn applies the In predicate on the "capability_grant_id" field.
+func CapabilityGrantIDIn(vs ...string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldIn(FieldCapabilityGrantID, vs...))
+}
+
+// CapabilityGrantIDNotIn applies the NotIn predicate on the "capability_grant_id" field.
+func CapabilityGrantIDNotIn(vs ...string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldNotIn(FieldCapabilityGrantID, vs...))
+}
+
+// CapabilityGrantIDGT applies the GT predicate on the "capability_grant_id" field.
+func CapabilityGrantIDGT(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldGT(FieldCapabilityGrantID, v))
+}
+
+// CapabilityGrantIDGTE applies the GTE predicate on the "capability_grant_id" field.
+func CapabilityGrantIDGTE(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldGTE(FieldCapabilityGrantID, v))
+}
+
+// CapabilityGrantIDLT applies the LT predicate on the "capability_grant_id" field.
+func CapabilityGrantIDLT(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldLT(FieldCapabilityGrantID, v))
+}
+
+// CapabilityGrantIDLTE applies the LTE predicate on the "capability_grant_id" field.
+func CapabilityGrantIDLTE(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldLTE(FieldCapabilityGrantID, v))
+}
+
+// CapabilityGrantIDContains applies the Contains predicate on the "capability_grant_id" field.
+func CapabilityGrantIDContains(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldContains(FieldCapabilityGrantID, v))
+}
+
+// CapabilityGrantIDHasPrefix applies the HasPrefix predicate on the "capability_grant_id" field.
+func CapabilityGrantIDHasPrefix(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldHasPrefix(FieldCapabilityGrantID, v))
+}
+
+// CapabilityGrantIDHasSuffix applies the HasSuffix predicate on the "capability_grant_id" field.
+func CapabilityGrantIDHasSuffix(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldHasSuffix(FieldCapabilityGrantID, v))
+}
+
+// CapabilityGrantIDIsNil applies the IsNil predicate on the "capability_grant_id" field.
+func CapabilityGrantIDIsNil() predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldIsNull(FieldCapabilityGrantID))
+}
+
+// CapabilityGrantIDNotNil applies the NotNil predicate on the "capability_grant_id" field.
+func CapabilityGrantIDNotNil() predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldNotNull(FieldCapabilityGrantID))
+}
+
+// CapabilityGrantIDEqualFold applies the EqualFold predicate on the "capability_grant_id" field.
+func CapabilityGrantIDEqualFold(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldEqualFold(FieldCapabilityGrantID, v))
+}
+
+// CapabilityGrantIDContainsFold applies the ContainsFold predicate on the "capability_grant_id" field.
+func CapabilityGrantIDContainsFold(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldContainsFold(FieldCapabilityGrantID, v))
+}
+
+// ActionExecutionIDEQ applies the EQ predicate on the "action_execution_id" field.
+func ActionExecutionIDEQ(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldEQ(FieldActionExecutionID, v))
+}
+
+// ActionExecutionIDNEQ applies the NEQ predicate on the "action_execution_id" field.
+func ActionExecutionIDNEQ(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldNEQ(FieldActionExecutionID, v))
+}
+
+// ActionExecutionIDIn applies the In predicate on the "action_execution_id" field.
+func ActionExecutionIDIn(vs ...string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldIn(FieldActionExecutionID, vs...))
+}
+
+// ActionExecutionIDNotIn applies the NotIn predicate on the "action_execution_id" field.
+func ActionExecutionIDNotIn(vs ...string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldNotIn(FieldActionExecutionID, vs...))
+}
+
+// ActionExecutionIDGT applies the GT predicate on the "action_execution_id" field.
+func ActionExecutionIDGT(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldGT(FieldActionExecutionID, v))
+}
+
+// ActionExecutionIDGTE applies the GTE predicate on the "action_execution_id" field.
+func ActionExecutionIDGTE(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldGTE(FieldActionExecutionID, v))
+}
+
+// ActionExecutionIDLT applies the LT predicate on the "action_execution_id" field.
+func ActionExecutionIDLT(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldLT(FieldActionExecutionID, v))
+}
+
+// ActionExecutionIDLTE applies the LTE predicate on the "action_execution_id" field.
+func ActionExecutionIDLTE(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldLTE(FieldActionExecutionID, v))
+}
+
+// ActionExecutionIDContains applies the Contains predicate on the "action_execution_id" field.
+func ActionExecutionIDContains(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldContains(FieldActionExecutionID, v))
+}
+
+// ActionExecutionIDHasPrefix applies the HasPrefix predicate on the "action_execution_id" field.
+func ActionExecutionIDHasPrefix(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldHasPrefix(FieldActionExecutionID, v))
+}
+
+// ActionExecutionIDHasSuffix applies the HasSuffix predicate on the "action_execution_id" field.
+func ActionExecutionIDHasSuffix(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldHasSuffix(FieldActionExecutionID, v))
+}
+
+// ActionExecutionIDIsNil applies the IsNil predicate on the "action_execution_id" field.
+func ActionExecutionIDIsNil() predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldIsNull(FieldActionExecutionID))
+}
+
+// ActionExecutionIDNotNil applies the NotNil predicate on the "action_execution_id" field.
+func ActionExecutionIDNotNil() predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldNotNull(FieldActionExecutionID))
+}
+
+// ActionExecutionIDEqualFold applies the EqualFold predicate on the "action_execution_id" field.
+func ActionExecutionIDEqualFold(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldEqualFold(FieldActionExecutionID, v))
+}
+
+// ActionExecutionIDContainsFold applies the ContainsFold predicate on the "action_execution_id" field.
+func ActionExecutionIDContainsFold(v string) predicate.ProviderRequestContext {
+	return predicate.ProviderRequestContext(sql.FieldContainsFold(FieldActionExecutionID, v))
 }
 
 // AuthorizationDecisionIDEQ applies the EQ predicate on the "authorization_decision_id" field.

@@ -2421,6 +2421,8 @@ components:
             type: object
         ApiOpenAPIProviderRequestContext:
             properties:
+                action_execution_id:
+                    type: string
                 actor_member_id:
                     type: string
                 actor_user_id:
@@ -2428,6 +2430,10 @@ components:
                 actor_user_member_id:
                     type: string
                 authorization_decision_id:
+                    type: string
+                capability:
+                    type: string
+                capability_grant_id:
                     type: string
                 context_token:
                     type: string
@@ -2443,6 +2449,8 @@ components:
                     additionalProperties: {}
                     nullable: true
                     type: object
+                operation:
+                    type: string
                 provider_plugin_id:
                     type: string
                 purpose:
@@ -2979,14 +2987,22 @@ components:
             type: object
         ApiProviderRequestContextRequest:
             properties:
+                action_execution_id:
+                    type: string
                 actor:
                     $ref: '#/components/schemas/AuthzActorContext'
                 authorization_decision_id:
+                    type: string
+                capability:
+                    type: string
+                capability_grant_id:
                     type: string
                 metadata:
                     additionalProperties: {}
                     nullable: true
                     type: object
+                operation:
+                    type: string
                 provider_plugin_id:
                     type: string
                 purpose:

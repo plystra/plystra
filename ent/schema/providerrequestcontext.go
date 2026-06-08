@@ -19,6 +19,10 @@ func (ProviderRequestContext) Fields() []ent.Field {
 		field.String("actor_user_id").Optional().Nillable(),
 		field.String("actor_member_id").Optional().Nillable(),
 		field.String("actor_user_member_id").Optional().Nillable(),
+		field.String("capability").Optional().Nillable(),
+		field.String("operation").Optional().Nillable(),
+		field.String("capability_grant_id").Optional().Nillable(),
+		field.String("action_execution_id").Optional().Nillable(),
 		field.String("authorization_decision_id").Optional().Nillable(),
 		field.String("request_id").Optional().Nillable(),
 		field.String("purpose").Optional().Nillable(),
@@ -39,6 +43,8 @@ func (ProviderRequestContext) Indexes() []ent.Index {
 		index.Fields("provider_plugin_id", "status"),
 		index.Fields("space_id", "status"),
 		index.Fields("expires_at"),
+		index.Fields("capability_grant_id"),
+		index.Fields("action_execution_id"),
 		index.Fields("authorization_decision_id"),
 	}
 }

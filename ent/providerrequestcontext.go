@@ -30,6 +30,14 @@ type ProviderRequestContext struct {
 	ActorMemberID *string `json:"actor_member_id,omitempty"`
 	// ActorUserMemberID holds the value of the "actor_user_member_id" field.
 	ActorUserMemberID *string `json:"actor_user_member_id,omitempty"`
+	// Capability holds the value of the "capability" field.
+	Capability *string `json:"capability,omitempty"`
+	// Operation holds the value of the "operation" field.
+	Operation *string `json:"operation,omitempty"`
+	// CapabilityGrantID holds the value of the "capability_grant_id" field.
+	CapabilityGrantID *string `json:"capability_grant_id,omitempty"`
+	// ActionExecutionID holds the value of the "action_execution_id" field.
+	ActionExecutionID *string `json:"action_execution_id,omitempty"`
 	// AuthorizationDecisionID holds the value of the "authorization_decision_id" field.
 	AuthorizationDecisionID *string `json:"authorization_decision_id,omitempty"`
 	// RequestID holds the value of the "request_id" field.
@@ -62,7 +70,7 @@ func (*ProviderRequestContext) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case providerrequestcontext.FieldMetadata:
 			values[i] = new([]byte)
-		case providerrequestcontext.FieldID, providerrequestcontext.FieldTokenHash, providerrequestcontext.FieldProviderPluginID, providerrequestcontext.FieldSpaceID, providerrequestcontext.FieldActorUserID, providerrequestcontext.FieldActorMemberID, providerrequestcontext.FieldActorUserMemberID, providerrequestcontext.FieldAuthorizationDecisionID, providerrequestcontext.FieldRequestID, providerrequestcontext.FieldPurpose, providerrequestcontext.FieldStatus, providerrequestcontext.FieldRevokedReason:
+		case providerrequestcontext.FieldID, providerrequestcontext.FieldTokenHash, providerrequestcontext.FieldProviderPluginID, providerrequestcontext.FieldSpaceID, providerrequestcontext.FieldActorUserID, providerrequestcontext.FieldActorMemberID, providerrequestcontext.FieldActorUserMemberID, providerrequestcontext.FieldCapability, providerrequestcontext.FieldOperation, providerrequestcontext.FieldCapabilityGrantID, providerrequestcontext.FieldActionExecutionID, providerrequestcontext.FieldAuthorizationDecisionID, providerrequestcontext.FieldRequestID, providerrequestcontext.FieldPurpose, providerrequestcontext.FieldStatus, providerrequestcontext.FieldRevokedReason:
 			values[i] = new(sql.NullString)
 		case providerrequestcontext.FieldExpiresAt, providerrequestcontext.FieldRevokedAt, providerrequestcontext.FieldCreatedAt, providerrequestcontext.FieldUpdatedAt, providerrequestcontext.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -125,6 +133,34 @@ func (_m *ProviderRequestContext) assignValues(columns []string, values []any) e
 			} else if value.Valid {
 				_m.ActorUserMemberID = new(string)
 				*_m.ActorUserMemberID = value.String
+			}
+		case providerrequestcontext.FieldCapability:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field capability", values[i])
+			} else if value.Valid {
+				_m.Capability = new(string)
+				*_m.Capability = value.String
+			}
+		case providerrequestcontext.FieldOperation:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field operation", values[i])
+			} else if value.Valid {
+				_m.Operation = new(string)
+				*_m.Operation = value.String
+			}
+		case providerrequestcontext.FieldCapabilityGrantID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field capability_grant_id", values[i])
+			} else if value.Valid {
+				_m.CapabilityGrantID = new(string)
+				*_m.CapabilityGrantID = value.String
+			}
+		case providerrequestcontext.FieldActionExecutionID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field action_execution_id", values[i])
+			} else if value.Valid {
+				_m.ActionExecutionID = new(string)
+				*_m.ActionExecutionID = value.String
 			}
 		case providerrequestcontext.FieldAuthorizationDecisionID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -256,6 +292,26 @@ func (_m *ProviderRequestContext) String() string {
 	builder.WriteString(", ")
 	if v := _m.ActorUserMemberID; v != nil {
 		builder.WriteString("actor_user_member_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.Capability; v != nil {
+		builder.WriteString("capability=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.Operation; v != nil {
+		builder.WriteString("operation=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.CapabilityGrantID; v != nil {
+		builder.WriteString("capability_grant_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.ActionExecutionID; v != nil {
+		builder.WriteString("action_execution_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

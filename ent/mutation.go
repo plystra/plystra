@@ -25493,6 +25493,10 @@ type ProviderRequestContextMutation struct {
 	actor_user_id             *string
 	actor_member_id           *string
 	actor_user_member_id      *string
+	capability                *string
+	operation                 *string
+	capability_grant_id       *string
+	action_execution_id       *string
 	authorization_decision_id *string
 	request_id                *string
 	purpose                   *string
@@ -25867,6 +25871,202 @@ func (m *ProviderRequestContextMutation) ActorUserMemberIDCleared() bool {
 func (m *ProviderRequestContextMutation) ResetActorUserMemberID() {
 	m.actor_user_member_id = nil
 	delete(m.clearedFields, providerrequestcontext.FieldActorUserMemberID)
+}
+
+// SetCapability sets the "capability" field.
+func (m *ProviderRequestContextMutation) SetCapability(s string) {
+	m.capability = &s
+}
+
+// Capability returns the value of the "capability" field in the mutation.
+func (m *ProviderRequestContextMutation) Capability() (r string, exists bool) {
+	v := m.capability
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCapability returns the old "capability" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldCapability(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCapability is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCapability requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCapability: %w", err)
+	}
+	return oldValue.Capability, nil
+}
+
+// ClearCapability clears the value of the "capability" field.
+func (m *ProviderRequestContextMutation) ClearCapability() {
+	m.capability = nil
+	m.clearedFields[providerrequestcontext.FieldCapability] = struct{}{}
+}
+
+// CapabilityCleared returns if the "capability" field was cleared in this mutation.
+func (m *ProviderRequestContextMutation) CapabilityCleared() bool {
+	_, ok := m.clearedFields[providerrequestcontext.FieldCapability]
+	return ok
+}
+
+// ResetCapability resets all changes to the "capability" field.
+func (m *ProviderRequestContextMutation) ResetCapability() {
+	m.capability = nil
+	delete(m.clearedFields, providerrequestcontext.FieldCapability)
+}
+
+// SetOperation sets the "operation" field.
+func (m *ProviderRequestContextMutation) SetOperation(s string) {
+	m.operation = &s
+}
+
+// Operation returns the value of the "operation" field in the mutation.
+func (m *ProviderRequestContextMutation) Operation() (r string, exists bool) {
+	v := m.operation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOperation returns the old "operation" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldOperation(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOperation is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOperation requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOperation: %w", err)
+	}
+	return oldValue.Operation, nil
+}
+
+// ClearOperation clears the value of the "operation" field.
+func (m *ProviderRequestContextMutation) ClearOperation() {
+	m.operation = nil
+	m.clearedFields[providerrequestcontext.FieldOperation] = struct{}{}
+}
+
+// OperationCleared returns if the "operation" field was cleared in this mutation.
+func (m *ProviderRequestContextMutation) OperationCleared() bool {
+	_, ok := m.clearedFields[providerrequestcontext.FieldOperation]
+	return ok
+}
+
+// ResetOperation resets all changes to the "operation" field.
+func (m *ProviderRequestContextMutation) ResetOperation() {
+	m.operation = nil
+	delete(m.clearedFields, providerrequestcontext.FieldOperation)
+}
+
+// SetCapabilityGrantID sets the "capability_grant_id" field.
+func (m *ProviderRequestContextMutation) SetCapabilityGrantID(s string) {
+	m.capability_grant_id = &s
+}
+
+// CapabilityGrantID returns the value of the "capability_grant_id" field in the mutation.
+func (m *ProviderRequestContextMutation) CapabilityGrantID() (r string, exists bool) {
+	v := m.capability_grant_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCapabilityGrantID returns the old "capability_grant_id" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldCapabilityGrantID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCapabilityGrantID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCapabilityGrantID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCapabilityGrantID: %w", err)
+	}
+	return oldValue.CapabilityGrantID, nil
+}
+
+// ClearCapabilityGrantID clears the value of the "capability_grant_id" field.
+func (m *ProviderRequestContextMutation) ClearCapabilityGrantID() {
+	m.capability_grant_id = nil
+	m.clearedFields[providerrequestcontext.FieldCapabilityGrantID] = struct{}{}
+}
+
+// CapabilityGrantIDCleared returns if the "capability_grant_id" field was cleared in this mutation.
+func (m *ProviderRequestContextMutation) CapabilityGrantIDCleared() bool {
+	_, ok := m.clearedFields[providerrequestcontext.FieldCapabilityGrantID]
+	return ok
+}
+
+// ResetCapabilityGrantID resets all changes to the "capability_grant_id" field.
+func (m *ProviderRequestContextMutation) ResetCapabilityGrantID() {
+	m.capability_grant_id = nil
+	delete(m.clearedFields, providerrequestcontext.FieldCapabilityGrantID)
+}
+
+// SetActionExecutionID sets the "action_execution_id" field.
+func (m *ProviderRequestContextMutation) SetActionExecutionID(s string) {
+	m.action_execution_id = &s
+}
+
+// ActionExecutionID returns the value of the "action_execution_id" field in the mutation.
+func (m *ProviderRequestContextMutation) ActionExecutionID() (r string, exists bool) {
+	v := m.action_execution_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActionExecutionID returns the old "action_execution_id" field's value of the ProviderRequestContext entity.
+// If the ProviderRequestContext object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProviderRequestContextMutation) OldActionExecutionID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActionExecutionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActionExecutionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActionExecutionID: %w", err)
+	}
+	return oldValue.ActionExecutionID, nil
+}
+
+// ClearActionExecutionID clears the value of the "action_execution_id" field.
+func (m *ProviderRequestContextMutation) ClearActionExecutionID() {
+	m.action_execution_id = nil
+	m.clearedFields[providerrequestcontext.FieldActionExecutionID] = struct{}{}
+}
+
+// ActionExecutionIDCleared returns if the "action_execution_id" field was cleared in this mutation.
+func (m *ProviderRequestContextMutation) ActionExecutionIDCleared() bool {
+	_, ok := m.clearedFields[providerrequestcontext.FieldActionExecutionID]
+	return ok
+}
+
+// ResetActionExecutionID resets all changes to the "action_execution_id" field.
+func (m *ProviderRequestContextMutation) ResetActionExecutionID() {
+	m.action_execution_id = nil
+	delete(m.clearedFields, providerrequestcontext.FieldActionExecutionID)
 }
 
 // SetAuthorizationDecisionID sets the "authorization_decision_id" field.
@@ -26390,7 +26590,7 @@ func (m *ProviderRequestContextMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProviderRequestContextMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 21)
 	if m.token_hash != nil {
 		fields = append(fields, providerrequestcontext.FieldTokenHash)
 	}
@@ -26408,6 +26608,18 @@ func (m *ProviderRequestContextMutation) Fields() []string {
 	}
 	if m.actor_user_member_id != nil {
 		fields = append(fields, providerrequestcontext.FieldActorUserMemberID)
+	}
+	if m.capability != nil {
+		fields = append(fields, providerrequestcontext.FieldCapability)
+	}
+	if m.operation != nil {
+		fields = append(fields, providerrequestcontext.FieldOperation)
+	}
+	if m.capability_grant_id != nil {
+		fields = append(fields, providerrequestcontext.FieldCapabilityGrantID)
+	}
+	if m.action_execution_id != nil {
+		fields = append(fields, providerrequestcontext.FieldActionExecutionID)
 	}
 	if m.authorization_decision_id != nil {
 		fields = append(fields, providerrequestcontext.FieldAuthorizationDecisionID)
@@ -26462,6 +26674,14 @@ func (m *ProviderRequestContextMutation) Field(name string) (ent.Value, bool) {
 		return m.ActorMemberID()
 	case providerrequestcontext.FieldActorUserMemberID:
 		return m.ActorUserMemberID()
+	case providerrequestcontext.FieldCapability:
+		return m.Capability()
+	case providerrequestcontext.FieldOperation:
+		return m.Operation()
+	case providerrequestcontext.FieldCapabilityGrantID:
+		return m.CapabilityGrantID()
+	case providerrequestcontext.FieldActionExecutionID:
+		return m.ActionExecutionID()
 	case providerrequestcontext.FieldAuthorizationDecisionID:
 		return m.AuthorizationDecisionID()
 	case providerrequestcontext.FieldRequestID:
@@ -26505,6 +26725,14 @@ func (m *ProviderRequestContextMutation) OldField(ctx context.Context, name stri
 		return m.OldActorMemberID(ctx)
 	case providerrequestcontext.FieldActorUserMemberID:
 		return m.OldActorUserMemberID(ctx)
+	case providerrequestcontext.FieldCapability:
+		return m.OldCapability(ctx)
+	case providerrequestcontext.FieldOperation:
+		return m.OldOperation(ctx)
+	case providerrequestcontext.FieldCapabilityGrantID:
+		return m.OldCapabilityGrantID(ctx)
+	case providerrequestcontext.FieldActionExecutionID:
+		return m.OldActionExecutionID(ctx)
 	case providerrequestcontext.FieldAuthorizationDecisionID:
 		return m.OldAuthorizationDecisionID(ctx)
 	case providerrequestcontext.FieldRequestID:
@@ -26577,6 +26805,34 @@ func (m *ProviderRequestContextMutation) SetField(name string, value ent.Value) 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetActorUserMemberID(v)
+		return nil
+	case providerrequestcontext.FieldCapability:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCapability(v)
+		return nil
+	case providerrequestcontext.FieldOperation:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOperation(v)
+		return nil
+	case providerrequestcontext.FieldCapabilityGrantID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCapabilityGrantID(v)
+		return nil
+	case providerrequestcontext.FieldActionExecutionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActionExecutionID(v)
 		return nil
 	case providerrequestcontext.FieldAuthorizationDecisionID:
 		v, ok := value.(string)
@@ -26694,6 +26950,18 @@ func (m *ProviderRequestContextMutation) ClearedFields() []string {
 	if m.FieldCleared(providerrequestcontext.FieldActorUserMemberID) {
 		fields = append(fields, providerrequestcontext.FieldActorUserMemberID)
 	}
+	if m.FieldCleared(providerrequestcontext.FieldCapability) {
+		fields = append(fields, providerrequestcontext.FieldCapability)
+	}
+	if m.FieldCleared(providerrequestcontext.FieldOperation) {
+		fields = append(fields, providerrequestcontext.FieldOperation)
+	}
+	if m.FieldCleared(providerrequestcontext.FieldCapabilityGrantID) {
+		fields = append(fields, providerrequestcontext.FieldCapabilityGrantID)
+	}
+	if m.FieldCleared(providerrequestcontext.FieldActionExecutionID) {
+		fields = append(fields, providerrequestcontext.FieldActionExecutionID)
+	}
 	if m.FieldCleared(providerrequestcontext.FieldAuthorizationDecisionID) {
 		fields = append(fields, providerrequestcontext.FieldAuthorizationDecisionID)
 	}
@@ -26737,6 +27005,18 @@ func (m *ProviderRequestContextMutation) ClearField(name string) error {
 		return nil
 	case providerrequestcontext.FieldActorUserMemberID:
 		m.ClearActorUserMemberID()
+		return nil
+	case providerrequestcontext.FieldCapability:
+		m.ClearCapability()
+		return nil
+	case providerrequestcontext.FieldOperation:
+		m.ClearOperation()
+		return nil
+	case providerrequestcontext.FieldCapabilityGrantID:
+		m.ClearCapabilityGrantID()
+		return nil
+	case providerrequestcontext.FieldActionExecutionID:
+		m.ClearActionExecutionID()
 		return nil
 	case providerrequestcontext.FieldAuthorizationDecisionID:
 		m.ClearAuthorizationDecisionID()
@@ -26784,6 +27064,18 @@ func (m *ProviderRequestContextMutation) ResetField(name string) error {
 		return nil
 	case providerrequestcontext.FieldActorUserMemberID:
 		m.ResetActorUserMemberID()
+		return nil
+	case providerrequestcontext.FieldCapability:
+		m.ResetCapability()
+		return nil
+	case providerrequestcontext.FieldOperation:
+		m.ResetOperation()
+		return nil
+	case providerrequestcontext.FieldCapabilityGrantID:
+		m.ResetCapabilityGrantID()
+		return nil
+	case providerrequestcontext.FieldActionExecutionID:
+		m.ResetActionExecutionID()
 		return nil
 	case providerrequestcontext.FieldAuthorizationDecisionID:
 		m.ResetAuthorizationDecisionID()

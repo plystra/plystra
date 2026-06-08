@@ -682,6 +682,10 @@ type openAPIProviderRequestContext struct {
 	ActorUserID             string         `json:"actor_user_id,omitempty"`
 	ActorMemberID           string         `json:"actor_member_id,omitempty"`
 	ActorUserMemberID       string         `json:"actor_user_member_id,omitempty"`
+	Capability              string         `json:"capability,omitempty"`
+	Operation               string         `json:"operation,omitempty"`
+	CapabilityGrantID       string         `json:"capability_grant_id,omitempty"`
+	ActionExecutionID       string         `json:"action_execution_id,omitempty"`
 	AuthorizationDecisionID string         `json:"authorization_decision_id,omitempty"`
 	RequestID               string         `json:"request_id,omitempty"`
 	Purpose                 string         `json:"purpose,omitempty"`

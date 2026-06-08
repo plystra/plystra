@@ -981,15 +981,15 @@ func init() {
 	// providerrequestcontext.SpaceIDValidator is a validator for the "space_id" field. It is called by the builders before save.
 	providerrequestcontext.SpaceIDValidator = providerrequestcontextDescSpaceID.Validators[0].(func(string) error)
 	// providerrequestcontextDescStatus is the schema descriptor for status field.
-	providerrequestcontextDescStatus := providerrequestcontextFields[10].Descriptor()
+	providerrequestcontextDescStatus := providerrequestcontextFields[14].Descriptor()
 	// providerrequestcontext.DefaultStatus holds the default value on creation for the status field.
 	providerrequestcontext.DefaultStatus = providerrequestcontextDescStatus.Default.(string)
 	// providerrequestcontextDescCreatedAt is the schema descriptor for created_at field.
-	providerrequestcontextDescCreatedAt := providerrequestcontextFields[15].Descriptor()
+	providerrequestcontextDescCreatedAt := providerrequestcontextFields[19].Descriptor()
 	// providerrequestcontext.DefaultCreatedAt holds the default value on creation for the created_at field.
 	providerrequestcontext.DefaultCreatedAt = providerrequestcontextDescCreatedAt.Default.(func() time.Time)
 	// providerrequestcontextDescUpdatedAt is the schema descriptor for updated_at field.
-	providerrequestcontextDescUpdatedAt := providerrequestcontextFields[16].Descriptor()
+	providerrequestcontextDescUpdatedAt := providerrequestcontextFields[20].Descriptor()
 	// providerrequestcontext.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	providerrequestcontext.DefaultUpdatedAt = providerrequestcontextDescUpdatedAt.Default.(func() time.Time)
 	// providerrequestcontext.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
