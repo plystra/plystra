@@ -718,6 +718,8 @@ components:
                 created_at:
                     format: date-time
                     type: string
+                declared_resource_key:
+                    type: string
                 deleted_at:
                     format: date-time
                     nullable: true
@@ -734,6 +736,8 @@ components:
                     additionalProperties: {}
                     nullable: true
                     type: object
+                owner_plugin_key:
+                    type: string
                 permissions:
                     items:
                         $ref: '#/components/schemas/ApiOpenAPIAppDataPermissionSummary'

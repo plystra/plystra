@@ -9818,6 +9818,9 @@
             "type": "string",
             "format": "date-time"
           },
+          "declared_resource_key": {
+            "type": "string"
+          },
           "deleted_at": {
             "type": "string",
             "format": "date-time",
@@ -9839,6 +9842,9 @@
             "type": "object",
             "additionalProperties": {},
             "nullable": true
+          },
+          "owner_plugin_key": {
+            "type": "string"
           },
           "permissions": {
             "type": "array",

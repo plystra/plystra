@@ -375,19 +375,21 @@ type openAPIAppDataPermissionSummary struct {
 }
 
 type openAPIAppDataModel struct {
-	ID          string                            `json:"id"`
-	SpaceID     string                            `json:"space_id"`
-	Key         string                            `json:"key"`
-	DisplayName string                            `json:"display_name"`
-	Description string                            `json:"description,omitempty"`
-	Source      string                            `json:"source"`
-	Status      string                            `json:"status"`
-	Schema      map[string]any                    `json:"schema"`
-	Metadata    map[string]any                    `json:"metadata"`
-	Permissions []openAPIAppDataPermissionSummary `json:"permissions"`
-	CreatedAt   string                            `json:"created_at" format:"date-time"`
-	UpdatedAt   string                            `json:"updated_at" format:"date-time"`
-	DeletedAt   *time.Time                        `json:"deleted_at,omitempty"`
+	ID                  string                            `json:"id"`
+	SpaceID             string                            `json:"space_id"`
+	Key                 string                            `json:"key"`
+	DisplayName         string                            `json:"display_name"`
+	Description         string                            `json:"description,omitempty"`
+	Source              string                            `json:"source"`
+	OwnerPluginKey      string                            `json:"owner_plugin_key,omitempty"`
+	DeclaredResourceKey string                            `json:"declared_resource_key,omitempty"`
+	Status              string                            `json:"status"`
+	Schema              map[string]any                    `json:"schema"`
+	Metadata            map[string]any                    `json:"metadata"`
+	Permissions         []openAPIAppDataPermissionSummary `json:"permissions"`
+	CreatedAt           string                            `json:"created_at" format:"date-time"`
+	UpdatedAt           string                            `json:"updated_at" format:"date-time"`
+	DeletedAt           *time.Time                        `json:"deleted_at,omitempty"`
 }
 
 type openAPIAppDataRecord struct {

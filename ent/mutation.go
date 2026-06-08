@@ -4776,24 +4776,26 @@ func (m *ApiKeyMutation) ResetEdge(name string) error {
 // AppDataModelMutation represents an operation that mutates the AppDataModel nodes in the graph.
 type AppDataModelMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	space_id      *string
-	key           *string
-	display_name  *string
-	description   *string
-	source        *string
-	status        *string
-	schema        *map[string]interface{}
-	metadata      *map[string]interface{}
-	created_at    *time.Time
-	updated_at    *time.Time
-	deleted_at    *time.Time
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*AppDataModel, error)
-	predicates    []predicate.AppDataModel
+	op                    Op
+	typ                   string
+	id                    *string
+	space_id              *string
+	key                   *string
+	display_name          *string
+	description           *string
+	source                *string
+	owner_plugin_key      *string
+	declared_resource_key *string
+	status                *string
+	schema                *map[string]interface{}
+	metadata              *map[string]interface{}
+	created_at            *time.Time
+	updated_at            *time.Time
+	deleted_at            *time.Time
+	clearedFields         map[string]struct{}
+	done                  bool
+	oldValue              func(context.Context) (*AppDataModel, error)
+	predicates            []predicate.AppDataModel
 }
 
 var _ ent.Mutation = (*AppDataModelMutation)(nil)
@@ -5093,6 +5095,104 @@ func (m *AppDataModelMutation) ResetSource() {
 	m.source = nil
 }
 
+// SetOwnerPluginKey sets the "owner_plugin_key" field.
+func (m *AppDataModelMutation) SetOwnerPluginKey(s string) {
+	m.owner_plugin_key = &s
+}
+
+// OwnerPluginKey returns the value of the "owner_plugin_key" field in the mutation.
+func (m *AppDataModelMutation) OwnerPluginKey() (r string, exists bool) {
+	v := m.owner_plugin_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOwnerPluginKey returns the old "owner_plugin_key" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldOwnerPluginKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOwnerPluginKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOwnerPluginKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOwnerPluginKey: %w", err)
+	}
+	return oldValue.OwnerPluginKey, nil
+}
+
+// ClearOwnerPluginKey clears the value of the "owner_plugin_key" field.
+func (m *AppDataModelMutation) ClearOwnerPluginKey() {
+	m.owner_plugin_key = nil
+	m.clearedFields[appdatamodel.FieldOwnerPluginKey] = struct{}{}
+}
+
+// OwnerPluginKeyCleared returns if the "owner_plugin_key" field was cleared in this mutation.
+func (m *AppDataModelMutation) OwnerPluginKeyCleared() bool {
+	_, ok := m.clearedFields[appdatamodel.FieldOwnerPluginKey]
+	return ok
+}
+
+// ResetOwnerPluginKey resets all changes to the "owner_plugin_key" field.
+func (m *AppDataModelMutation) ResetOwnerPluginKey() {
+	m.owner_plugin_key = nil
+	delete(m.clearedFields, appdatamodel.FieldOwnerPluginKey)
+}
+
+// SetDeclaredResourceKey sets the "declared_resource_key" field.
+func (m *AppDataModelMutation) SetDeclaredResourceKey(s string) {
+	m.declared_resource_key = &s
+}
+
+// DeclaredResourceKey returns the value of the "declared_resource_key" field in the mutation.
+func (m *AppDataModelMutation) DeclaredResourceKey() (r string, exists bool) {
+	v := m.declared_resource_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeclaredResourceKey returns the old "declared_resource_key" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldDeclaredResourceKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeclaredResourceKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeclaredResourceKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeclaredResourceKey: %w", err)
+	}
+	return oldValue.DeclaredResourceKey, nil
+}
+
+// ClearDeclaredResourceKey clears the value of the "declared_resource_key" field.
+func (m *AppDataModelMutation) ClearDeclaredResourceKey() {
+	m.declared_resource_key = nil
+	m.clearedFields[appdatamodel.FieldDeclaredResourceKey] = struct{}{}
+}
+
+// DeclaredResourceKeyCleared returns if the "declared_resource_key" field was cleared in this mutation.
+func (m *AppDataModelMutation) DeclaredResourceKeyCleared() bool {
+	_, ok := m.clearedFields[appdatamodel.FieldDeclaredResourceKey]
+	return ok
+}
+
+// ResetDeclaredResourceKey resets all changes to the "declared_resource_key" field.
+func (m *AppDataModelMutation) ResetDeclaredResourceKey() {
+	m.declared_resource_key = nil
+	delete(m.clearedFields, appdatamodel.FieldDeclaredResourceKey)
+}
+
 // SetStatus sets the "status" field.
 func (m *AppDataModelMutation) SetStatus(s string) {
 	m.status = &s
@@ -5369,7 +5469,7 @@ func (m *AppDataModelMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AppDataModelMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 13)
 	if m.space_id != nil {
 		fields = append(fields, appdatamodel.FieldSpaceID)
 	}
@@ -5384,6 +5484,12 @@ func (m *AppDataModelMutation) Fields() []string {
 	}
 	if m.source != nil {
 		fields = append(fields, appdatamodel.FieldSource)
+	}
+	if m.owner_plugin_key != nil {
+		fields = append(fields, appdatamodel.FieldOwnerPluginKey)
+	}
+	if m.declared_resource_key != nil {
+		fields = append(fields, appdatamodel.FieldDeclaredResourceKey)
 	}
 	if m.status != nil {
 		fields = append(fields, appdatamodel.FieldStatus)
@@ -5421,6 +5527,10 @@ func (m *AppDataModelMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case appdatamodel.FieldSource:
 		return m.Source()
+	case appdatamodel.FieldOwnerPluginKey:
+		return m.OwnerPluginKey()
+	case appdatamodel.FieldDeclaredResourceKey:
+		return m.DeclaredResourceKey()
 	case appdatamodel.FieldStatus:
 		return m.Status()
 	case appdatamodel.FieldSchema:
@@ -5452,6 +5562,10 @@ func (m *AppDataModelMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldDescription(ctx)
 	case appdatamodel.FieldSource:
 		return m.OldSource(ctx)
+	case appdatamodel.FieldOwnerPluginKey:
+		return m.OldOwnerPluginKey(ctx)
+	case appdatamodel.FieldDeclaredResourceKey:
+		return m.OldDeclaredResourceKey(ctx)
 	case appdatamodel.FieldStatus:
 		return m.OldStatus(ctx)
 	case appdatamodel.FieldSchema:
@@ -5507,6 +5621,20 @@ func (m *AppDataModelMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSource(v)
+		return nil
+	case appdatamodel.FieldOwnerPluginKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOwnerPluginKey(v)
+		return nil
+	case appdatamodel.FieldDeclaredResourceKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeclaredResourceKey(v)
 		return nil
 	case appdatamodel.FieldStatus:
 		v, ok := value.(string)
@@ -5583,6 +5711,12 @@ func (m *AppDataModelMutation) ClearedFields() []string {
 	if m.FieldCleared(appdatamodel.FieldDescription) {
 		fields = append(fields, appdatamodel.FieldDescription)
 	}
+	if m.FieldCleared(appdatamodel.FieldOwnerPluginKey) {
+		fields = append(fields, appdatamodel.FieldOwnerPluginKey)
+	}
+	if m.FieldCleared(appdatamodel.FieldDeclaredResourceKey) {
+		fields = append(fields, appdatamodel.FieldDeclaredResourceKey)
+	}
 	if m.FieldCleared(appdatamodel.FieldMetadata) {
 		fields = append(fields, appdatamodel.FieldMetadata)
 	}
@@ -5605,6 +5739,12 @@ func (m *AppDataModelMutation) ClearField(name string) error {
 	switch name {
 	case appdatamodel.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case appdatamodel.FieldOwnerPluginKey:
+		m.ClearOwnerPluginKey()
+		return nil
+	case appdatamodel.FieldDeclaredResourceKey:
+		m.ClearDeclaredResourceKey()
 		return nil
 	case appdatamodel.FieldMetadata:
 		m.ClearMetadata()
@@ -5634,6 +5774,12 @@ func (m *AppDataModelMutation) ResetField(name string) error {
 		return nil
 	case appdatamodel.FieldSource:
 		m.ResetSource()
+		return nil
+	case appdatamodel.FieldOwnerPluginKey:
+		m.ResetOwnerPluginKey()
+		return nil
+	case appdatamodel.FieldDeclaredResourceKey:
+		m.ResetDeclaredResourceKey()
 		return nil
 	case appdatamodel.FieldStatus:
 		m.ResetStatus()

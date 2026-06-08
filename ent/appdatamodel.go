@@ -28,6 +28,10 @@ type AppDataModel struct {
 	Description *string `json:"description,omitempty"`
 	// Source holds the value of the "source" field.
 	Source string `json:"source,omitempty"`
+	// OwnerPluginKey holds the value of the "owner_plugin_key" field.
+	OwnerPluginKey *string `json:"owner_plugin_key,omitempty"`
+	// DeclaredResourceKey holds the value of the "declared_resource_key" field.
+	DeclaredResourceKey *string `json:"declared_resource_key,omitempty"`
 	// Status holds the value of the "status" field.
 	Status string `json:"status,omitempty"`
 	// Schema holds the value of the "schema" field.
@@ -50,7 +54,7 @@ func (*AppDataModel) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case appdatamodel.FieldSchema, appdatamodel.FieldMetadata:
 			values[i] = new([]byte)
-		case appdatamodel.FieldID, appdatamodel.FieldSpaceID, appdatamodel.FieldKey, appdatamodel.FieldDisplayName, appdatamodel.FieldDescription, appdatamodel.FieldSource, appdatamodel.FieldStatus:
+		case appdatamodel.FieldID, appdatamodel.FieldSpaceID, appdatamodel.FieldKey, appdatamodel.FieldDisplayName, appdatamodel.FieldDescription, appdatamodel.FieldSource, appdatamodel.FieldOwnerPluginKey, appdatamodel.FieldDeclaredResourceKey, appdatamodel.FieldStatus:
 			values[i] = new(sql.NullString)
 		case appdatamodel.FieldCreatedAt, appdatamodel.FieldUpdatedAt, appdatamodel.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -105,6 +109,20 @@ func (_m *AppDataModel) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field source", values[i])
 			} else if value.Valid {
 				_m.Source = value.String
+			}
+		case appdatamodel.FieldOwnerPluginKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field owner_plugin_key", values[i])
+			} else if value.Valid {
+				_m.OwnerPluginKey = new(string)
+				*_m.OwnerPluginKey = value.String
+			}
+		case appdatamodel.FieldDeclaredResourceKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field declared_resource_key", values[i])
+			} else if value.Valid {
+				_m.DeclaredResourceKey = new(string)
+				*_m.DeclaredResourceKey = value.String
 			}
 		case appdatamodel.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -199,6 +217,16 @@ func (_m *AppDataModel) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("source=")
 	builder.WriteString(_m.Source)
+	builder.WriteString(", ")
+	if v := _m.OwnerPluginKey; v != nil {
+		builder.WriteString("owner_plugin_key=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.DeclaredResourceKey; v != nil {
+		builder.WriteString("declared_resource_key=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)

@@ -89,6 +89,16 @@ func Source(v string) predicate.AppDataModel {
 	return predicate.AppDataModel(sql.FieldEQ(FieldSource, v))
 }
 
+// OwnerPluginKey applies equality check predicate on the "owner_plugin_key" field. It's identical to OwnerPluginKeyEQ.
+func OwnerPluginKey(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldOwnerPluginKey, v))
+}
+
+// DeclaredResourceKey applies equality check predicate on the "declared_resource_key" field. It's identical to DeclaredResourceKeyEQ.
+func DeclaredResourceKey(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldDeclaredResourceKey, v))
+}
+
 // Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
 func Status(v string) predicate.AppDataModel {
 	return predicate.AppDataModel(sql.FieldEQ(FieldStatus, v))
@@ -442,6 +452,156 @@ func SourceEqualFold(v string) predicate.AppDataModel {
 // SourceContainsFold applies the ContainsFold predicate on the "source" field.
 func SourceContainsFold(v string) predicate.AppDataModel {
 	return predicate.AppDataModel(sql.FieldContainsFold(FieldSource, v))
+}
+
+// OwnerPluginKeyEQ applies the EQ predicate on the "owner_plugin_key" field.
+func OwnerPluginKeyEQ(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldOwnerPluginKey, v))
+}
+
+// OwnerPluginKeyNEQ applies the NEQ predicate on the "owner_plugin_key" field.
+func OwnerPluginKeyNEQ(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNEQ(FieldOwnerPluginKey, v))
+}
+
+// OwnerPluginKeyIn applies the In predicate on the "owner_plugin_key" field.
+func OwnerPluginKeyIn(vs ...string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldIn(FieldOwnerPluginKey, vs...))
+}
+
+// OwnerPluginKeyNotIn applies the NotIn predicate on the "owner_plugin_key" field.
+func OwnerPluginKeyNotIn(vs ...string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNotIn(FieldOwnerPluginKey, vs...))
+}
+
+// OwnerPluginKeyGT applies the GT predicate on the "owner_plugin_key" field.
+func OwnerPluginKeyGT(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldGT(FieldOwnerPluginKey, v))
+}
+
+// OwnerPluginKeyGTE applies the GTE predicate on the "owner_plugin_key" field.
+func OwnerPluginKeyGTE(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldGTE(FieldOwnerPluginKey, v))
+}
+
+// OwnerPluginKeyLT applies the LT predicate on the "owner_plugin_key" field.
+func OwnerPluginKeyLT(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldLT(FieldOwnerPluginKey, v))
+}
+
+// OwnerPluginKeyLTE applies the LTE predicate on the "owner_plugin_key" field.
+func OwnerPluginKeyLTE(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldLTE(FieldOwnerPluginKey, v))
+}
+
+// OwnerPluginKeyContains applies the Contains predicate on the "owner_plugin_key" field.
+func OwnerPluginKeyContains(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldContains(FieldOwnerPluginKey, v))
+}
+
+// OwnerPluginKeyHasPrefix applies the HasPrefix predicate on the "owner_plugin_key" field.
+func OwnerPluginKeyHasPrefix(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldHasPrefix(FieldOwnerPluginKey, v))
+}
+
+// OwnerPluginKeyHasSuffix applies the HasSuffix predicate on the "owner_plugin_key" field.
+func OwnerPluginKeyHasSuffix(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldHasSuffix(FieldOwnerPluginKey, v))
+}
+
+// OwnerPluginKeyIsNil applies the IsNil predicate on the "owner_plugin_key" field.
+func OwnerPluginKeyIsNil() predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldIsNull(FieldOwnerPluginKey))
+}
+
+// OwnerPluginKeyNotNil applies the NotNil predicate on the "owner_plugin_key" field.
+func OwnerPluginKeyNotNil() predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNotNull(FieldOwnerPluginKey))
+}
+
+// OwnerPluginKeyEqualFold applies the EqualFold predicate on the "owner_plugin_key" field.
+func OwnerPluginKeyEqualFold(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEqualFold(FieldOwnerPluginKey, v))
+}
+
+// OwnerPluginKeyContainsFold applies the ContainsFold predicate on the "owner_plugin_key" field.
+func OwnerPluginKeyContainsFold(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldContainsFold(FieldOwnerPluginKey, v))
+}
+
+// DeclaredResourceKeyEQ applies the EQ predicate on the "declared_resource_key" field.
+func DeclaredResourceKeyEQ(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldDeclaredResourceKey, v))
+}
+
+// DeclaredResourceKeyNEQ applies the NEQ predicate on the "declared_resource_key" field.
+func DeclaredResourceKeyNEQ(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNEQ(FieldDeclaredResourceKey, v))
+}
+
+// DeclaredResourceKeyIn applies the In predicate on the "declared_resource_key" field.
+func DeclaredResourceKeyIn(vs ...string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldIn(FieldDeclaredResourceKey, vs...))
+}
+
+// DeclaredResourceKeyNotIn applies the NotIn predicate on the "declared_resource_key" field.
+func DeclaredResourceKeyNotIn(vs ...string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNotIn(FieldDeclaredResourceKey, vs...))
+}
+
+// DeclaredResourceKeyGT applies the GT predicate on the "declared_resource_key" field.
+func DeclaredResourceKeyGT(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldGT(FieldDeclaredResourceKey, v))
+}
+
+// DeclaredResourceKeyGTE applies the GTE predicate on the "declared_resource_key" field.
+func DeclaredResourceKeyGTE(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldGTE(FieldDeclaredResourceKey, v))
+}
+
+// DeclaredResourceKeyLT applies the LT predicate on the "declared_resource_key" field.
+func DeclaredResourceKeyLT(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldLT(FieldDeclaredResourceKey, v))
+}
+
+// DeclaredResourceKeyLTE applies the LTE predicate on the "declared_resource_key" field.
+func DeclaredResourceKeyLTE(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldLTE(FieldDeclaredResourceKey, v))
+}
+
+// DeclaredResourceKeyContains applies the Contains predicate on the "declared_resource_key" field.
+func DeclaredResourceKeyContains(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldContains(FieldDeclaredResourceKey, v))
+}
+
+// DeclaredResourceKeyHasPrefix applies the HasPrefix predicate on the "declared_resource_key" field.
+func DeclaredResourceKeyHasPrefix(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldHasPrefix(FieldDeclaredResourceKey, v))
+}
+
+// DeclaredResourceKeyHasSuffix applies the HasSuffix predicate on the "declared_resource_key" field.
+func DeclaredResourceKeyHasSuffix(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldHasSuffix(FieldDeclaredResourceKey, v))
+}
+
+// DeclaredResourceKeyIsNil applies the IsNil predicate on the "declared_resource_key" field.
+func DeclaredResourceKeyIsNil() predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldIsNull(FieldDeclaredResourceKey))
+}
+
+// DeclaredResourceKeyNotNil applies the NotNil predicate on the "declared_resource_key" field.
+func DeclaredResourceKeyNotNil() predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNotNull(FieldDeclaredResourceKey))
+}
+
+// DeclaredResourceKeyEqualFold applies the EqualFold predicate on the "declared_resource_key" field.
+func DeclaredResourceKeyEqualFold(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEqualFold(FieldDeclaredResourceKey, v))
+}
+
+// DeclaredResourceKeyContainsFold applies the ContainsFold predicate on the "declared_resource_key" field.
+func DeclaredResourceKeyContainsFold(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldContainsFold(FieldDeclaredResourceKey, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.

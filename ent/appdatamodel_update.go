@@ -104,6 +104,46 @@ func (_u *AppDataModelUpdate) SetNillableSource(v *string) *AppDataModelUpdate {
 	return _u
 }
 
+// SetOwnerPluginKey sets the "owner_plugin_key" field.
+func (_u *AppDataModelUpdate) SetOwnerPluginKey(v string) *AppDataModelUpdate {
+	_u.mutation.SetOwnerPluginKey(v)
+	return _u
+}
+
+// SetNillableOwnerPluginKey sets the "owner_plugin_key" field if the given value is not nil.
+func (_u *AppDataModelUpdate) SetNillableOwnerPluginKey(v *string) *AppDataModelUpdate {
+	if v != nil {
+		_u.SetOwnerPluginKey(*v)
+	}
+	return _u
+}
+
+// ClearOwnerPluginKey clears the value of the "owner_plugin_key" field.
+func (_u *AppDataModelUpdate) ClearOwnerPluginKey() *AppDataModelUpdate {
+	_u.mutation.ClearOwnerPluginKey()
+	return _u
+}
+
+// SetDeclaredResourceKey sets the "declared_resource_key" field.
+func (_u *AppDataModelUpdate) SetDeclaredResourceKey(v string) *AppDataModelUpdate {
+	_u.mutation.SetDeclaredResourceKey(v)
+	return _u
+}
+
+// SetNillableDeclaredResourceKey sets the "declared_resource_key" field if the given value is not nil.
+func (_u *AppDataModelUpdate) SetNillableDeclaredResourceKey(v *string) *AppDataModelUpdate {
+	if v != nil {
+		_u.SetDeclaredResourceKey(*v)
+	}
+	return _u
+}
+
+// ClearDeclaredResourceKey clears the value of the "declared_resource_key" field.
+func (_u *AppDataModelUpdate) ClearDeclaredResourceKey() *AppDataModelUpdate {
+	_u.mutation.ClearDeclaredResourceKey()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *AppDataModelUpdate) SetStatus(v string) *AppDataModelUpdate {
 	_u.mutation.SetStatus(v)
@@ -253,6 +293,18 @@ func (_u *AppDataModelUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if value, ok := _u.mutation.Source(); ok {
 		_spec.SetField(appdatamodel.FieldSource, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.OwnerPluginKey(); ok {
+		_spec.SetField(appdatamodel.FieldOwnerPluginKey, field.TypeString, value)
+	}
+	if _u.mutation.OwnerPluginKeyCleared() {
+		_spec.ClearField(appdatamodel.FieldOwnerPluginKey, field.TypeString)
+	}
+	if value, ok := _u.mutation.DeclaredResourceKey(); ok {
+		_spec.SetField(appdatamodel.FieldDeclaredResourceKey, field.TypeString, value)
+	}
+	if _u.mutation.DeclaredResourceKeyCleared() {
+		_spec.ClearField(appdatamodel.FieldDeclaredResourceKey, field.TypeString)
+	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(appdatamodel.FieldStatus, field.TypeString, value)
 	}
@@ -367,6 +419,46 @@ func (_u *AppDataModelUpdateOne) SetNillableSource(v *string) *AppDataModelUpdat
 	if v != nil {
 		_u.SetSource(*v)
 	}
+	return _u
+}
+
+// SetOwnerPluginKey sets the "owner_plugin_key" field.
+func (_u *AppDataModelUpdateOne) SetOwnerPluginKey(v string) *AppDataModelUpdateOne {
+	_u.mutation.SetOwnerPluginKey(v)
+	return _u
+}
+
+// SetNillableOwnerPluginKey sets the "owner_plugin_key" field if the given value is not nil.
+func (_u *AppDataModelUpdateOne) SetNillableOwnerPluginKey(v *string) *AppDataModelUpdateOne {
+	if v != nil {
+		_u.SetOwnerPluginKey(*v)
+	}
+	return _u
+}
+
+// ClearOwnerPluginKey clears the value of the "owner_plugin_key" field.
+func (_u *AppDataModelUpdateOne) ClearOwnerPluginKey() *AppDataModelUpdateOne {
+	_u.mutation.ClearOwnerPluginKey()
+	return _u
+}
+
+// SetDeclaredResourceKey sets the "declared_resource_key" field.
+func (_u *AppDataModelUpdateOne) SetDeclaredResourceKey(v string) *AppDataModelUpdateOne {
+	_u.mutation.SetDeclaredResourceKey(v)
+	return _u
+}
+
+// SetNillableDeclaredResourceKey sets the "declared_resource_key" field if the given value is not nil.
+func (_u *AppDataModelUpdateOne) SetNillableDeclaredResourceKey(v *string) *AppDataModelUpdateOne {
+	if v != nil {
+		_u.SetDeclaredResourceKey(*v)
+	}
+	return _u
+}
+
+// ClearDeclaredResourceKey clears the value of the "declared_resource_key" field.
+func (_u *AppDataModelUpdateOne) ClearDeclaredResourceKey() *AppDataModelUpdateOne {
+	_u.mutation.ClearDeclaredResourceKey()
 	return _u
 }
 
@@ -548,6 +640,18 @@ func (_u *AppDataModelUpdateOne) sqlSave(ctx context.Context) (_node *AppDataMod
 	}
 	if value, ok := _u.mutation.Source(); ok {
 		_spec.SetField(appdatamodel.FieldSource, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.OwnerPluginKey(); ok {
+		_spec.SetField(appdatamodel.FieldOwnerPluginKey, field.TypeString, value)
+	}
+	if _u.mutation.OwnerPluginKeyCleared() {
+		_spec.ClearField(appdatamodel.FieldOwnerPluginKey, field.TypeString)
+	}
+	if value, ok := _u.mutation.DeclaredResourceKey(); ok {
+		_spec.SetField(appdatamodel.FieldDeclaredResourceKey, field.TypeString, value)
+	}
+	if _u.mutation.DeclaredResourceKeyCleared() {
+		_spec.ClearField(appdatamodel.FieldDeclaredResourceKey, field.TypeString)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(appdatamodel.FieldStatus, field.TypeString, value)

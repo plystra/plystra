@@ -208,6 +208,8 @@ var (
 		{Name: "display_name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Nullable: true},
 		{Name: "source", Type: field.TypeString, Default: schema.Expr("'app'")},
+		{Name: "owner_plugin_key", Type: field.TypeString, Nullable: true},
+		{Name: "declared_resource_key", Type: field.TypeString, Nullable: true},
 		{Name: "status", Type: field.TypeString, Default: schema.Expr("'active'")},
 		{Name: "schema", Type: field.TypeJSON, Default: schema.Expr("'{}'::jsonb")},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, Default: schema.Expr("'{}'::jsonb")},
@@ -229,7 +231,17 @@ var (
 			{
 				Name:    "appdatamodel_space_id_status",
 				Unique:  false,
+				Columns: []*schema.Column{AppDataModelsColumns[1], AppDataModelsColumns[8]},
+			},
+			{
+				Name:    "appdatamodel_space_id_owner_plugin_key",
+				Unique:  false,
 				Columns: []*schema.Column{AppDataModelsColumns[1], AppDataModelsColumns[6]},
+			},
+			{
+				Name:    "appdatamodel_owner_plugin_key_declared_resource_key",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataModelsColumns[6], AppDataModelsColumns[7]},
 			},
 			{
 				Name:    "appdatamodel_key",

@@ -66,6 +66,34 @@ func (_c *AppDataModelCreate) SetNillableSource(v *string) *AppDataModelCreate {
 	return _c
 }
 
+// SetOwnerPluginKey sets the "owner_plugin_key" field.
+func (_c *AppDataModelCreate) SetOwnerPluginKey(v string) *AppDataModelCreate {
+	_c.mutation.SetOwnerPluginKey(v)
+	return _c
+}
+
+// SetNillableOwnerPluginKey sets the "owner_plugin_key" field if the given value is not nil.
+func (_c *AppDataModelCreate) SetNillableOwnerPluginKey(v *string) *AppDataModelCreate {
+	if v != nil {
+		_c.SetOwnerPluginKey(*v)
+	}
+	return _c
+}
+
+// SetDeclaredResourceKey sets the "declared_resource_key" field.
+func (_c *AppDataModelCreate) SetDeclaredResourceKey(v string) *AppDataModelCreate {
+	_c.mutation.SetDeclaredResourceKey(v)
+	return _c
+}
+
+// SetNillableDeclaredResourceKey sets the "declared_resource_key" field if the given value is not nil.
+func (_c *AppDataModelCreate) SetNillableDeclaredResourceKey(v *string) *AppDataModelCreate {
+	if v != nil {
+		_c.SetDeclaredResourceKey(*v)
+	}
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *AppDataModelCreate) SetStatus(v string) *AppDataModelCreate {
 	_c.mutation.SetStatus(v)
@@ -278,6 +306,14 @@ func (_c *AppDataModelCreate) createSpec() (*AppDataModel, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.Source(); ok {
 		_spec.SetField(appdatamodel.FieldSource, field.TypeString, value)
 		_node.Source = value
+	}
+	if value, ok := _c.mutation.OwnerPluginKey(); ok {
+		_spec.SetField(appdatamodel.FieldOwnerPluginKey, field.TypeString, value)
+		_node.OwnerPluginKey = &value
+	}
+	if value, ok := _c.mutation.DeclaredResourceKey(); ok {
+		_spec.SetField(appdatamodel.FieldDeclaredResourceKey, field.TypeString, value)
+		_node.DeclaredResourceKey = &value
 	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(appdatamodel.FieldStatus, field.TypeString, value)

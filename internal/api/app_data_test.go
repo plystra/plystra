@@ -28,20 +28,84 @@ func TestAppDataMutationPolicyViolation(t *testing.T) {
 }
 
 func TestAppDataBatchOperationServiceAuthorized(t *testing.T) {
-	appendOnly := &coreent.AppDataModel{Metadata: map[string]any{"mutation_policy": appDataMutationPolicyServiceAppendOnly}}
-	normal := &coreent.AppDataModel{}
+	appendOnly := &coreent.AppDataModel{Key: "activity", Metadata: map[string]any{"mutation_policy": appDataMutationPolicyServiceAppendOnly}}
+	normal := &coreent.AppDataModel{Key: "customer"}
 
-	if !appDataBatchOperationServiceAuthorized(normal, appDataRecordBatchOperation{Operation: "update"}, appDataBatchServiceAuthorization{PrimaryManage: true}) {
+	if !appDataBatchOperationServiceAuthorized(normal, appDataRecordBatchOperation{Operation: "update"}, appDataBatchServiceAuthorization{PrimaryManageModels: map[string]bool{"customer": true}}) {
 		t.Fatal("primary service authorization should allow any batch operation")
 	}
-	if !appDataBatchOperationServiceAuthorized(appendOnly, appDataRecordBatchOperation{Operation: "CREATE"}, appDataBatchServiceAuthorization{SecondaryAppendOnlyCreate: true}) {
+	if !appDataBatchOperationServiceAuthorized(appendOnly, appDataRecordBatchOperation{Operation: "CREATE"}, appDataBatchServiceAuthorization{SecondaryAppendOnlyModels: map[string]bool{"activity": true}}) {
 		t.Fatal("secondary service authorization should allow append-only creates")
 	}
-	if appDataBatchOperationServiceAuthorized(appendOnly, appDataRecordBatchOperation{Operation: "update"}, appDataBatchServiceAuthorization{SecondaryAppendOnlyCreate: true}) {
+	if appDataBatchOperationServiceAuthorized(appendOnly, appDataRecordBatchOperation{Operation: "update"}, appDataBatchServiceAuthorization{SecondaryAppendOnlyModels: map[string]bool{"activity": true}}) {
 		t.Fatal("secondary service authorization must not allow append-only updates")
 	}
-	if appDataBatchOperationServiceAuthorized(normal, appDataRecordBatchOperation{Operation: "create"}, appDataBatchServiceAuthorization{SecondaryAppendOnlyCreate: true}) {
+	if appDataBatchOperationServiceAuthorized(normal, appDataRecordBatchOperation{Operation: "create"}, appDataBatchServiceAuthorization{SecondaryAppendOnlyModels: map[string]bool{"customer": true}}) {
 		t.Fatal("secondary service authorization must not allow normal model creates")
+	}
+	if appDataBatchOperationServiceAuthorized(appendOnly, appDataRecordBatchOperation{Operation: "create"}, appDataBatchServiceAuthorization{SecondaryAppendOnlyModels: map[string]bool{"other": true}}) {
+		t.Fatal("secondary service authorization must be model-scoped")
+	}
+}
+
+func TestAppDataModelGovernanceMetadataReservesOwnershipFields(t *testing.T) {
+	out := appDataModelGovernanceMetadata(map[string]any{
+		"owner_plugin_key":      "app.other",
+		"declared_resource_key": "other_model",
+		"ownership_source":      "caller",
+		"purpose":               "test",
+	}, appDataModelOwnership{
+		OwnerPluginKey:      "app.example.module",
+		DeclaredResourceKey: "example_record",
+		Source:              appDataOwnershipSourceManifest,
+	})
+	if out["owner_plugin_key"] != "app.example.module" || out["declared_resource_key"] != "example_record" || out["ownership_source"] != appDataOwnershipSourceManifest {
+		t.Fatalf("governance metadata was not owned by Core: %#v", out)
+	}
+	if out["purpose"] != "test" {
+		t.Fatalf("non-governance metadata was dropped: %#v", out)
+	}
+}
+
+func TestReqDeclaresPluginOwnership(t *testing.T) {
+	source := "plugin:app.example.module"
+	if !reqDeclaresPluginOwnership(&appDataModelMutationRequest{Source: &source}) {
+		t.Fatal("plugin source should be treated as plugin ownership")
+	}
+	if !reqDeclaresPluginOwnership(&appDataModelMutationRequest{Metadata: map[string]any{"owner_plugin_key": "app.example.module"}}) {
+		t.Fatal("owner_plugin_key metadata should be reserved")
+	}
+	if reqDeclaresPluginOwnership(&appDataModelMutationRequest{Metadata: map[string]any{"purpose": "test"}}) {
+		t.Fatal("ordinary metadata should not be treated as plugin ownership")
+	}
+}
+
+func TestAppDataModelOwnedByPluginUsesTrustedOwnershipFields(t *testing.T) {
+	if !appDataModelOwnedByPlugin(&coreent.AppDataModel{Source: "plugin:app.example.module"}) {
+		t.Fatal("plugin source should mark model as plugin-owned")
+	}
+	ownerPluginKey := "app.example.module"
+	if !appDataModelOwnedByPlugin(&coreent.AppDataModel{OwnerPluginKey: &ownerPluginKey}) {
+		t.Fatal("owner_plugin_key column should mark model as plugin-owned")
+	}
+	if appDataModelOwnedByPlugin(&coreent.AppDataModel{Metadata: map[string]any{"owner_plugin_key": "app.example.module"}}) {
+		t.Fatal("caller-controlled metadata alone must not mark model as plugin-owned")
+	}
+	if appDataModelOwnedByPlugin(&coreent.AppDataModel{Source: appDataSourceApp}) {
+		t.Fatal("ordinary app model should not be plugin-owned")
+	}
+}
+
+func TestPluginStatusAllowsAppDataOwnership(t *testing.T) {
+	for _, status := range []string{"validated", "installed", "migrated", "enabled"} {
+		if !pluginStatusAllowsAppDataOwnership(status) {
+			t.Fatalf("status %s should allow app data ownership", status)
+		}
+	}
+	for _, status := range []string{"disabled", "failed", "uninstalled", "upgrading", "discovered"} {
+		if pluginStatusAllowsAppDataOwnership(status) {
+			t.Fatalf("status %s should not allow app data ownership", status)
+		}
 	}
 }
 

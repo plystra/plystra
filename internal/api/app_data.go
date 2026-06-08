@@ -21,11 +21,13 @@ import (
 	entappdatarecord "github.com/plystra/core/ent/appdatarecord"
 	entappdatarecordrevision "github.com/plystra/core/ent/appdatarecordrevision"
 	entpermission "github.com/plystra/core/ent/permission"
+	entplugin "github.com/plystra/core/ent/plugin"
 	"github.com/plystra/core/ent/predicate"
 	entresourceaction "github.com/plystra/core/ent/resourceaction"
 	entresourcemapping "github.com/plystra/core/ent/resourcemapping"
 	entresourcetype "github.com/plystra/core/ent/resourcetype"
 	"github.com/plystra/core/internal/authz"
+	"github.com/plystra/core/internal/plugins"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -35,6 +37,8 @@ const maxAppDataBatchOperations = 25
 const maxAppDataAuthorizedListScans = 1000
 const appDataMutationPolicyServiceAppendOnly = "service_append_only"
 const appDataServiceKeyHeader = "X-Plystra-App-Data-Service-Key"
+const appDataSourceApp = "app"
+const appDataOwnershipSourceManifest = "plugin_manifest"
 
 var appDataModelKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 var appDataDataFieldPattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]{0,63}$`)
@@ -182,6 +186,9 @@ func (s *Server) handleSpaceAppData(w http.ResponseWriter, r *http.Request, spac
 				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data model.", err.Error())
 				return
 			}
+			if !s.requireAppDataModelServiceAccess(w, r, model, "read") {
+				return
+			}
 			writeData(w, r, http.StatusOK, appDataModelMap(model))
 		case http.MethodPatch:
 			s.updateAppDataModel(w, r, spaceID, modelKey)
@@ -222,9 +229,27 @@ func (s *Server) handleAppDataResourceLookup(w http.ResponseWriter, r *http.Requ
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data record.", err.Error())
 		return
 	}
-	decision, ok := s.authorizeAppDataRecord(w, r, appDataActorFromRequest(r, authz.ActorContext{SpaceID: record.SpaceID}), "read", record)
-	if !ok {
+	model, err := s.loadAppDataModelByKey(r.Context(), record.SpaceID, record.ModelKey)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, r, http.StatusNotFound, "APP_DATA_MODEL_NOT_FOUND", "App data model was not found.", nil)
 		return
+	} else if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data model.", err.Error())
+		return
+	}
+	if !s.requireAppDataModelServiceAccess(w, r, model, "read") {
+		return
+	}
+	actor := appDataActorFromRequest(r, authz.ActorContext{SpaceID: record.SpaceID})
+	var decision any
+	if s.appDataModelServiceAuthorized(r, "read", model) {
+		decision = appDataServiceDecision(r, actor, "read", record)
+	} else {
+		checked, ok := s.authorizeAppDataRecord(w, r, actor, "read", record)
+		if !ok {
+			return
+		}
+		decision = checked
 	}
 	writeData(w, r, http.StatusOK, map[string]any{
 		"record":        appDataRecordMap(record),
@@ -248,6 +273,14 @@ func (s *Server) listAppDataModels(w http.ResponseWriter, r *http.Request, space
 	}
 	rows := make([]map[string]any, 0, len(models))
 	for _, model := range models {
+		allowed, err := s.appDataModelServiceAccessAllowed(r.Context(), r, model, "read")
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate app data model ownership.", err.Error())
+			return
+		}
+		if !allowed {
+			continue
+		}
 		rows = append(rows, appDataModelMap(model))
 	}
 	writeList(w, r, http.StatusOK, rows, limitFrom(r, 50))
@@ -266,21 +299,34 @@ func (s *Server) createAppDataModel(w http.ResponseWriter, r *http.Request, spac
 	if req.ID == "" {
 		req.ID = newEntityID("model_" + req.Key)
 	}
+	ownership, ok := s.requireAppDataModelMutationOwnership(w, r, nil, &req, spaceID)
+	if !ok {
+		return
+	}
 	client, ok := s.requireEnt(w, r)
 	if !ok {
 		return
 	}
-	_, err := client.AppDataModel.Create().
+	metadata := appDataModelGovernanceMetadata(req.Metadata, ownership)
+	source := firstNonEmpty(derefString(req.Source), appDataSourceApp)
+	if ownership.OwnerPluginKey != "" {
+		source = "plugin:" + ownership.OwnerPluginKey
+	}
+	create := client.AppDataModel.Create().
 		SetID(req.ID).
 		SetSpaceID(spaceID).
 		SetKey(req.Key).
 		SetDisplayName(strings.TrimSpace(req.DisplayName)).
 		SetNillableDescription(optionalString(derefString(req.Description))).
-		SetSource(firstNonEmpty(derefString(req.Source), "app")).
+		SetSource(source).
 		SetStatus(firstNonEmpty(derefString(req.Status), "active")).
 		SetSchema(nonNilMap(req.Schema)).
-		SetMetadata(nonNilMap(req.Metadata)).
-		Save(r.Context())
+		SetMetadata(metadata)
+	if ownership.OwnerPluginKey != "" {
+		create.SetOwnerPluginKey(ownership.OwnerPluginKey)
+		create.SetDeclaredResourceKey(ownership.DeclaredResourceKey)
+	}
+	_, err := create.Save(r.Context())
 	if err != nil {
 		writeError(w, r, http.StatusConflict, "APP_DATA_MODEL_CREATE_FAILED", "Failed to create app data model.", err.Error())
 		return
@@ -324,6 +370,10 @@ func (s *Server) updateAppDataModel(w http.ResponseWriter, r *http.Request, spac
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data model.", err.Error())
 		return
 	}
+	ownership, ok := s.requireAppDataModelMutationOwnership(w, r, current, &req, spaceID)
+	if !ok {
+		return
+	}
 	client, ok := s.requireEnt(w, r)
 	if !ok {
 		return
@@ -333,7 +383,7 @@ func (s *Server) updateAppDataModel(w http.ResponseWriter, r *http.Request, spac
 		displayName = strings.TrimSpace(req.DisplayName)
 	}
 	description := nullableFromRequest(req.Description, derefString(current.Description))
-	source := firstNonEmpty(derefString(req.Source), current.Source, "app")
+	source := firstNonEmpty(derefString(req.Source), current.Source, appDataSourceApp)
 	status := firstNonEmpty(derefString(req.Status), current.Status, "active")
 	schemaValue := current.Schema
 	if req.Schema != nil {
@@ -343,12 +393,20 @@ func (s *Server) updateAppDataModel(w http.ResponseWriter, r *http.Request, spac
 	if req.Metadata != nil {
 		metadata = req.Metadata
 	}
+	metadata = appDataModelGovernanceMetadata(metadata, ownership)
+	if ownership.OwnerPluginKey != "" {
+		source = "plugin:" + ownership.OwnerPluginKey
+	}
 	update := client.AppDataModel.UpdateOneID(current.ID).
 		SetDisplayName(displayName).
 		SetSource(source).
 		SetStatus(status).
 		SetSchema(nonNilMap(schemaValue)).
 		SetMetadata(nonNilMap(metadata))
+	if ownership.OwnerPluginKey != "" {
+		update.SetOwnerPluginKey(ownership.OwnerPluginKey)
+		update.SetDeclaredResourceKey(ownership.DeclaredResourceKey)
+	}
 	if description == "" {
 		update.ClearDescription()
 	} else {
@@ -442,6 +500,9 @@ func (s *Server) listAppDataRecords(w http.ResponseWriter, r *http.Request, mode
 	if !ok {
 		return
 	}
+	if !s.requireAppDataModelServiceAccess(w, r, model, "read") {
+		return
+	}
 	listOptions, err := appDataRecordListOptionsFromRequest(r)
 	if err != nil {
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", err.Error(), nil)
@@ -471,7 +532,7 @@ func (s *Server) listAppDataRecords(w http.ResponseWriter, r *http.Request, mode
 	}
 	basePredicates = append(basePredicates, predicates...)
 	actor := appDataActorFromRequest(r, authz.ActorContext{SpaceID: model.SpaceID})
-	serviceAuthorized := s.appDataServiceAuthorized(r, "read", model.SpaceID)
+	serviceAuthorized := s.appDataModelServiceAuthorized(r, "read", model)
 	rows := make([]map[string]any, 0, listOptions.Limit)
 	scanOptions := listOptions
 	hasMore := false
@@ -610,15 +671,35 @@ func (s *Server) batchAppDataRecords(w http.ResponseWriter, r *http.Request, spa
 		return
 	}
 
-	primaryServiceAuthorized := s.appDataServiceAuthorized(r, "manage", spaceID)
+	primaryServiceAuthorization, primaryErr := s.appDataModelBatchServiceAuthorization(r, "manage", models)
+	if primaryErr != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate app data service ownership.", primaryErr.Error())
+		return
+	}
+	if appDataRequestUsesAPIKey(r) {
+		for _, op := range req.Operations {
+			if !primaryServiceAuthorization[op.ModelKey] {
+				writeError(w, r, http.StatusForbidden, "APP_DATA_SERVICE_MODEL_DENIED", "API key is not allowed to access this app data model.", map[string]any{"model_key": op.ModelKey, "action": "manage"})
+				return
+			}
+		}
+	}
 	secondaryServiceAuthorized, secondaryErr := s.appDataSecondaryServiceAuthorized(r, spaceID)
 	if secondaryErr != nil {
 		writeError(w, r, secondaryErr.Status, secondaryErr.Code, secondaryErr.Message, secondaryErr.Details)
 		return
 	}
+	secondaryServiceAuthorization := map[string]bool{}
+	if secondaryServiceAuthorized {
+		secondaryServiceAuthorization, secondaryErr = s.appDataSecondaryServiceModelAuthorization(r, spaceID, models)
+		if secondaryErr != nil {
+			writeError(w, r, secondaryErr.Status, secondaryErr.Code, secondaryErr.Message, secondaryErr.Details)
+			return
+		}
+	}
 	batchServiceAuth := appDataBatchServiceAuthorization{
-		PrimaryManage:             primaryServiceAuthorized,
-		SecondaryAppendOnlyCreate: secondaryServiceAuthorized,
+		PrimaryManageModels:       primaryServiceAuthorization,
+		SecondaryAppendOnlyModels: secondaryServiceAuthorization,
 	}
 
 	tx, err := client.Tx(r.Context())
@@ -866,15 +947,16 @@ type appDataBatchError struct {
 }
 
 type appDataBatchServiceAuthorization struct {
-	PrimaryManage             bool
-	SecondaryAppendOnlyCreate bool
+	PrimaryManageModels       map[string]bool
+	SecondaryAppendOnlyModels map[string]bool
 }
 
 func appDataBatchOperationServiceAuthorized(model *coreent.AppDataModel, op appDataRecordBatchOperation, auth appDataBatchServiceAuthorization) bool {
-	if auth.PrimaryManage {
+	if model != nil && auth.PrimaryManageModels[model.Key] {
 		return true
 	}
-	return auth.SecondaryAppendOnlyCreate &&
+	return model != nil &&
+		auth.SecondaryAppendOnlyModels[model.Key] &&
 		strings.ToLower(strings.TrimSpace(op.Operation)) == "create" &&
 		appDataModelMutationPolicy(model) == appDataMutationPolicyServiceAppendOnly
 }
@@ -1072,7 +1154,10 @@ func (s *Server) createAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	serviceAuthorized := s.appDataServiceAuthorized(r, "manage", model.SpaceID)
+	if !s.requireAppDataModelServiceAccess(w, r, model, "manage") {
+		return
+	}
+	serviceAuthorized := s.appDataModelServiceAuthorized(r, "manage", model)
 	if policyErr := appDataMutationPolicyViolation(model, "create", serviceAuthorized); policyErr != "" {
 		writeError(w, r, http.StatusForbidden, "APP_DATA_MODEL_MUTATION_POLICY_DENIED", "App data model mutation policy denied this operation.", policyErr)
 		return
@@ -1171,6 +1256,9 @@ func (s *Server) createAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 }
 
 func (s *Server) getAppDataRecord(w http.ResponseWriter, r *http.Request, model *coreent.AppDataModel, recordID string) {
+	if !s.requireAppDataModelServiceAccess(w, r, model, "read") {
+		return
+	}
 	record, err := s.loadAppDataRecordByID(r.Context(), model.SpaceID, model.Key, recordID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeError(w, r, http.StatusNotFound, "APP_DATA_RECORD_NOT_FOUND", "App data record was not found.", nil)
@@ -1182,7 +1270,7 @@ func (s *Server) getAppDataRecord(w http.ResponseWriter, r *http.Request, model 
 	}
 	actor := appDataActorFromRequest(r, authz.ActorContext{SpaceID: model.SpaceID})
 	var decision any
-	if s.appDataServiceAuthorized(r, "read", model.SpaceID) {
+	if s.appDataModelServiceAuthorized(r, "read", model) {
 		decision = appDataServiceDecision(r, actor, "read", record)
 	} else {
 		checked, ok := s.authorizeAppDataRecord(w, r, actor, "read", record)
@@ -1202,7 +1290,10 @@ func (s *Server) updateAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	serviceAuthorized := s.appDataServiceAuthorized(r, "manage", model.SpaceID)
+	if !s.requireAppDataModelServiceAccess(w, r, model, "manage") {
+		return
+	}
+	serviceAuthorized := s.appDataModelServiceAuthorized(r, "manage", model)
 	if policyErr := appDataMutationPolicyViolation(model, "update", serviceAuthorized); policyErr != "" {
 		writeError(w, r, http.StatusForbidden, "APP_DATA_MODEL_MUTATION_POLICY_DENIED", "App data model mutation policy denied this operation.", policyErr)
 		return
@@ -1337,7 +1428,10 @@ func (s *Server) updateAppDataRecordStatus(w http.ResponseWriter, r *http.Reques
 	if !decodeOptionalJSON(w, r, &req) {
 		return
 	}
-	serviceAuthorized := s.appDataServiceAuthorized(r, "manage", model.SpaceID)
+	if !s.requireAppDataModelServiceAccess(w, r, model, "manage") {
+		return
+	}
+	serviceAuthorized := s.appDataModelServiceAuthorized(r, "manage", model)
 	if policyErr := appDataMutationPolicyViolation(model, action, serviceAuthorized); policyErr != "" {
 		writeError(w, r, http.StatusForbidden, "APP_DATA_MODEL_MUTATION_POLICY_DENIED", "App data model mutation policy denied this operation.", policyErr)
 		return
@@ -1422,6 +1516,9 @@ func (s *Server) listAppDataRecordRevisions(w http.ResponseWriter, r *http.Reque
 	if !ok {
 		return
 	}
+	if !s.requireAppDataModelServiceAccess(w, r, model, "read") {
+		return
+	}
 	record, err := s.loadAppDataRecordByID(r.Context(), model.SpaceID, model.Key, recordID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeError(w, r, http.StatusNotFound, "APP_DATA_RECORD_NOT_FOUND", "App data record was not found.", nil)
@@ -1432,7 +1529,7 @@ func (s *Server) listAppDataRecordRevisions(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	actor := appDataActorFromRequest(r, authz.ActorContext{SpaceID: model.SpaceID})
-	if !s.appDataServiceAuthorized(r, "read", model.SpaceID) {
+	if !s.appDataModelServiceAuthorized(r, "read", model) {
 		if _, ok := s.authorizeAppDataRecord(w, r, actor, "read", record); !ok {
 			return
 		}
@@ -2124,6 +2221,64 @@ func (s *Server) appDataServiceAuthorized(r *http.Request, action, spaceID strin
 	return s.appDataServicePrincipalAllowed(r.Context(), principal, action, spaceID)
 }
 
+func appDataRequestUsesAPIKey(r *http.Request) bool {
+	principal, ok := adminPrincipalFrom(r)
+	return ok && principal.CredentialType == "api_key"
+}
+
+type appDataModelOwnership struct {
+	OwnerPluginKey      string
+	DeclaredResourceKey string
+	Source              string
+}
+
+func (s *Server) requireAppDataModelServiceAccess(w http.ResponseWriter, r *http.Request, model *coreent.AppDataModel, action string) bool {
+	allowed, err := s.appDataModelServiceAccessAllowed(r.Context(), r, model, action)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to evaluate app data service ownership.", err.Error())
+		return false
+	}
+	if !allowed {
+		writeError(w, r, http.StatusForbidden, "APP_DATA_SERVICE_MODEL_DENIED", "API key is not allowed to access this app data model.", map[string]any{
+			"model_key": appDataModelKeyForError(model),
+			"action":    strings.TrimSpace(action),
+		})
+		return false
+	}
+	return true
+}
+
+func (s *Server) appDataModelServiceAuthorized(r *http.Request, action string, model *coreent.AppDataModel) bool {
+	if r == nil || model == nil {
+		return false
+	}
+	principal, ok := adminPrincipalFrom(r)
+	if !ok || principal.CredentialType != "api_key" {
+		return false
+	}
+	allowed, err := s.appDataServicePrincipalAllowedForModel(r.Context(), principal, action, model)
+	return err == nil && allowed
+}
+
+func (s *Server) appDataModelBatchServiceAuthorization(r *http.Request, action string, models map[string]*coreent.AppDataModel) (map[string]bool, error) {
+	out := make(map[string]bool, len(models))
+	if r == nil {
+		return out, nil
+	}
+	principal, ok := adminPrincipalFrom(r)
+	if !ok || principal.CredentialType != "api_key" {
+		return out, nil
+	}
+	for key, model := range models {
+		allowed, err := s.appDataServicePrincipalAllowedForModel(r.Context(), principal, action, model)
+		if err != nil {
+			return out, err
+		}
+		out[key] = allowed
+	}
+	return out, nil
+}
+
 func (s *Server) appDataServicePrincipalAllowed(ctx context.Context, principal adminPrincipal, action, spaceID string) bool {
 	if principal.CredentialType != "api_key" {
 		return false
@@ -2134,6 +2289,31 @@ func (s *Server) appDataServicePrincipalAllowed(ctx context.Context, principal a
 	}
 	allowed, err := s.adminPrincipalAllows(ctx, principal, adminRequirement{PermissionKey: permission, SpaceID: spaceID})
 	return err == nil && allowed
+}
+
+func (s *Server) appDataServicePrincipalAllowedForModel(ctx context.Context, principal adminPrincipal, action string, model *coreent.AppDataModel) (bool, error) {
+	if model == nil {
+		return false, nil
+	}
+	if !s.appDataServicePrincipalAllowed(ctx, principal, action, model.SpaceID) {
+		return false, nil
+	}
+	pluginKey := apiKeyProviderRuntimeID(principal.APIKey)
+	if pluginKey == "" {
+		return !appDataModelOwnedByPlugin(model), nil
+	}
+	return s.pluginServiceOwnsAppDataModel(ctx, pluginKey, model)
+}
+
+func (s *Server) appDataModelServiceAccessAllowed(ctx context.Context, r *http.Request, model *coreent.AppDataModel, action string) (bool, error) {
+	if model == nil {
+		return false, nil
+	}
+	principal, ok := adminPrincipalFrom(r)
+	if !ok || principal.CredentialType != "api_key" {
+		return true, nil
+	}
+	return s.appDataServicePrincipalAllowedForModel(ctx, principal, action, model)
 }
 
 func (s *Server) appDataSecondaryServiceAuthorized(r *http.Request, spaceID string) (bool, *appDataBatchError) {
@@ -2178,6 +2358,238 @@ func (s *Server) appDataSecondaryServiceAuthorized(r *http.Request, spaceID stri
 	}
 	_ = s.ent.ApiKey.UpdateOneID(key.ID).SetLastUsedAt(time.Now().UTC()).Exec(r.Context())
 	return true, nil
+}
+
+func (s *Server) appDataSecondaryServiceModelAuthorization(r *http.Request, spaceID string, models map[string]*coreent.AppDataModel) (map[string]bool, *appDataBatchError) {
+	out := make(map[string]bool, len(models))
+	token := strings.TrimSpace(r.Header.Get(appDataServiceKeyHeader))
+	if token == "" {
+		return out, nil
+	}
+	key, err := s.apiKeyFromToken(r.Context(), token)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return out, &appDataBatchError{
+			Status:  http.StatusUnauthorized,
+			Code:    "APP_DATA_SERVICE_KEY_INVALID",
+			Message: "App data secondary service key is invalid.",
+			Details: map[string]any{"header": appDataServiceKeyHeader},
+		}
+	}
+	if err != nil {
+		return out, &appDataBatchError{
+			Status:  http.StatusInternalServerError,
+			Code:    "INTERNAL_ERROR",
+			Message: "Failed to authenticate app data secondary service key.",
+			Details: err.Error(),
+		}
+	}
+	principal := adminPrincipal{CredentialType: "api_key", APIKey: key}
+	for modelKey, model := range models {
+		allowed, err := s.appDataServicePrincipalAllowedForModel(r.Context(), principal, "manage", model)
+		if err != nil {
+			return out, &appDataBatchError{
+				Status:  http.StatusInternalServerError,
+				Code:    "INTERNAL_ERROR",
+				Message: "Failed to evaluate app data secondary service key ownership.",
+				Details: err.Error(),
+			}
+		}
+		if model != nil && model.SpaceID == spaceID {
+			out[modelKey] = allowed
+		}
+	}
+	return out, nil
+}
+
+func (s *Server) requireAppDataModelMutationOwnership(w http.ResponseWriter, r *http.Request, current *coreent.AppDataModel, req *appDataModelMutationRequest, spaceID string) (appDataModelOwnership, bool) {
+	ownership, err := s.resolveAppDataModelMutationOwnership(r.Context(), r, current, req, spaceID)
+	if err != nil {
+		writeError(w, r, http.StatusForbidden, "APP_DATA_MODEL_OWNERSHIP_DENIED", "App data model ownership policy denied this operation.", err.Error())
+		return appDataModelOwnership{}, false
+	}
+	return ownership, true
+}
+
+func (s *Server) resolveAppDataModelMutationOwnership(ctx context.Context, r *http.Request, current *coreent.AppDataModel, req *appDataModelMutationRequest, spaceID string) (appDataModelOwnership, error) {
+	_ = spaceID
+	if req == nil {
+		req = &appDataModelMutationRequest{}
+	}
+	ownership := appDataModelOwnership{
+		OwnerPluginKey:      derefString(currentOwnerPluginKey(current)),
+		DeclaredResourceKey: derefString(currentDeclaredResourceKey(current)),
+		Source:              appDataOwnershipSource(current),
+	}
+	principal, ok := adminPrincipalFrom(r)
+	if !ok || principal.CredentialType != "api_key" {
+		if current != nil && appDataModelOwnedByPlugin(current) {
+			return ownership, fmt.Errorf("app data model %s is plugin-owned and must be changed through its provider-bound service identity", current.Key)
+		}
+		if reqDeclaresPluginOwnership(req) {
+			return ownership, errors.New("plugin-owned app data declarations require a provider-bound API key")
+		}
+		return ownership, nil
+	}
+	pluginKey := apiKeyProviderRuntimeID(principal.APIKey)
+	if pluginKey == "" {
+		if current != nil && appDataModelOwnedByPlugin(current) {
+			return ownership, fmt.Errorf("app data model %s requires a provider-bound API key", current.Key)
+		}
+		if reqDeclaresPluginOwnership(req) {
+			return ownership, errors.New("plugin-owned app data declarations require a provider-bound API key")
+		}
+		return ownership, nil
+	}
+	modelKey := strings.ToLower(strings.TrimSpace(req.Key))
+	if current != nil {
+		modelKey = current.Key
+	}
+	if modelKey == "" {
+		return ownership, errors.New("model key is required for plugin-owned app data")
+	}
+	if ok, err := s.pluginManifestDeclaresAppDataModel(ctx, pluginKey, modelKey); err != nil {
+		return ownership, err
+	} else if !ok {
+		return ownership, fmt.Errorf("plugin %s does not declare app data model %s", pluginKey, modelKey)
+	}
+	if current != nil {
+		currentOwner := strings.TrimSpace(derefString(current.OwnerPluginKey))
+		if currentOwner != "" && currentOwner != pluginKey {
+			return ownership, fmt.Errorf("app data model %s is owned by plugin %s", modelKey, currentOwner)
+		}
+		if currentOwner == "" && current.Source != "" && current.Source != "plugin:"+pluginKey && strings.HasPrefix(current.Source, "plugin:") {
+			return ownership, fmt.Errorf("app data model %s source is owned by another plugin", modelKey)
+		}
+		if currentOwner == "" && current.Source != "plugin:"+pluginKey {
+			return ownership, fmt.Errorf("app data model %s is not owned by plugin %s", modelKey, pluginKey)
+		}
+	}
+	return appDataModelOwnership{
+		OwnerPluginKey:      pluginKey,
+		DeclaredResourceKey: modelKey,
+		Source:              appDataOwnershipSourceManifest,
+	}, nil
+}
+
+func (s *Server) pluginServiceOwnsAppDataModel(ctx context.Context, pluginKey string, model *coreent.AppDataModel) (bool, error) {
+	pluginKey = strings.TrimSpace(pluginKey)
+	if pluginKey == "" || model == nil {
+		return false, nil
+	}
+	if ok, err := s.pluginManifestDeclaresAppDataModel(ctx, pluginKey, model.Key); err != nil || !ok {
+		return ok, err
+	}
+	owner := strings.TrimSpace(derefString(model.OwnerPluginKey))
+	if owner == "" && model.Source == "plugin:"+pluginKey {
+		owner = pluginKey
+	}
+	return owner == pluginKey, nil
+}
+
+func appDataModelOwnedByPlugin(model *coreent.AppDataModel) bool {
+	if model == nil {
+		return false
+	}
+	if strings.TrimSpace(derefString(model.OwnerPluginKey)) != "" {
+		return true
+	}
+	return strings.HasPrefix(strings.TrimSpace(model.Source), "plugin:")
+}
+
+func (s *Server) pluginManifestDeclaresAppDataModel(ctx context.Context, pluginKey, modelKey string) (bool, error) {
+	manifest, active, err := s.activePluginManifestByKey(ctx, pluginKey)
+	if err != nil {
+		if coreent.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	if !active {
+		return false, nil
+	}
+	modelKey = strings.ToLower(strings.TrimSpace(modelKey))
+	for _, resource := range manifest.Resources {
+		if strings.ToLower(strings.TrimSpace(resource.Key)) == modelKey {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (s *Server) activePluginManifestByKey(ctx context.Context, pluginKey string) (plugins.Manifest, bool, error) {
+	if s.ent == nil {
+		return plugins.Manifest{}, false, errors.New("ent client is not configured")
+	}
+	row, err := s.ent.Plugin.Query().Where(entplugin.Key(pluginKey)).Only(ctx)
+	if err != nil {
+		return plugins.Manifest{}, false, err
+	}
+	manifest := pluginManifestFromMap(row.Manifest)
+	return manifest, pluginStatusAllowsAppDataOwnership(row.Status), nil
+}
+
+func pluginStatusAllowsAppDataOwnership(status string) bool {
+	switch strings.TrimSpace(status) {
+	case "validated", "installed", "migrated", "enabled":
+		return true
+	default:
+		return false
+	}
+}
+
+func appDataModelGovernanceMetadata(metadata map[string]any, ownership appDataModelOwnership) map[string]any {
+	out := nonNilMap(metadata)
+	delete(out, "owner_plugin_key")
+	delete(out, "declared_resource_key")
+	delete(out, "ownership_source")
+	if ownership.OwnerPluginKey == "" {
+		return out
+	}
+	out["owner_plugin_key"] = ownership.OwnerPluginKey
+	out["declared_resource_key"] = ownership.DeclaredResourceKey
+	out["ownership_source"] = ownership.Source
+	return out
+}
+
+func reqDeclaresPluginOwnership(req *appDataModelMutationRequest) bool {
+	if req == nil {
+		return false
+	}
+	if req.Source != nil && strings.HasPrefix(strings.TrimSpace(*req.Source), "plugin:") {
+		return true
+	}
+	metadata := nonNilMap(req.Metadata)
+	return strings.TrimSpace(stringFromMap(metadata, "owner_plugin_key")) != "" ||
+		strings.TrimSpace(stringFromMap(metadata, "declared_resource_key")) != "" ||
+		strings.TrimSpace(stringFromMap(metadata, "ownership_source")) != ""
+}
+
+func appDataOwnershipSource(model *coreent.AppDataModel) string {
+	if model == nil {
+		return ""
+	}
+	return stringFromMap(nonNilMap(model.Metadata), "ownership_source")
+}
+
+func currentOwnerPluginKey(model *coreent.AppDataModel) *string {
+	if model == nil {
+		return nil
+	}
+	return model.OwnerPluginKey
+}
+
+func currentDeclaredResourceKey(model *coreent.AppDataModel) *string {
+	if model == nil {
+		return nil
+	}
+	return model.DeclaredResourceKey
+}
+
+func appDataModelKeyForError(model *coreent.AppDataModel) string {
+	if model == nil {
+		return ""
+	}
+	return model.Key
 }
 
 func appDataServiceDecision(r *http.Request, actor authz.ActorContext, action string, record *coreent.AppDataRecord) map[string]any {
@@ -2353,19 +2765,21 @@ func validAppDataVisibility(value string) bool {
 
 func appDataModelMap(row *coreent.AppDataModel) map[string]any {
 	return map[string]any{
-		"id":           row.ID,
-		"space_id":     row.SpaceID,
-		"key":          row.Key,
-		"display_name": row.DisplayName,
-		"description":  derefString(row.Description),
-		"source":       row.Source,
-		"status":       row.Status,
-		"schema":       nonNilMap(row.Schema),
-		"metadata":     nonNilMap(row.Metadata),
-		"permissions":  appDataModelPermissionSummaries(row),
-		"created_at":   formatTime(row.CreatedAt),
-		"updated_at":   formatTime(row.UpdatedAt),
-		"deleted_at":   optionalTime(row.DeletedAt),
+		"id":                    row.ID,
+		"space_id":              row.SpaceID,
+		"key":                   row.Key,
+		"display_name":          row.DisplayName,
+		"description":           derefString(row.Description),
+		"source":                row.Source,
+		"owner_plugin_key":      derefString(row.OwnerPluginKey),
+		"declared_resource_key": derefString(row.DeclaredResourceKey),
+		"status":                row.Status,
+		"schema":                nonNilMap(row.Schema),
+		"metadata":              nonNilMap(row.Metadata),
+		"permissions":           appDataModelPermissionSummaries(row),
+		"created_at":            formatTime(row.CreatedAt),
+		"updated_at":            formatTime(row.UpdatedAt),
+		"deleted_at":            optionalTime(row.DeletedAt),
 	}
 }
 

@@ -23,6 +23,10 @@ const (
 	FieldDescription = "description"
 	// FieldSource holds the string denoting the source field in the database.
 	FieldSource = "source"
+	// FieldOwnerPluginKey holds the string denoting the owner_plugin_key field in the database.
+	FieldOwnerPluginKey = "owner_plugin_key"
+	// FieldDeclaredResourceKey holds the string denoting the declared_resource_key field in the database.
+	FieldDeclaredResourceKey = "declared_resource_key"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldSchema holds the string denoting the schema field in the database.
@@ -47,6 +51,8 @@ var Columns = []string{
 	FieldDisplayName,
 	FieldDescription,
 	FieldSource,
+	FieldOwnerPluginKey,
+	FieldDeclaredResourceKey,
 	FieldStatus,
 	FieldSchema,
 	FieldMetadata,
@@ -117,6 +123,16 @@ func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 // BySource orders the results by the source field.
 func BySource(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSource, opts...).ToFunc()
+}
+
+// ByOwnerPluginKey orders the results by the owner_plugin_key field.
+func ByOwnerPluginKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOwnerPluginKey, opts...).ToFunc()
+}
+
+// ByDeclaredResourceKey orders the results by the declared_resource_key field.
+func ByDeclaredResourceKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDeclaredResourceKey, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.
