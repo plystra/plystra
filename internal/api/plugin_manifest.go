@@ -75,6 +75,7 @@ func (s *Server) handlePluginInstall(w http.ResponseWriter, r *http.Request) {
 	pluginType := firstNonEmpty(req.Manifest.Type, "plugin")
 	pluginScope := firstNonEmpty(req.Manifest.Scope, "public")
 	appID := strings.TrimSpace(req.Manifest.AppID)
+	trustBundleID := strings.TrimSpace(req.Manifest.TrustBundleID)
 	manifestMap, err := pluginManifestMap(req.Manifest)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to encode plugin manifest.", err.Error())
@@ -96,6 +97,7 @@ func (s *Server) handlePluginInstall(w http.ResponseWriter, r *http.Request) {
 			SetType(pluginType).
 			SetScope(pluginScope).
 			SetNillableAppID(optionalString(appID)).
+			SetNillableTrustBundleID(optionalString(trustBundleID)).
 			SetSource(source).
 			SetStatus(status).
 			SetManifest(manifestMap).
@@ -106,10 +108,19 @@ func (s *Server) handlePluginInstall(w http.ResponseWriter, r *http.Request) {
 			SetVersion(req.Manifest.Version).
 			SetType(pluginType).
 			SetScope(pluginScope).
-			SetNillableAppID(optionalString(appID)).
 			SetSource(source).
 			SetStatus(status).
 			SetManifest(manifestMap)
+		if appID == "" {
+			update.ClearAppID()
+		} else {
+			update.SetAppID(appID)
+		}
+		if trustBundleID == "" {
+			update.ClearTrustBundleID()
+		} else {
+			update.SetTrustBundleID(trustBundleID)
+		}
 		if req.Manifest.Description == "" {
 			update.ClearDescription()
 		} else {

@@ -105,6 +105,10 @@ Registration is disabled by default. For production, keep it closed unless your 
 
 Core intentionally keeps authentication minimal: password login, protected registration, session refresh, logout, and actor context. Full authentication flows such as email verification codes, magic links, MFA, and external identity-provider integrations belong in the separate full-auth plugin repository. That plugin pulls email delivery contracts only when email delivery is enabled.
 
+## App Modules And Trust Bundles
+
+App Modules / Local Plugins are governed through the same Plugin substrate as reusable plugins. Their manifests must declare `type: app_module`, `scope: app`, `app_id`, and `trust_bundle_id`. The Trust Bundle is the direct-call optimization boundary: local capability calls and app-private controlled actions are allowed only for the provider itself or another App Module in the same `trust_bundle_id`. Sharing an `app_id` alone is not sufficient.
+
 ## Generic App Data
 
 Backend OS Alpha can store ordinary application data in Plystra Core when a project does not want a separate business database for structured records. Create a space-scoped model under `/api/v1/spaces/{space_id}/data/models`; Core registers a model-specific resource type such as `data_customer`, creates read/create/update/archive/delete permission definitions, and returns those permission IDs in the model response.

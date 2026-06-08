@@ -27,6 +27,8 @@ const (
 	FieldScope = "scope"
 	// FieldAppID holds the string denoting the app_id field in the database.
 	FieldAppID = "app_id"
+	// FieldTrustBundleID holds the string denoting the trust_bundle_id field in the database.
+	FieldTrustBundleID = "trust_bundle_id"
 	// FieldSource holds the string denoting the source field in the database.
 	FieldSource = "source"
 	// FieldStatus holds the string denoting the status field in the database.
@@ -51,6 +53,7 @@ var Columns = []string{
 	FieldType,
 	FieldScope,
 	FieldAppID,
+	FieldTrustBundleID,
 	FieldSource,
 	FieldStatus,
 	FieldManifest,
@@ -134,6 +137,11 @@ func ByScope(opts ...sql.OrderTermOption) OrderOption {
 // ByAppID orders the results by the app_id field.
 func ByAppID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAppID, opts...).ToFunc()
+}
+
+// ByTrustBundleID orders the results by the trust_bundle_id field.
+func ByTrustBundleID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTrustBundleID, opts...).ToFunc()
 }
 
 // BySource orders the results by the source field.

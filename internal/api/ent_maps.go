@@ -291,21 +291,22 @@ func resourceMappingMap(row *coreent.ResourceMapping) map[string]any {
 
 func pluginMap(row *coreent.Plugin) map[string]any {
 	manifest := pluginManifestFromMap(row.Manifest)
-	pluginType, pluginScope, appID := normalizedPluginGovernance(row, manifest)
+	pluginType, pluginScope, appID, trustBundleID := normalizedPluginGovernance(row, manifest)
 	return map[string]any{
-		"id":          row.ID,
-		"key":         row.Key,
-		"name":        row.Name,
-		"description": derefString(row.Description),
-		"version":     row.Version,
-		"type":        pluginType,
-		"scope":       pluginScope,
-		"app_id":      appID,
-		"source":      row.Source,
-		"status":      row.Status,
-		"manifest":    nonNilMap(row.Manifest),
-		"created_at":  formatTime(row.CreatedAt),
-		"updated_at":  formatTime(row.UpdatedAt),
+		"id":              row.ID,
+		"key":             row.Key,
+		"name":            row.Name,
+		"description":     derefString(row.Description),
+		"version":         row.Version,
+		"type":            pluginType,
+		"scope":           pluginScope,
+		"app_id":          appID,
+		"trust_bundle_id": trustBundleID,
+		"source":          row.Source,
+		"status":          row.Status,
+		"manifest":        nonNilMap(row.Manifest),
+		"created_at":      formatTime(row.CreatedAt),
+		"updated_at":      formatTime(row.UpdatedAt),
 	}
 }
 

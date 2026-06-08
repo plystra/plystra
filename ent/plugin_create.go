@@ -94,6 +94,20 @@ func (_c *PluginCreate) SetNillableAppID(v *string) *PluginCreate {
 	return _c
 }
 
+// SetTrustBundleID sets the "trust_bundle_id" field.
+func (_c *PluginCreate) SetTrustBundleID(v string) *PluginCreate {
+	_c.mutation.SetTrustBundleID(v)
+	return _c
+}
+
+// SetNillableTrustBundleID sets the "trust_bundle_id" field if the given value is not nil.
+func (_c *PluginCreate) SetNillableTrustBundleID(v *string) *PluginCreate {
+	if v != nil {
+		_c.SetTrustBundleID(*v)
+	}
+	return _c
+}
+
 // SetSource sets the "source" field.
 func (_c *PluginCreate) SetSource(v string) *PluginCreate {
 	_c.mutation.SetSource(v)
@@ -319,6 +333,10 @@ func (_c *PluginCreate) createSpec() (*Plugin, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.AppID(); ok {
 		_spec.SetField(plugin.FieldAppID, field.TypeString, value)
 		_node.AppID = &value
+	}
+	if value, ok := _c.mutation.TrustBundleID(); ok {
+		_spec.SetField(plugin.FieldTrustBundleID, field.TypeString, value)
+		_node.TrustBundleID = &value
 	}
 	if value, ok := _c.mutation.Source(); ok {
 		_spec.SetField(plugin.FieldSource, field.TypeString, value)

@@ -20,6 +20,7 @@ func (Plugin) Fields() []ent.Field {
 		stringDefaultField("type", "plugin"),
 		stringDefaultField("scope", "public"),
 		field.String("app_id").Optional().Nillable(),
+		field.String("trust_bundle_id").Optional().Nillable(),
 		stringDefaultField("source", "official"),
 		statusField("installed"),
 		field.JSON("manifest", map[string]any{}),
@@ -33,5 +34,6 @@ func (Plugin) Indexes() []ent.Index {
 		index.Fields("key").Unique(),
 		index.Fields("type", "scope", "status"),
 		index.Fields("app_id", "status"),
+		index.Fields("trust_bundle_id", "status"),
 	}
 }

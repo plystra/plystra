@@ -532,6 +532,7 @@ type openAPIPlugin struct {
 	Type             string         `json:"type" example:"plugin"`
 	Scope            string         `json:"scope" example:"public"`
 	AppID            string         `json:"app_id,omitempty" example:"sample"`
+	TrustBundleID    string         `json:"trust_bundle_id,omitempty" example:"sample.default"`
 	Source           string         `json:"source"`
 	Status           string         `json:"status"`
 	Manifest         map[string]any `json:"manifest"`

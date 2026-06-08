@@ -690,6 +690,7 @@ var (
 		{Name: "type", Type: field.TypeString, Default: schema.Expr("'plugin'")},
 		{Name: "scope", Type: field.TypeString, Default: schema.Expr("'public'")},
 		{Name: "app_id", Type: field.TypeString, Nullable: true},
+		{Name: "trust_bundle_id", Type: field.TypeString, Nullable: true},
 		{Name: "source", Type: field.TypeString, Default: schema.Expr("'official'")},
 		{Name: "status", Type: field.TypeString, Default: schema.Expr("'installed'")},
 		{Name: "manifest", Type: field.TypeJSON},
@@ -710,12 +711,17 @@ var (
 			{
 				Name:    "plugin_type_scope_status",
 				Unique:  false,
-				Columns: []*schema.Column{PluginsColumns[5], PluginsColumns[6], PluginsColumns[9]},
+				Columns: []*schema.Column{PluginsColumns[5], PluginsColumns[6], PluginsColumns[10]},
 			},
 			{
 				Name:    "plugin_app_id_status",
 				Unique:  false,
-				Columns: []*schema.Column{PluginsColumns[7], PluginsColumns[9]},
+				Columns: []*schema.Column{PluginsColumns[7], PluginsColumns[10]},
+			},
+			{
+				Name:    "plugin_trust_bundle_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{PluginsColumns[8], PluginsColumns[10]},
 			},
 		},
 	}

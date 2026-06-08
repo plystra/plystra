@@ -2111,6 +2111,9 @@ components:
                     type: string
                 status:
                     type: string
+                trust_bundle_id:
+                    example: sample.default
+                    type: string
                 type:
                     example: plugin
                     type: string
@@ -3192,6 +3195,8 @@ components:
                 source:
                     type: string
                 status:
+                    type: string
+                trust_bundle_id:
                     type: string
                 type:
                     type: string

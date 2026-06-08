@@ -14,6 +14,7 @@ type Manifest struct {
 	Type              string                    `json:"type,omitempty"`
 	Scope             string                    `json:"scope,omitempty"`
 	AppID             string                    `json:"app_id,omitempty"`
+	TrustBundleID     string                    `json:"trust_bundle_id,omitempty"`
 	Name              string                    `json:"name"`
 	Description       string                    `json:"description"`
 	Version           string                    `json:"version"`
@@ -231,6 +232,12 @@ func ValidateManifest(manifest Manifest) []string {
 		if appID := strings.TrimSpace(manifest.AppID); keyPattern.MatchString(appID) && !strings.HasPrefix(manifest.ID, "app."+appID+".") {
 			errors = append(errors, "app_module id must be scoped under app.<app_id>.")
 		}
+		trustBundleID := strings.TrimSpace(manifest.TrustBundleID)
+		if !validTrustBundleID(trustBundleID) {
+			errors = append(errors, "trust_bundle_id is required for app_module and must be a dotted id scoped under <app_id>.")
+		} else if appID := strings.TrimSpace(manifest.AppID); keyPattern.MatchString(appID) && !strings.HasPrefix(trustBundleID, appID+".") {
+			errors = append(errors, "trust_bundle_id for app_module must be scoped under <app_id>.")
+		}
 		if len(manifest.Capabilities) > 0 {
 			errors = append(errors, "app_module manifests must declare app-private capabilities under local_capabilities")
 		}
@@ -240,6 +247,9 @@ func ValidateManifest(manifest Manifest) []string {
 		}
 		if strings.TrimSpace(manifest.AppID) != "" {
 			errors = append(errors, "app_id is only valid for app_module manifests")
+		}
+		if strings.TrimSpace(manifest.TrustBundleID) != "" {
+			errors = append(errors, "trust_bundle_id is only valid for app_module manifests")
 		}
 		if len(manifest.LocalCapabilities) > 0 {
 			errors = append(errors, "local_capabilities are only valid for app_module manifests")
@@ -661,6 +671,22 @@ func validateLocalCapabilityNamespace(appID string, capabilities []CapabilityDef
 		}
 	}
 	return errors
+}
+
+func validTrustBundleID(value string) bool {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return false
+	}
+	if !capabilityIDPattern.MatchString(value) {
+		return false
+	}
+	for _, part := range strings.Split(value, ".") {
+		if !keyPattern.MatchString(part) {
+			return false
+		}
+	}
+	return true
 }
 
 func validateCapabilityGovernanceNamed(field string, i int, capability CapabilityDefinition) []string {

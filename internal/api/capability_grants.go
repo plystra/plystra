@@ -90,6 +90,7 @@ type capabilityProviderBinding struct {
 	PluginKey      string
 	ProviderID     string
 	AppID          string
+	TrustBundleID  string
 	Local          bool
 	Endpoint       string
 	OperationPath  string
@@ -101,10 +102,11 @@ type capabilityProviderBinding struct {
 }
 
 type governedPluginManifest struct {
-	Manifest plugins.Manifest
-	Type     string
-	Scope    string
-	AppID    string
+	Manifest      plugins.Manifest
+	Type          string
+	Scope         string
+	AppID         string
+	TrustBundleID string
 }
 
 type capabilityProviderResolverCache struct {
@@ -807,6 +809,7 @@ func (s *Server) resolveCapabilityProvider(r *http.Request, spaceID, capabilityI
 			PluginKey:      manifest.ID,
 			ProviderID:     manifest.ID,
 			AppID:          strings.TrimSpace(firstNonEmpty(derefString(row.AppID), manifest.AppID)),
+			TrustBundleID:  strings.TrimSpace(firstNonEmpty(derefString(row.TrustBundleID), manifest.TrustBundleID)),
 			Local:          capabilityLocalToManifest(manifest, capability.ID),
 			Endpoint:       strings.TrimSpace(binding.Endpoint),
 			OperationPath:  firstNonEmpty(derefString(binding.OperationPath), capabilityOperationPath(manifest, capabilityID, operationName)),
@@ -860,7 +863,7 @@ func (s *Server) callerAllowedForProviderScope(r *http.Request, callerPluginID s
 	if err != nil {
 		return false, err
 	}
-	return caller.Type == "app_module" && caller.AppID != "" && caller.AppID == provider.AppID, nil
+	return pluginsShareTrustBundle(caller, provider.TrustBundleID), nil
 }
 
 func (s *Server) pluginManifestByKey(ctx context.Context, pluginKey string) (plugins.Manifest, error) {
@@ -881,30 +884,35 @@ func (s *Server) governedPluginManifestByKey(ctx context.Context, pluginKey stri
 	if err := json.Unmarshal(raw, &manifest); err != nil {
 		return governedPluginManifest{}, err
 	}
-	manifestType, manifestScope, appID := normalizedPluginGovernance(row, manifest)
+	manifestType, manifestScope, appID, trustBundleID := normalizedPluginGovernance(row, manifest)
 	return governedPluginManifest{
-		Manifest: manifest,
-		Type:     manifestType,
-		Scope:    manifestScope,
-		AppID:    appID,
+		Manifest:      manifest,
+		Type:          manifestType,
+		Scope:         manifestScope,
+		AppID:         appID,
+		TrustBundleID: trustBundleID,
 	}, nil
 }
 
-func normalizedPluginGovernance(row *coreent.Plugin, manifest plugins.Manifest) (string, string, string) {
+func normalizedPluginGovernance(row *coreent.Plugin, manifest plugins.Manifest) (string, string, string, string) {
 	manifestType := strings.TrimSpace(manifest.Type)
 	manifestScope := strings.TrimSpace(manifest.Scope)
 	manifestAppID := strings.TrimSpace(manifest.AppID)
+	manifestTrustBundleID := strings.TrimSpace(manifest.TrustBundleID)
 	rowType := ""
 	rowScope := ""
 	rowAppID := ""
+	rowTrustBundleID := ""
 	if row != nil {
 		rowType = strings.TrimSpace(row.Type)
 		rowScope = strings.TrimSpace(row.Scope)
 		rowAppID = strings.TrimSpace(derefString(row.AppID))
+		rowTrustBundleID = strings.TrimSpace(derefString(row.TrustBundleID))
 	}
 	pluginType := firstNonEmpty(rowType, manifestType, "plugin")
 	pluginScope := firstNonEmpty(rowScope, manifestScope, "public")
 	appID := firstNonEmpty(rowAppID, manifestAppID)
+	trustBundleID := firstNonEmpty(rowTrustBundleID, manifestTrustBundleID)
 	if manifestType == "app_module" || manifestScope == "app" || manifestAppID != "" {
 		pluginType = "app_module"
 		pluginScope = "app"
@@ -912,8 +920,20 @@ func normalizedPluginGovernance(row *coreent.Plugin, manifest plugins.Manifest) 
 		if appID == "" {
 			appID = rowAppID
 		}
+		trustBundleID = manifestTrustBundleID
+		if trustBundleID == "" {
+			trustBundleID = rowTrustBundleID
+		}
 	}
-	return pluginType, pluginScope, appID
+	if pluginType != "app_module" && pluginScope != "app" {
+		trustBundleID = ""
+	}
+	return pluginType, pluginScope, appID, trustBundleID
+}
+
+func pluginsShareTrustBundle(plugin governedPluginManifest, trustBundleID string) bool {
+	trustBundleID = strings.TrimSpace(trustBundleID)
+	return plugin.Type == "app_module" && plugin.TrustBundleID != "" && plugin.TrustBundleID == trustBundleID
 }
 
 func capabilityOperationByName(capability plugins.CapabilityDefinition, name string) (plugins.CapabilityOperationDefinition, bool) {

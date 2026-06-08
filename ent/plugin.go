@@ -32,6 +32,8 @@ type Plugin struct {
 	Scope string `json:"scope,omitempty"`
 	// AppID holds the value of the "app_id" field.
 	AppID *string `json:"app_id,omitempty"`
+	// TrustBundleID holds the value of the "trust_bundle_id" field.
+	TrustBundleID *string `json:"trust_bundle_id,omitempty"`
 	// Source holds the value of the "source" field.
 	Source string `json:"source,omitempty"`
 	// Status holds the value of the "status" field.
@@ -52,7 +54,7 @@ func (*Plugin) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case plugin.FieldManifest:
 			values[i] = new([]byte)
-		case plugin.FieldID, plugin.FieldKey, plugin.FieldName, plugin.FieldDescription, plugin.FieldVersion, plugin.FieldType, plugin.FieldScope, plugin.FieldAppID, plugin.FieldSource, plugin.FieldStatus:
+		case plugin.FieldID, plugin.FieldKey, plugin.FieldName, plugin.FieldDescription, plugin.FieldVersion, plugin.FieldType, plugin.FieldScope, plugin.FieldAppID, plugin.FieldTrustBundleID, plugin.FieldSource, plugin.FieldStatus:
 			values[i] = new(sql.NullString)
 		case plugin.FieldCreatedAt, plugin.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -120,6 +122,13 @@ func (_m *Plugin) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.AppID = new(string)
 				*_m.AppID = value.String
+			}
+		case plugin.FieldTrustBundleID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field trust_bundle_id", values[i])
+			} else if value.Valid {
+				_m.TrustBundleID = new(string)
+				*_m.TrustBundleID = value.String
 			}
 		case plugin.FieldSource:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -211,6 +220,11 @@ func (_m *Plugin) String() string {
 	builder.WriteString(", ")
 	if v := _m.AppID; v != nil {
 		builder.WriteString("app_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TrustBundleID; v != nil {
+		builder.WriteString("trust_bundle_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

@@ -490,7 +490,7 @@ func (s *Server) actionExecutorAllowedForProviderScope(r *http.Request, executor
 	if err != nil {
 		return false, err
 	}
-	return executor.Type == "app_module" && executor.AppID != "" && executor.AppID == provider.AppID, nil
+	return pluginsShareTrustBundle(executor, provider.TrustBundleID), nil
 }
 
 func actionExecutionReplayMatches(row *coreent.ActionExecution, req actionExecutionRequest) bool {

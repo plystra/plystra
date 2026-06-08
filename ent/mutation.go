@@ -17136,25 +17136,26 @@ func (m *PermissionMutation) ResetEdge(name string) error {
 // PluginMutation represents an operation that mutates the Plugin nodes in the graph.
 type PluginMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	key           *string
-	name          *string
-	description   *string
-	version       *string
-	_type         *string
-	scope         *string
-	app_id        *string
-	source        *string
-	status        *string
-	manifest      *map[string]interface{}
-	created_at    *time.Time
-	updated_at    *time.Time
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*Plugin, error)
-	predicates    []predicate.Plugin
+	op              Op
+	typ             string
+	id              *string
+	key             *string
+	name            *string
+	description     *string
+	version         *string
+	_type           *string
+	scope           *string
+	app_id          *string
+	trust_bundle_id *string
+	source          *string
+	status          *string
+	manifest        *map[string]interface{}
+	created_at      *time.Time
+	updated_at      *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*Plugin, error)
+	predicates      []predicate.Plugin
 }
 
 var _ ent.Mutation = (*PluginMutation)(nil)
@@ -17539,6 +17540,55 @@ func (m *PluginMutation) ResetAppID() {
 	delete(m.clearedFields, plugin.FieldAppID)
 }
 
+// SetTrustBundleID sets the "trust_bundle_id" field.
+func (m *PluginMutation) SetTrustBundleID(s string) {
+	m.trust_bundle_id = &s
+}
+
+// TrustBundleID returns the value of the "trust_bundle_id" field in the mutation.
+func (m *PluginMutation) TrustBundleID() (r string, exists bool) {
+	v := m.trust_bundle_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTrustBundleID returns the old "trust_bundle_id" field's value of the Plugin entity.
+// If the Plugin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PluginMutation) OldTrustBundleID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTrustBundleID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTrustBundleID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTrustBundleID: %w", err)
+	}
+	return oldValue.TrustBundleID, nil
+}
+
+// ClearTrustBundleID clears the value of the "trust_bundle_id" field.
+func (m *PluginMutation) ClearTrustBundleID() {
+	m.trust_bundle_id = nil
+	m.clearedFields[plugin.FieldTrustBundleID] = struct{}{}
+}
+
+// TrustBundleIDCleared returns if the "trust_bundle_id" field was cleared in this mutation.
+func (m *PluginMutation) TrustBundleIDCleared() bool {
+	_, ok := m.clearedFields[plugin.FieldTrustBundleID]
+	return ok
+}
+
+// ResetTrustBundleID resets all changes to the "trust_bundle_id" field.
+func (m *PluginMutation) ResetTrustBundleID() {
+	m.trust_bundle_id = nil
+	delete(m.clearedFields, plugin.FieldTrustBundleID)
+}
+
 // SetSource sets the "source" field.
 func (m *PluginMutation) SetSource(s string) {
 	m.source = &s
@@ -17753,7 +17803,7 @@ func (m *PluginMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *PluginMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.key != nil {
 		fields = append(fields, plugin.FieldKey)
 	}
@@ -17774,6 +17824,9 @@ func (m *PluginMutation) Fields() []string {
 	}
 	if m.app_id != nil {
 		fields = append(fields, plugin.FieldAppID)
+	}
+	if m.trust_bundle_id != nil {
+		fields = append(fields, plugin.FieldTrustBundleID)
 	}
 	if m.source != nil {
 		fields = append(fields, plugin.FieldSource)
@@ -17812,6 +17865,8 @@ func (m *PluginMutation) Field(name string) (ent.Value, bool) {
 		return m.Scope()
 	case plugin.FieldAppID:
 		return m.AppID()
+	case plugin.FieldTrustBundleID:
+		return m.TrustBundleID()
 	case plugin.FieldSource:
 		return m.Source()
 	case plugin.FieldStatus:
@@ -17845,6 +17900,8 @@ func (m *PluginMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldScope(ctx)
 	case plugin.FieldAppID:
 		return m.OldAppID(ctx)
+	case plugin.FieldTrustBundleID:
+		return m.OldTrustBundleID(ctx)
 	case plugin.FieldSource:
 		return m.OldSource(ctx)
 	case plugin.FieldStatus:
@@ -17912,6 +17969,13 @@ func (m *PluginMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAppID(v)
+		return nil
+	case plugin.FieldTrustBundleID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTrustBundleID(v)
 		return nil
 	case plugin.FieldSource:
 		v, ok := value.(string)
@@ -17984,6 +18048,9 @@ func (m *PluginMutation) ClearedFields() []string {
 	if m.FieldCleared(plugin.FieldAppID) {
 		fields = append(fields, plugin.FieldAppID)
 	}
+	if m.FieldCleared(plugin.FieldTrustBundleID) {
+		fields = append(fields, plugin.FieldTrustBundleID)
+	}
 	return fields
 }
 
@@ -18003,6 +18070,9 @@ func (m *PluginMutation) ClearField(name string) error {
 		return nil
 	case plugin.FieldAppID:
 		m.ClearAppID()
+		return nil
+	case plugin.FieldTrustBundleID:
+		m.ClearTrustBundleID()
 		return nil
 	}
 	return fmt.Errorf("unknown Plugin nullable field %s", name)
@@ -18032,6 +18102,9 @@ func (m *PluginMutation) ResetField(name string) error {
 		return nil
 	case plugin.FieldAppID:
 		m.ResetAppID()
+		return nil
+	case plugin.FieldTrustBundleID:
+		m.ResetTrustBundleID()
 		return nil
 	case plugin.FieldSource:
 		m.ResetSource()

@@ -99,6 +99,11 @@ func AppID(v string) predicate.Plugin {
 	return predicate.Plugin(sql.FieldEQ(FieldAppID, v))
 }
 
+// TrustBundleID applies equality check predicate on the "trust_bundle_id" field. It's identical to TrustBundleIDEQ.
+func TrustBundleID(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldEQ(FieldTrustBundleID, v))
+}
+
 // Source applies equality check predicate on the "source" field. It's identical to SourceEQ.
 func Source(v string) predicate.Plugin {
 	return predicate.Plugin(sql.FieldEQ(FieldSource, v))
@@ -592,6 +597,81 @@ func AppIDEqualFold(v string) predicate.Plugin {
 // AppIDContainsFold applies the ContainsFold predicate on the "app_id" field.
 func AppIDContainsFold(v string) predicate.Plugin {
 	return predicate.Plugin(sql.FieldContainsFold(FieldAppID, v))
+}
+
+// TrustBundleIDEQ applies the EQ predicate on the "trust_bundle_id" field.
+func TrustBundleIDEQ(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldEQ(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDNEQ applies the NEQ predicate on the "trust_bundle_id" field.
+func TrustBundleIDNEQ(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldNEQ(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDIn applies the In predicate on the "trust_bundle_id" field.
+func TrustBundleIDIn(vs ...string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldIn(FieldTrustBundleID, vs...))
+}
+
+// TrustBundleIDNotIn applies the NotIn predicate on the "trust_bundle_id" field.
+func TrustBundleIDNotIn(vs ...string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldNotIn(FieldTrustBundleID, vs...))
+}
+
+// TrustBundleIDGT applies the GT predicate on the "trust_bundle_id" field.
+func TrustBundleIDGT(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldGT(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDGTE applies the GTE predicate on the "trust_bundle_id" field.
+func TrustBundleIDGTE(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldGTE(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDLT applies the LT predicate on the "trust_bundle_id" field.
+func TrustBundleIDLT(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldLT(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDLTE applies the LTE predicate on the "trust_bundle_id" field.
+func TrustBundleIDLTE(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldLTE(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDContains applies the Contains predicate on the "trust_bundle_id" field.
+func TrustBundleIDContains(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldContains(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDHasPrefix applies the HasPrefix predicate on the "trust_bundle_id" field.
+func TrustBundleIDHasPrefix(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldHasPrefix(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDHasSuffix applies the HasSuffix predicate on the "trust_bundle_id" field.
+func TrustBundleIDHasSuffix(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldHasSuffix(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDIsNil applies the IsNil predicate on the "trust_bundle_id" field.
+func TrustBundleIDIsNil() predicate.Plugin {
+	return predicate.Plugin(sql.FieldIsNull(FieldTrustBundleID))
+}
+
+// TrustBundleIDNotNil applies the NotNil predicate on the "trust_bundle_id" field.
+func TrustBundleIDNotNil() predicate.Plugin {
+	return predicate.Plugin(sql.FieldNotNull(FieldTrustBundleID))
+}
+
+// TrustBundleIDEqualFold applies the EqualFold predicate on the "trust_bundle_id" field.
+func TrustBundleIDEqualFold(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldEqualFold(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDContainsFold applies the ContainsFold predicate on the "trust_bundle_id" field.
+func TrustBundleIDContainsFold(v string) predicate.Plugin {
+	return predicate.Plugin(sql.FieldContainsFold(FieldTrustBundleID, v))
 }
 
 // SourceEQ applies the EQ predicate on the "source" field.

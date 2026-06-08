@@ -11855,6 +11855,10 @@
           "status": {
             "type": "string"
           },
+          "trust_bundle_id": {
+            "type": "string",
+            "example": "sample.default"
+          },
           "type": {
             "type": "string",
             "example": "plugin"
@@ -13416,6 +13420,9 @@
             "type": "string"
           },
           "status": {
+            "type": "string"
+          },
+          "trust_bundle_id": {
             "type": "string"
           },
           "type": {

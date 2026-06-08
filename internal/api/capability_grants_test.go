@@ -35,45 +35,47 @@ import (
 )
 
 type capabilityGrantFixture struct {
-	Suffix                string
-	SpaceID               string
-	APIKeyID              string
-	APIKey                string
-	ProviderAPIKeyID      string
-	ProviderAPIKey        string
-	ProviderRowID         string
-	ProviderPluginID      string
-	ProviderEndpoint      string
-	SpaceProviderEndpoint string
-	SpaceBindingEpoch     int
-	CallerRowID           string
-	CallerPluginID        string
-	CallerCapabilityID    string
-	DisallowedRowID       string
-	DisallowedPluginID    string
-	NoRequiresRowID       string
-	NoRequiresPluginID    string
-	LocalProviderRowID    string
-	LocalProviderPluginID string
-	LocalCallerRowID      string
-	LocalCallerPluginID   string
-	ForeignCallerRowID    string
-	ForeignCallerPluginID string
-	MediatedCapabilityID  string
-	BrokeredCapabilityID  string
-	LocalCapabilityID     string
-	PrincipalUserID       string
-	PrincipalMemberID     string
-	PrincipalUserMemberID string
-	GroupID               string
-	ResourceTypeID        string
-	ResourceActionID      string
-	ResourceMappingID     string
-	PermissionID          string
-	RoleID                string
-	RolePermissionID      string
-	MemberRoleID          string
-	InvoiceResourceID     string
+	Suffix                    string
+	SpaceID                   string
+	APIKeyID                  string
+	APIKey                    string
+	ProviderAPIKeyID          string
+	ProviderAPIKey            string
+	ProviderRowID             string
+	ProviderPluginID          string
+	ProviderEndpoint          string
+	SpaceProviderEndpoint     string
+	SpaceBindingEpoch         int
+	CallerRowID               string
+	CallerPluginID            string
+	CallerCapabilityID        string
+	DisallowedRowID           string
+	DisallowedPluginID        string
+	NoRequiresRowID           string
+	NoRequiresPluginID        string
+	LocalProviderRowID        string
+	LocalProviderPluginID     string
+	LocalCallerRowID          string
+	LocalCallerPluginID       string
+	OtherBundleCallerRowID    string
+	OtherBundleCallerPluginID string
+	ForeignCallerRowID        string
+	ForeignCallerPluginID     string
+	MediatedCapabilityID      string
+	BrokeredCapabilityID      string
+	LocalCapabilityID         string
+	PrincipalUserID           string
+	PrincipalMemberID         string
+	PrincipalUserMemberID     string
+	GroupID                   string
+	ResourceTypeID            string
+	ResourceActionID          string
+	ResourceMappingID         string
+	PermissionID              string
+	RoleID                    string
+	RolePermissionID          string
+	MemberRoleID              string
+	InvoiceResourceID         string
 }
 
 func TestCapabilityGrantLedgerIntegration(t *testing.T) {
@@ -668,6 +670,23 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		assertNoGrantForIdempotencyKey(t, ctx, store.Client(), fixture.SpaceID, fixture.ForeignCallerPluginID, "local.foreign_app.v1")
 	})
 
+	t.Run("denies same app caller outside trust bundle for local capability", func(t *testing.T) {
+		body := capabilityGrantIssueBody(fixture, "local.other_bundle.v1")
+		body["capability"] = fixture.LocalCapabilityID
+		body["operation"] = "execute"
+		body["executor"] = map[string]any{"plugin_id": fixture.OtherBundleCallerPluginID}
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-grants", fixture.SpaceID), fixture.APIKey, body)
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("same-app other-bundle local capability status = %d, want 403, body=%s", rec.Code, rec.Body.String())
+		}
+		payload := decodeCapabilityGrantEnvelope(t, rec)
+		errorPayload := requireObjectField(t, payload, "error")
+		if errorPayload["code"] != "CAPABILITY_SCOPE_DENIED" {
+			t.Fatalf("error code = %#v, want CAPABILITY_SCOPE_DENIED", errorPayload["code"])
+		}
+		assertNoGrantForIdempotencyKey(t, ctx, store.Client(), fixture.SpaceID, fixture.OtherBundleCallerPluginID, "local.other_bundle.v1")
+	})
+
 	t.Run("rejects brokered operation through mediated grant endpoint", func(t *testing.T) {
 		body := capabilityGrantIssueBody(fixture, "payment.pay_123.charge.v1")
 		body["capability"] = fixture.BrokeredCapabilityID
@@ -904,43 +923,45 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 	t.Helper()
 	suffix := fmt.Sprintf("%d", time.Now().UTC().UnixNano())
 	fixture := capabilityGrantFixture{
-		Suffix:                suffix,
-		SpaceID:               "space_capability_grants_" + suffix,
-		APIKeyID:              "ak_capability_grants_" + suffix,
-		ProviderAPIKeyID:      "ak_capability_grants_provider_" + suffix,
-		ProviderRowID:         "plugin_capability_grants_provider_" + suffix,
-		ProviderPluginID:      "test.workflow_" + suffix,
-		ProviderEndpoint:      "http://workflow-provider-" + suffix + ".internal",
-		SpaceProviderEndpoint: "http://workflow-provider-" + suffix + ".space.internal",
-		SpaceBindingEpoch:     7,
-		CallerRowID:           "plugin_capability_grants_caller_" + suffix,
-		CallerPluginID:        "test.invoice_" + suffix,
-		CallerCapabilityID:    "resource.invoice_" + suffix,
-		DisallowedRowID:       "plugin_capability_grants_disallowed_" + suffix,
-		DisallowedPluginID:    "test.disallowed_" + suffix,
-		NoRequiresRowID:       "plugin_capability_grants_no_requires_" + suffix,
-		NoRequiresPluginID:    "test.no_requires_" + suffix,
-		LocalProviderRowID:    "plugin_capability_grants_local_provider_" + suffix,
-		LocalProviderPluginID: "app.delivery.local_provider_" + suffix,
-		LocalCallerRowID:      "plugin_capability_grants_local_caller_" + suffix,
-		LocalCallerPluginID:   "app.delivery.local_caller_" + suffix,
-		ForeignCallerRowID:    "plugin_capability_grants_foreign_caller_" + suffix,
-		ForeignCallerPluginID: "app.other.local_caller_" + suffix,
-		MediatedCapabilityID:  "workflow.approval_" + suffix,
-		BrokeredCapabilityID:  "payment.charge_" + suffix,
-		LocalCapabilityID:     "delivery.operations_" + suffix,
-		PrincipalUserID:       "user_capability_grants_" + suffix,
-		PrincipalMemberID:     "member_capability_grants_" + suffix,
-		PrincipalUserMemberID: "um_capability_grants_" + suffix,
-		GroupID:               "group_capability_grants_" + suffix,
-		ResourceTypeID:        "rt_capability_grants_invoice_" + suffix,
-		ResourceActionID:      "ra_capability_grants_invoice_approve_" + suffix,
-		ResourceMappingID:     "rm_capability_grants_invoice_" + suffix,
-		PermissionID:          "perm_capability_grants_invoice_approve_" + suffix,
-		RoleID:                "role_capability_grants_approver_" + suffix,
-		RolePermissionID:      "rp_capability_grants_approve_" + suffix,
-		MemberRoleID:          "mr_capability_grants_approver_" + suffix,
-		InvoiceResourceID:     "invoice_capability_grants_" + suffix,
+		Suffix:                    suffix,
+		SpaceID:                   "space_capability_grants_" + suffix,
+		APIKeyID:                  "ak_capability_grants_" + suffix,
+		ProviderAPIKeyID:          "ak_capability_grants_provider_" + suffix,
+		ProviderRowID:             "plugin_capability_grants_provider_" + suffix,
+		ProviderPluginID:          "test.workflow_" + suffix,
+		ProviderEndpoint:          "http://workflow-provider-" + suffix + ".internal",
+		SpaceProviderEndpoint:     "http://workflow-provider-" + suffix + ".space.internal",
+		SpaceBindingEpoch:         7,
+		CallerRowID:               "plugin_capability_grants_caller_" + suffix,
+		CallerPluginID:            "test.invoice_" + suffix,
+		CallerCapabilityID:        "resource.invoice_" + suffix,
+		DisallowedRowID:           "plugin_capability_grants_disallowed_" + suffix,
+		DisallowedPluginID:        "test.disallowed_" + suffix,
+		NoRequiresRowID:           "plugin_capability_grants_no_requires_" + suffix,
+		NoRequiresPluginID:        "test.no_requires_" + suffix,
+		LocalProviderRowID:        "plugin_capability_grants_local_provider_" + suffix,
+		LocalProviderPluginID:     "app.delivery.local_provider_" + suffix,
+		LocalCallerRowID:          "plugin_capability_grants_local_caller_" + suffix,
+		LocalCallerPluginID:       "app.delivery.local_caller_" + suffix,
+		OtherBundleCallerRowID:    "plugin_capability_grants_other_bundle_" + suffix,
+		OtherBundleCallerPluginID: "app.delivery.other_bundle_" + suffix,
+		ForeignCallerRowID:        "plugin_capability_grants_foreign_caller_" + suffix,
+		ForeignCallerPluginID:     "app.other.local_caller_" + suffix,
+		MediatedCapabilityID:      "workflow.approval_" + suffix,
+		BrokeredCapabilityID:      "payment.charge_" + suffix,
+		LocalCapabilityID:         "delivery.operations_" + suffix,
+		PrincipalUserID:           "user_capability_grants_" + suffix,
+		PrincipalMemberID:         "member_capability_grants_" + suffix,
+		PrincipalUserMemberID:     "um_capability_grants_" + suffix,
+		GroupID:                   "group_capability_grants_" + suffix,
+		ResourceTypeID:            "rt_capability_grants_invoice_" + suffix,
+		ResourceActionID:          "ra_capability_grants_invoice_approve_" + suffix,
+		ResourceMappingID:         "rm_capability_grants_invoice_" + suffix,
+		PermissionID:              "perm_capability_grants_invoice_approve_" + suffix,
+		RoleID:                    "role_capability_grants_approver_" + suffix,
+		RolePermissionID:          "rp_capability_grants_approve_" + suffix,
+		MemberRoleID:              "mr_capability_grants_approver_" + suffix,
+		InvoiceResourceID:         "invoice_capability_grants_" + suffix,
 	}
 
 	apiKey, err := newAPIKeyPlaintext(fixture.APIKeyID)
@@ -1101,8 +1122,9 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 	createPluginRow(t, ctx, client, fixture.DisallowedRowID, fixture.DisallowedPluginID, capabilityGrantDisallowedCallerManifest(fixture))
 	createPluginRow(t, ctx, client, fixture.NoRequiresRowID, fixture.NoRequiresPluginID, capabilityGrantCallerManifest(fixture, false))
 	createPluginRow(t, ctx, client, fixture.LocalProviderRowID, fixture.LocalProviderPluginID, capabilityGrantLocalProviderManifest(fixture))
-	createPluginRow(t, ctx, client, fixture.LocalCallerRowID, fixture.LocalCallerPluginID, capabilityGrantLocalCallerManifest(fixture, fixture.LocalCallerPluginID, "delivery"))
-	createPluginRow(t, ctx, client, fixture.ForeignCallerRowID, fixture.ForeignCallerPluginID, capabilityGrantLocalCallerManifest(fixture, fixture.ForeignCallerPluginID, "other"))
+	createPluginRow(t, ctx, client, fixture.LocalCallerRowID, fixture.LocalCallerPluginID, capabilityGrantLocalCallerManifest(fixture, fixture.LocalCallerPluginID, "delivery", "delivery.default"))
+	createPluginRow(t, ctx, client, fixture.OtherBundleCallerRowID, fixture.OtherBundleCallerPluginID, capabilityGrantLocalCallerManifest(fixture, fixture.OtherBundleCallerPluginID, "delivery", "delivery.separate"))
+	createPluginRow(t, ctx, client, fixture.ForeignCallerRowID, fixture.ForeignCallerPluginID, capabilityGrantLocalCallerManifest(fixture, fixture.ForeignCallerPluginID, "other", "other.default"))
 	createCapabilityProviderBinding(t, ctx, client, fixture, fixture.MediatedCapabilityID, "create_request", fixture.ProviderPluginID, fixture.SpaceProviderEndpoint, "/v1/capabilities/"+strings.ReplaceAll(fixture.MediatedCapabilityID, ".", "/")+"/create_request", fixture.SpaceBindingEpoch)
 	createCapabilityProviderBinding(t, ctx, client, fixture, fixture.BrokeredCapabilityID, "charge", fixture.ProviderPluginID, fixture.SpaceProviderEndpoint, "/v1/capabilities/"+strings.ReplaceAll(fixture.BrokeredCapabilityID, ".", "/")+"/charge", fixture.SpaceBindingEpoch)
 	createCapabilityProviderBinding(t, ctx, client, fixture, fixture.LocalCapabilityID, "execute", fixture.LocalProviderPluginID, "http://local-provider-"+suffix+".space.internal", "/v1/local/delivery/execute", 3)
@@ -1121,6 +1143,10 @@ func createPluginRow(t *testing.T, ctx context.Context, client *coreent.Client, 
 		SetKey(pluginID).
 		SetName(manifest.Name).
 		SetVersion(manifest.Version).
+		SetType(firstNonEmpty(manifest.Type, "plugin")).
+		SetScope(firstNonEmpty(manifest.Scope, "public")).
+		SetNillableAppID(optionalString(manifest.AppID)).
+		SetNillableTrustBundleID(optionalString(manifest.TrustBundleID)).
 		SetSource("test").
 		SetStatus("enabled").
 		SetManifest(manifestMap).
@@ -1261,6 +1287,7 @@ func capabilityGrantLocalProviderManifest(fixture capabilityGrantFixture) plugin
 		Type:             "app_module",
 		Scope:            "app",
 		AppID:            "delivery",
+		TrustBundleID:    "delivery.default",
 		Name:             "Delivery Local Capability Provider",
 		Version:          "1.0.0",
 		Source:           "test",
@@ -1296,12 +1323,13 @@ func capabilityGrantLocalProviderManifest(fixture capabilityGrantFixture) plugin
 	}
 }
 
-func capabilityGrantLocalCallerManifest(fixture capabilityGrantFixture, pluginID, appID string) plugins.Manifest {
+func capabilityGrantLocalCallerManifest(fixture capabilityGrantFixture, pluginID, appID, trustBundleID string) plugins.Manifest {
 	return plugins.Manifest{
 		ID:               pluginID,
 		Type:             "app_module",
 		Scope:            "app",
 		AppID:            appID,
+		TrustBundleID:    trustBundleID,
 		Name:             "App Module Local Capability Caller",
 		Version:          "1.0.0",
 		Source:           "test",

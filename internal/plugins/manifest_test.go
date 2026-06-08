@@ -93,6 +93,7 @@ func TestValidateManifestAcceptsAppModuleWithLocalCapability(t *testing.T) {
 		Type:             "app_module",
 		Scope:            "app",
 		AppID:            "delivery",
+		TrustBundleID:    "delivery.default",
 		Name:             "Delivery Operations",
 		Version:          "0.0.1",
 		ManifestVersion:  "1.0",
@@ -125,6 +126,7 @@ func TestValidateManifestRejectsAppModulePluginMenuPath(t *testing.T) {
 		Type:             "app_module",
 		Scope:            "app",
 		AppID:            "delivery",
+		TrustBundleID:    "delivery.default",
 		Name:             "Delivery Operations",
 		Version:          "0.0.1",
 		ManifestVersion:  "1.0",
@@ -155,6 +157,7 @@ func TestValidateManifestRejectsAppModulePublicCapability(t *testing.T) {
 		Type:             "app_module",
 		Scope:            "app",
 		AppID:            "delivery",
+		TrustBundleID:    "delivery.default",
 		Name:             "Delivery Operations",
 		Version:          "0.0.1",
 		ManifestVersion:  "1.0",
@@ -184,6 +187,7 @@ func TestValidateManifestRejectsAppModuleOutsideAppNamespace(t *testing.T) {
 		Type:             "app_module",
 		Scope:            "app",
 		AppID:            "delivery",
+		TrustBundleID:    "delivery.default",
 		Name:             "Delivery Operations",
 		Version:          "0.0.1",
 		ManifestVersion:  "1.0",
@@ -207,12 +211,72 @@ func TestValidateManifestRejectsAppModuleOutsideAppNamespace(t *testing.T) {
 	assertContainsError(t, errors, "app_module id must be scoped under app.<app_id>.")
 }
 
+func TestValidateManifestRejectsAppModuleWithoutTrustBundle(t *testing.T) {
+	manifest := Manifest{
+		ID:               "app.delivery.operations",
+		Type:             "app_module",
+		Scope:            "app",
+		AppID:            "delivery",
+		Name:             "Delivery Operations",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "delivery_task",
+			DisplayName: "Delivery Task",
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "delivery_task", Action: "read", Scopes: []string{"space"}}},
+		LocalCapabilities: []CapabilityDefinition{{
+			ID:        "delivery.operations",
+			Version:   "0.0.1",
+			Level:     "declared",
+			Audit:     CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"core_data_api"}},
+		}},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, "trust_bundle_id is required for app_module")
+}
+
+func TestValidateManifestRejectsAppModuleTrustBundleOutsideApp(t *testing.T) {
+	manifest := Manifest{
+		ID:               "app.delivery.operations",
+		Type:             "app_module",
+		Scope:            "app",
+		AppID:            "delivery",
+		TrustBundleID:    "billing.default",
+		Name:             "Delivery Operations",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "delivery_task",
+			DisplayName: "Delivery Task",
+			Actions:     []ActionDefinition{{Key: "read", RiskLevel: "normal"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "delivery_task", Action: "read", Scopes: []string{"space"}}},
+		LocalCapabilities: []CapabilityDefinition{{
+			ID:        "delivery.operations",
+			Version:   "0.0.1",
+			Level:     "declared",
+			Audit:     CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"core_data_api"}},
+		}},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, "trust_bundle_id for app_module must be scoped under <app_id>.")
+}
+
 func TestValidateManifestRejectsLocalCapabilityOutsideAppNamespace(t *testing.T) {
 	manifest := Manifest{
 		ID:               "app.delivery.operations",
 		Type:             "app_module",
 		Scope:            "app",
 		AppID:            "delivery",
+		TrustBundleID:    "delivery.default",
 		Name:             "Delivery Operations",
 		Version:          "0.0.1",
 		ManifestVersion:  "1.0",

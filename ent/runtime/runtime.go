@@ -657,19 +657,19 @@ func init() {
 	// plugin.DefaultScope holds the default value on creation for the scope field.
 	plugin.DefaultScope = pluginDescScope.Default.(string)
 	// pluginDescSource is the schema descriptor for source field.
-	pluginDescSource := pluginFields[8].Descriptor()
+	pluginDescSource := pluginFields[9].Descriptor()
 	// plugin.DefaultSource holds the default value on creation for the source field.
 	plugin.DefaultSource = pluginDescSource.Default.(string)
 	// pluginDescStatus is the schema descriptor for status field.
-	pluginDescStatus := pluginFields[9].Descriptor()
+	pluginDescStatus := pluginFields[10].Descriptor()
 	// plugin.DefaultStatus holds the default value on creation for the status field.
 	plugin.DefaultStatus = pluginDescStatus.Default.(string)
 	// pluginDescCreatedAt is the schema descriptor for created_at field.
-	pluginDescCreatedAt := pluginFields[11].Descriptor()
+	pluginDescCreatedAt := pluginFields[12].Descriptor()
 	// plugin.DefaultCreatedAt holds the default value on creation for the created_at field.
 	plugin.DefaultCreatedAt = pluginDescCreatedAt.Default.(func() time.Time)
 	// pluginDescUpdatedAt is the schema descriptor for updated_at field.
-	pluginDescUpdatedAt := pluginFields[12].Descriptor()
+	pluginDescUpdatedAt := pluginFields[13].Descriptor()
 	// plugin.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	plugin.DefaultUpdatedAt = pluginDescUpdatedAt.Default.(func() time.Time)
 	// plugin.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

@@ -138,6 +138,26 @@ func (_u *PluginUpdate) ClearAppID() *PluginUpdate {
 	return _u
 }
 
+// SetTrustBundleID sets the "trust_bundle_id" field.
+func (_u *PluginUpdate) SetTrustBundleID(v string) *PluginUpdate {
+	_u.mutation.SetTrustBundleID(v)
+	return _u
+}
+
+// SetNillableTrustBundleID sets the "trust_bundle_id" field if the given value is not nil.
+func (_u *PluginUpdate) SetNillableTrustBundleID(v *string) *PluginUpdate {
+	if v != nil {
+		_u.SetTrustBundleID(*v)
+	}
+	return _u
+}
+
+// ClearTrustBundleID clears the value of the "trust_bundle_id" field.
+func (_u *PluginUpdate) ClearTrustBundleID() *PluginUpdate {
+	_u.mutation.ClearTrustBundleID()
+	return _u
+}
+
 // SetSource sets the "source" field.
 func (_u *PluginUpdate) SetSource(v string) *PluginUpdate {
 	_u.mutation.SetSource(v)
@@ -278,6 +298,12 @@ func (_u *PluginUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.AppIDCleared() {
 		_spec.ClearField(plugin.FieldAppID, field.TypeString)
 	}
+	if value, ok := _u.mutation.TrustBundleID(); ok {
+		_spec.SetField(plugin.FieldTrustBundleID, field.TypeString, value)
+	}
+	if _u.mutation.TrustBundleIDCleared() {
+		_spec.ClearField(plugin.FieldTrustBundleID, field.TypeString)
+	}
 	if value, ok := _u.mutation.Source(); ok {
 		_spec.SetField(plugin.FieldSource, field.TypeString, value)
 	}
@@ -417,6 +443,26 @@ func (_u *PluginUpdateOne) SetNillableAppID(v *string) *PluginUpdateOne {
 // ClearAppID clears the value of the "app_id" field.
 func (_u *PluginUpdateOne) ClearAppID() *PluginUpdateOne {
 	_u.mutation.ClearAppID()
+	return _u
+}
+
+// SetTrustBundleID sets the "trust_bundle_id" field.
+func (_u *PluginUpdateOne) SetTrustBundleID(v string) *PluginUpdateOne {
+	_u.mutation.SetTrustBundleID(v)
+	return _u
+}
+
+// SetNillableTrustBundleID sets the "trust_bundle_id" field if the given value is not nil.
+func (_u *PluginUpdateOne) SetNillableTrustBundleID(v *string) *PluginUpdateOne {
+	if v != nil {
+		_u.SetTrustBundleID(*v)
+	}
+	return _u
+}
+
+// ClearTrustBundleID clears the value of the "trust_bundle_id" field.
+func (_u *PluginUpdateOne) ClearTrustBundleID() *PluginUpdateOne {
+	_u.mutation.ClearTrustBundleID()
 	return _u
 }
 
@@ -589,6 +635,12 @@ func (_u *PluginUpdateOne) sqlSave(ctx context.Context) (_node *Plugin, err erro
 	}
 	if _u.mutation.AppIDCleared() {
 		_spec.ClearField(plugin.FieldAppID, field.TypeString)
+	}
+	if value, ok := _u.mutation.TrustBundleID(); ok {
+		_spec.SetField(plugin.FieldTrustBundleID, field.TypeString, value)
+	}
+	if _u.mutation.TrustBundleIDCleared() {
+		_spec.ClearField(plugin.FieldTrustBundleID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Source(); ok {
 		_spec.SetField(plugin.FieldSource, field.TypeString, value)

@@ -203,7 +203,7 @@ func pluginRowMatchesKind(row *coreent.Plugin, kind governedPluginKind) bool {
 		return true
 	}
 	manifest := pluginManifestFromMap(row.Manifest)
-	pluginType, pluginScope, _ := normalizedPluginGovernance(row, manifest)
+	pluginType, pluginScope, _, _ := normalizedPluginGovernance(row, manifest)
 	isAppModule := pluginType == "app_module" || pluginScope == "app"
 	switch kind {
 	case governedPluginKindAppModule:
