@@ -160,6 +160,7 @@ func (s *Server) handlePluginLifecycle(w http.ResponseWriter, r *http.Request, p
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to update plugin status.", err.Error())
 		return
 	}
+	s.invalidateCapabilityProviderCacheForPlugin(r.Context(), pluginKey)
 	row, err := s.loadPluginByKey(r.Context(), pluginKey)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load plugin.", err.Error())

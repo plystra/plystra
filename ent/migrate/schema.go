@@ -457,6 +457,45 @@ var (
 			},
 		},
 	}
+	// CapabilityProviderBindingsColumns holds the columns for the "capability_provider_bindings" table.
+	CapabilityProviderBindingsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "space_id", Type: field.TypeString},
+		{Name: "capability", Type: field.TypeString},
+		{Name: "operation", Type: field.TypeString},
+		{Name: "provider_plugin_id", Type: field.TypeString},
+		{Name: "endpoint", Type: field.TypeString},
+		{Name: "operation_path", Type: field.TypeString, Nullable: true},
+		{Name: "binding_epoch", Type: field.TypeInt, Default: schema.Expr("1")},
+		{Name: "status", Type: field.TypeString, Default: schema.Expr("'active'")},
+		{Name: "identity", Type: field.TypeJSON, Default: schema.Expr("'{}'::jsonb")},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, Default: schema.Expr("'{}'::jsonb")},
+		{Name: "created_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+		{Name: "updated_at", Type: field.TypeTime, Default: schema.Expr("now()")},
+	}
+	// CapabilityProviderBindingsTable holds the schema information for the "capability_provider_bindings" table.
+	CapabilityProviderBindingsTable = &schema.Table{
+		Name:       "capability_provider_bindings",
+		Columns:    CapabilityProviderBindingsColumns,
+		PrimaryKey: []*schema.Column{CapabilityProviderBindingsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "capabilityproviderbinding_space_id_capability_operation",
+				Unique:  true,
+				Columns: []*schema.Column{CapabilityProviderBindingsColumns[1], CapabilityProviderBindingsColumns[2], CapabilityProviderBindingsColumns[3]},
+			},
+			{
+				Name:    "capabilityproviderbinding_space_id_provider_plugin_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{CapabilityProviderBindingsColumns[1], CapabilityProviderBindingsColumns[4], CapabilityProviderBindingsColumns[8]},
+			},
+			{
+				Name:    "capabilityproviderbinding_capability_operation_status",
+				Unique:  false,
+				Columns: []*schema.Column{CapabilityProviderBindingsColumns[2], CapabilityProviderBindingsColumns[3], CapabilityProviderBindingsColumns[8]},
+			},
+		},
+	}
 	// GroupsColumns holds the columns for the "groups" table.
 	GroupsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -962,6 +1001,7 @@ var (
 		AuditLogsTable,
 		BackgroundJobsTable,
 		CapabilityGrantsTable,
+		CapabilityProviderBindingsTable,
 		GroupsTable,
 		MembersTable,
 		MemberRolesTable,

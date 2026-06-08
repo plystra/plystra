@@ -23,6 +23,7 @@ import (
 	"github.com/plystra/core/ent/auditlog"
 	"github.com/plystra/core/ent/backgroundjob"
 	"github.com/plystra/core/ent/capabilitygrant"
+	"github.com/plystra/core/ent/capabilityproviderbinding"
 	"github.com/plystra/core/ent/group"
 	"github.com/plystra/core/ent/member"
 	"github.com/plystra/core/ent/memberrole"
@@ -67,6 +68,8 @@ type Client struct {
 	BackgroundJob *BackgroundJobClient
 	// CapabilityGrant is the client for interacting with the CapabilityGrant builders.
 	CapabilityGrant *CapabilityGrantClient
+	// CapabilityProviderBinding is the client for interacting with the CapabilityProviderBinding builders.
+	CapabilityProviderBinding *CapabilityProviderBindingClient
 	// Group is the client for interacting with the Group builders.
 	Group *GroupClient
 	// Member is the client for interacting with the Member builders.
@@ -125,6 +128,7 @@ func (c *Client) init() {
 	c.AuditLog = NewAuditLogClient(c.config)
 	c.BackgroundJob = NewBackgroundJobClient(c.config)
 	c.CapabilityGrant = NewCapabilityGrantClient(c.config)
+	c.CapabilityProviderBinding = NewCapabilityProviderBindingClient(c.config)
 	c.Group = NewGroupClient(c.config)
 	c.Member = NewMemberClient(c.config)
 	c.MemberRole = NewMemberRoleClient(c.config)
@@ -234,36 +238,37 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:                      ctx,
-		config:                   cfg,
-		AdminGrant:               NewAdminGrantClient(cfg),
-		ApiKey:                   NewApiKeyClient(cfg),
-		AppDataModel:             NewAppDataModelClient(cfg),
-		AppDataRecord:            NewAppDataRecordClient(cfg),
-		AppDataRecordRevision:    NewAppDataRecordRevisionClient(cfg),
-		AuditEventType:           NewAuditEventTypeClient(cfg),
-		AuditLog:                 NewAuditLogClient(cfg),
-		BackgroundJob:            NewBackgroundJobClient(cfg),
-		CapabilityGrant:          NewCapabilityGrantClient(cfg),
-		Group:                    NewGroupClient(cfg),
-		Member:                   NewMemberClient(cfg),
-		MemberRole:               NewMemberRoleClient(cfg),
-		Permission:               NewPermissionClient(cfg),
-		Plugin:                   NewPluginClient(cfg),
-		PluginAdminMenu:          NewPluginAdminMenuClient(cfg),
-		PluginSettingsDefinition: NewPluginSettingsDefinitionClient(cfg),
-		PluginSettingsValue:      NewPluginSettingsValueClient(cfg),
-		Resource:                 NewResourceClient(cfg),
-		ResourceAction:           NewResourceActionClient(cfg),
-		ResourceMapping:          NewResourceMappingClient(cfg),
-		ResourceType:             NewResourceTypeClient(cfg),
-		Role:                     NewRoleClient(cfg),
-		RolePermission:           NewRolePermissionClient(cfg),
-		Session:                  NewSessionClient(cfg),
-		Space:                    NewSpaceClient(cfg),
-		TemplateInstallation:     NewTemplateInstallationClient(cfg),
-		User:                     NewUserClient(cfg),
-		UserMember:               NewUserMemberClient(cfg),
+		ctx:                       ctx,
+		config:                    cfg,
+		AdminGrant:                NewAdminGrantClient(cfg),
+		ApiKey:                    NewApiKeyClient(cfg),
+		AppDataModel:              NewAppDataModelClient(cfg),
+		AppDataRecord:             NewAppDataRecordClient(cfg),
+		AppDataRecordRevision:     NewAppDataRecordRevisionClient(cfg),
+		AuditEventType:            NewAuditEventTypeClient(cfg),
+		AuditLog:                  NewAuditLogClient(cfg),
+		BackgroundJob:             NewBackgroundJobClient(cfg),
+		CapabilityGrant:           NewCapabilityGrantClient(cfg),
+		CapabilityProviderBinding: NewCapabilityProviderBindingClient(cfg),
+		Group:                     NewGroupClient(cfg),
+		Member:                    NewMemberClient(cfg),
+		MemberRole:                NewMemberRoleClient(cfg),
+		Permission:                NewPermissionClient(cfg),
+		Plugin:                    NewPluginClient(cfg),
+		PluginAdminMenu:           NewPluginAdminMenuClient(cfg),
+		PluginSettingsDefinition:  NewPluginSettingsDefinitionClient(cfg),
+		PluginSettingsValue:       NewPluginSettingsValueClient(cfg),
+		Resource:                  NewResourceClient(cfg),
+		ResourceAction:            NewResourceActionClient(cfg),
+		ResourceMapping:           NewResourceMappingClient(cfg),
+		ResourceType:              NewResourceTypeClient(cfg),
+		Role:                      NewRoleClient(cfg),
+		RolePermission:            NewRolePermissionClient(cfg),
+		Session:                   NewSessionClient(cfg),
+		Space:                     NewSpaceClient(cfg),
+		TemplateInstallation:      NewTemplateInstallationClient(cfg),
+		User:                      NewUserClient(cfg),
+		UserMember:                NewUserMemberClient(cfg),
 	}, nil
 }
 
@@ -281,36 +286,37 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:                      ctx,
-		config:                   cfg,
-		AdminGrant:               NewAdminGrantClient(cfg),
-		ApiKey:                   NewApiKeyClient(cfg),
-		AppDataModel:             NewAppDataModelClient(cfg),
-		AppDataRecord:            NewAppDataRecordClient(cfg),
-		AppDataRecordRevision:    NewAppDataRecordRevisionClient(cfg),
-		AuditEventType:           NewAuditEventTypeClient(cfg),
-		AuditLog:                 NewAuditLogClient(cfg),
-		BackgroundJob:            NewBackgroundJobClient(cfg),
-		CapabilityGrant:          NewCapabilityGrantClient(cfg),
-		Group:                    NewGroupClient(cfg),
-		Member:                   NewMemberClient(cfg),
-		MemberRole:               NewMemberRoleClient(cfg),
-		Permission:               NewPermissionClient(cfg),
-		Plugin:                   NewPluginClient(cfg),
-		PluginAdminMenu:          NewPluginAdminMenuClient(cfg),
-		PluginSettingsDefinition: NewPluginSettingsDefinitionClient(cfg),
-		PluginSettingsValue:      NewPluginSettingsValueClient(cfg),
-		Resource:                 NewResourceClient(cfg),
-		ResourceAction:           NewResourceActionClient(cfg),
-		ResourceMapping:          NewResourceMappingClient(cfg),
-		ResourceType:             NewResourceTypeClient(cfg),
-		Role:                     NewRoleClient(cfg),
-		RolePermission:           NewRolePermissionClient(cfg),
-		Session:                  NewSessionClient(cfg),
-		Space:                    NewSpaceClient(cfg),
-		TemplateInstallation:     NewTemplateInstallationClient(cfg),
-		User:                     NewUserClient(cfg),
-		UserMember:               NewUserMemberClient(cfg),
+		ctx:                       ctx,
+		config:                    cfg,
+		AdminGrant:                NewAdminGrantClient(cfg),
+		ApiKey:                    NewApiKeyClient(cfg),
+		AppDataModel:              NewAppDataModelClient(cfg),
+		AppDataRecord:             NewAppDataRecordClient(cfg),
+		AppDataRecordRevision:     NewAppDataRecordRevisionClient(cfg),
+		AuditEventType:            NewAuditEventTypeClient(cfg),
+		AuditLog:                  NewAuditLogClient(cfg),
+		BackgroundJob:             NewBackgroundJobClient(cfg),
+		CapabilityGrant:           NewCapabilityGrantClient(cfg),
+		CapabilityProviderBinding: NewCapabilityProviderBindingClient(cfg),
+		Group:                     NewGroupClient(cfg),
+		Member:                    NewMemberClient(cfg),
+		MemberRole:                NewMemberRoleClient(cfg),
+		Permission:                NewPermissionClient(cfg),
+		Plugin:                    NewPluginClient(cfg),
+		PluginAdminMenu:           NewPluginAdminMenuClient(cfg),
+		PluginSettingsDefinition:  NewPluginSettingsDefinitionClient(cfg),
+		PluginSettingsValue:       NewPluginSettingsValueClient(cfg),
+		Resource:                  NewResourceClient(cfg),
+		ResourceAction:            NewResourceActionClient(cfg),
+		ResourceMapping:           NewResourceMappingClient(cfg),
+		ResourceType:              NewResourceTypeClient(cfg),
+		Role:                      NewRoleClient(cfg),
+		RolePermission:            NewRolePermissionClient(cfg),
+		Session:                   NewSessionClient(cfg),
+		Space:                     NewSpaceClient(cfg),
+		TemplateInstallation:      NewTemplateInstallationClient(cfg),
+		User:                      NewUserClient(cfg),
+		UserMember:                NewUserMemberClient(cfg),
 	}, nil
 }
 
@@ -342,11 +348,11 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.AdminGrant, c.ApiKey, c.AppDataModel, c.AppDataRecord,
 		c.AppDataRecordRevision, c.AuditEventType, c.AuditLog, c.BackgroundJob,
-		c.CapabilityGrant, c.Group, c.Member, c.MemberRole, c.Permission, c.Plugin,
-		c.PluginAdminMenu, c.PluginSettingsDefinition, c.PluginSettingsValue,
-		c.Resource, c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role,
-		c.RolePermission, c.Session, c.Space, c.TemplateInstallation, c.User,
-		c.UserMember,
+		c.CapabilityGrant, c.CapabilityProviderBinding, c.Group, c.Member,
+		c.MemberRole, c.Permission, c.Plugin, c.PluginAdminMenu,
+		c.PluginSettingsDefinition, c.PluginSettingsValue, c.Resource,
+		c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role, c.RolePermission,
+		c.Session, c.Space, c.TemplateInstallation, c.User, c.UserMember,
 	} {
 		n.Use(hooks...)
 	}
@@ -358,11 +364,11 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.AdminGrant, c.ApiKey, c.AppDataModel, c.AppDataRecord,
 		c.AppDataRecordRevision, c.AuditEventType, c.AuditLog, c.BackgroundJob,
-		c.CapabilityGrant, c.Group, c.Member, c.MemberRole, c.Permission, c.Plugin,
-		c.PluginAdminMenu, c.PluginSettingsDefinition, c.PluginSettingsValue,
-		c.Resource, c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role,
-		c.RolePermission, c.Session, c.Space, c.TemplateInstallation, c.User,
-		c.UserMember,
+		c.CapabilityGrant, c.CapabilityProviderBinding, c.Group, c.Member,
+		c.MemberRole, c.Permission, c.Plugin, c.PluginAdminMenu,
+		c.PluginSettingsDefinition, c.PluginSettingsValue, c.Resource,
+		c.ResourceAction, c.ResourceMapping, c.ResourceType, c.Role, c.RolePermission,
+		c.Session, c.Space, c.TemplateInstallation, c.User, c.UserMember,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -389,6 +395,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BackgroundJob.mutate(ctx, m)
 	case *CapabilityGrantMutation:
 		return c.CapabilityGrant.mutate(ctx, m)
+	case *CapabilityProviderBindingMutation:
+		return c.CapabilityProviderBinding.mutate(ctx, m)
 	case *GroupMutation:
 		return c.Group.mutate(ctx, m)
 	case *MemberMutation:
@@ -1627,6 +1635,139 @@ func (c *CapabilityGrantClient) mutate(ctx context.Context, m *CapabilityGrantMu
 		return (&CapabilityGrantDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown CapabilityGrant mutation op: %q", m.Op())
+	}
+}
+
+// CapabilityProviderBindingClient is a client for the CapabilityProviderBinding schema.
+type CapabilityProviderBindingClient struct {
+	config
+}
+
+// NewCapabilityProviderBindingClient returns a client for the CapabilityProviderBinding from the given config.
+func NewCapabilityProviderBindingClient(c config) *CapabilityProviderBindingClient {
+	return &CapabilityProviderBindingClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `capabilityproviderbinding.Hooks(f(g(h())))`.
+func (c *CapabilityProviderBindingClient) Use(hooks ...Hook) {
+	c.hooks.CapabilityProviderBinding = append(c.hooks.CapabilityProviderBinding, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `capabilityproviderbinding.Intercept(f(g(h())))`.
+func (c *CapabilityProviderBindingClient) Intercept(interceptors ...Interceptor) {
+	c.inters.CapabilityProviderBinding = append(c.inters.CapabilityProviderBinding, interceptors...)
+}
+
+// Create returns a builder for creating a CapabilityProviderBinding entity.
+func (c *CapabilityProviderBindingClient) Create() *CapabilityProviderBindingCreate {
+	mutation := newCapabilityProviderBindingMutation(c.config, OpCreate)
+	return &CapabilityProviderBindingCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of CapabilityProviderBinding entities.
+func (c *CapabilityProviderBindingClient) CreateBulk(builders ...*CapabilityProviderBindingCreate) *CapabilityProviderBindingCreateBulk {
+	return &CapabilityProviderBindingCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *CapabilityProviderBindingClient) MapCreateBulk(slice any, setFunc func(*CapabilityProviderBindingCreate, int)) *CapabilityProviderBindingCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &CapabilityProviderBindingCreateBulk{err: fmt.Errorf("calling to CapabilityProviderBindingClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*CapabilityProviderBindingCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &CapabilityProviderBindingCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for CapabilityProviderBinding.
+func (c *CapabilityProviderBindingClient) Update() *CapabilityProviderBindingUpdate {
+	mutation := newCapabilityProviderBindingMutation(c.config, OpUpdate)
+	return &CapabilityProviderBindingUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CapabilityProviderBindingClient) UpdateOne(_m *CapabilityProviderBinding) *CapabilityProviderBindingUpdateOne {
+	mutation := newCapabilityProviderBindingMutation(c.config, OpUpdateOne, withCapabilityProviderBinding(_m))
+	return &CapabilityProviderBindingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CapabilityProviderBindingClient) UpdateOneID(id string) *CapabilityProviderBindingUpdateOne {
+	mutation := newCapabilityProviderBindingMutation(c.config, OpUpdateOne, withCapabilityProviderBindingID(id))
+	return &CapabilityProviderBindingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for CapabilityProviderBinding.
+func (c *CapabilityProviderBindingClient) Delete() *CapabilityProviderBindingDelete {
+	mutation := newCapabilityProviderBindingMutation(c.config, OpDelete)
+	return &CapabilityProviderBindingDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CapabilityProviderBindingClient) DeleteOne(_m *CapabilityProviderBinding) *CapabilityProviderBindingDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CapabilityProviderBindingClient) DeleteOneID(id string) *CapabilityProviderBindingDeleteOne {
+	builder := c.Delete().Where(capabilityproviderbinding.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CapabilityProviderBindingDeleteOne{builder}
+}
+
+// Query returns a query builder for CapabilityProviderBinding.
+func (c *CapabilityProviderBindingClient) Query() *CapabilityProviderBindingQuery {
+	return &CapabilityProviderBindingQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCapabilityProviderBinding},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a CapabilityProviderBinding entity by its id.
+func (c *CapabilityProviderBindingClient) Get(ctx context.Context, id string) (*CapabilityProviderBinding, error) {
+	return c.Query().Where(capabilityproviderbinding.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CapabilityProviderBindingClient) GetX(ctx context.Context, id string) *CapabilityProviderBinding {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *CapabilityProviderBindingClient) Hooks() []Hook {
+	return c.hooks.CapabilityProviderBinding
+}
+
+// Interceptors returns the client interceptors.
+func (c *CapabilityProviderBindingClient) Interceptors() []Interceptor {
+	return c.inters.CapabilityProviderBinding
+}
+
+func (c *CapabilityProviderBindingClient) mutate(ctx context.Context, m *CapabilityProviderBindingMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CapabilityProviderBindingCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CapabilityProviderBindingUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CapabilityProviderBindingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CapabilityProviderBindingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown CapabilityProviderBinding mutation op: %q", m.Op())
 	}
 }
 
@@ -4161,18 +4302,18 @@ func (c *UserMemberClient) mutate(ctx context.Context, m *UserMemberMutation) (V
 type (
 	hooks struct {
 		AdminGrant, ApiKey, AppDataModel, AppDataRecord, AppDataRecordRevision,
-		AuditEventType, AuditLog, BackgroundJob, CapabilityGrant, Group, Member,
-		MemberRole, Permission, Plugin, PluginAdminMenu, PluginSettingsDefinition,
-		PluginSettingsValue, Resource, ResourceAction, ResourceMapping, ResourceType,
-		Role, RolePermission, Session, Space, TemplateInstallation, User,
-		UserMember []ent.Hook
+		AuditEventType, AuditLog, BackgroundJob, CapabilityGrant,
+		CapabilityProviderBinding, Group, Member, MemberRole, Permission, Plugin,
+		PluginAdminMenu, PluginSettingsDefinition, PluginSettingsValue, Resource,
+		ResourceAction, ResourceMapping, ResourceType, Role, RolePermission, Session,
+		Space, TemplateInstallation, User, UserMember []ent.Hook
 	}
 	inters struct {
 		AdminGrant, ApiKey, AppDataModel, AppDataRecord, AppDataRecordRevision,
-		AuditEventType, AuditLog, BackgroundJob, CapabilityGrant, Group, Member,
-		MemberRole, Permission, Plugin, PluginAdminMenu, PluginSettingsDefinition,
-		PluginSettingsValue, Resource, ResourceAction, ResourceMapping, ResourceType,
-		Role, RolePermission, Session, Space, TemplateInstallation, User,
-		UserMember []ent.Interceptor
+		AuditEventType, AuditLog, BackgroundJob, CapabilityGrant,
+		CapabilityProviderBinding, Group, Member, MemberRole, Permission, Plugin,
+		PluginAdminMenu, PluginSettingsDefinition, PluginSettingsValue, Resource,
+		ResourceAction, ResourceMapping, ResourceType, Role, RolePermission, Session,
+		Space, TemplateInstallation, User, UserMember []ent.Interceptor
 	}
 )

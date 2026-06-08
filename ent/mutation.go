@@ -20,6 +20,7 @@ import (
 	"github.com/plystra/core/ent/auditlog"
 	"github.com/plystra/core/ent/backgroundjob"
 	"github.com/plystra/core/ent/capabilitygrant"
+	"github.com/plystra/core/ent/capabilityproviderbinding"
 	"github.com/plystra/core/ent/group"
 	"github.com/plystra/core/ent/member"
 	"github.com/plystra/core/ent/memberrole"
@@ -51,34 +52,35 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeAdminGrant               = "AdminGrant"
-	TypeApiKey                   = "ApiKey"
-	TypeAppDataModel             = "AppDataModel"
-	TypeAppDataRecord            = "AppDataRecord"
-	TypeAppDataRecordRevision    = "AppDataRecordRevision"
-	TypeAuditEventType           = "AuditEventType"
-	TypeAuditLog                 = "AuditLog"
-	TypeBackgroundJob            = "BackgroundJob"
-	TypeCapabilityGrant          = "CapabilityGrant"
-	TypeGroup                    = "Group"
-	TypeMember                   = "Member"
-	TypeMemberRole               = "MemberRole"
-	TypePermission               = "Permission"
-	TypePlugin                   = "Plugin"
-	TypePluginAdminMenu          = "PluginAdminMenu"
-	TypePluginSettingsDefinition = "PluginSettingsDefinition"
-	TypePluginSettingsValue      = "PluginSettingsValue"
-	TypeResource                 = "Resource"
-	TypeResourceAction           = "ResourceAction"
-	TypeResourceMapping          = "ResourceMapping"
-	TypeResourceType             = "ResourceType"
-	TypeRole                     = "Role"
-	TypeRolePermission           = "RolePermission"
-	TypeSession                  = "Session"
-	TypeSpace                    = "Space"
-	TypeTemplateInstallation     = "TemplateInstallation"
-	TypeUser                     = "User"
-	TypeUserMember               = "UserMember"
+	TypeAdminGrant                = "AdminGrant"
+	TypeApiKey                    = "ApiKey"
+	TypeAppDataModel              = "AppDataModel"
+	TypeAppDataRecord             = "AppDataRecord"
+	TypeAppDataRecordRevision     = "AppDataRecordRevision"
+	TypeAuditEventType            = "AuditEventType"
+	TypeAuditLog                  = "AuditLog"
+	TypeBackgroundJob             = "BackgroundJob"
+	TypeCapabilityGrant           = "CapabilityGrant"
+	TypeCapabilityProviderBinding = "CapabilityProviderBinding"
+	TypeGroup                     = "Group"
+	TypeMember                    = "Member"
+	TypeMemberRole                = "MemberRole"
+	TypePermission                = "Permission"
+	TypePlugin                    = "Plugin"
+	TypePluginAdminMenu           = "PluginAdminMenu"
+	TypePluginSettingsDefinition  = "PluginSettingsDefinition"
+	TypePluginSettingsValue       = "PluginSettingsValue"
+	TypeResource                  = "Resource"
+	TypeResourceAction            = "ResourceAction"
+	TypeResourceMapping           = "ResourceMapping"
+	TypeResourceType              = "ResourceType"
+	TypeRole                      = "Role"
+	TypeRolePermission            = "RolePermission"
+	TypeSession                   = "Session"
+	TypeSpace                     = "Space"
+	TypeTemplateInstallation      = "TemplateInstallation"
+	TypeUser                      = "User"
+	TypeUserMember                = "UserMember"
 )
 
 // AdminGrantMutation represents an operation that mutates the AdminGrant nodes in the graph.
@@ -10611,6 +10613,1009 @@ func (m *CapabilityGrantMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *CapabilityGrantMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown CapabilityGrant edge %s", name)
+}
+
+// CapabilityProviderBindingMutation represents an operation that mutates the CapabilityProviderBinding nodes in the graph.
+type CapabilityProviderBindingMutation struct {
+	config
+	op                 Op
+	typ                string
+	id                 *string
+	space_id           *string
+	capability         *string
+	operation          *string
+	provider_plugin_id *string
+	endpoint           *string
+	operation_path     *string
+	binding_epoch      *int
+	addbinding_epoch   *int
+	status             *string
+	identity           *map[string]interface{}
+	metadata           *map[string]interface{}
+	created_at         *time.Time
+	updated_at         *time.Time
+	clearedFields      map[string]struct{}
+	done               bool
+	oldValue           func(context.Context) (*CapabilityProviderBinding, error)
+	predicates         []predicate.CapabilityProviderBinding
+}
+
+var _ ent.Mutation = (*CapabilityProviderBindingMutation)(nil)
+
+// capabilityproviderbindingOption allows management of the mutation configuration using functional options.
+type capabilityproviderbindingOption func(*CapabilityProviderBindingMutation)
+
+// newCapabilityProviderBindingMutation creates new mutation for the CapabilityProviderBinding entity.
+func newCapabilityProviderBindingMutation(c config, op Op, opts ...capabilityproviderbindingOption) *CapabilityProviderBindingMutation {
+	m := &CapabilityProviderBindingMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeCapabilityProviderBinding,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withCapabilityProviderBindingID sets the ID field of the mutation.
+func withCapabilityProviderBindingID(id string) capabilityproviderbindingOption {
+	return func(m *CapabilityProviderBindingMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *CapabilityProviderBinding
+		)
+		m.oldValue = func(ctx context.Context) (*CapabilityProviderBinding, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().CapabilityProviderBinding.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withCapabilityProviderBinding sets the old CapabilityProviderBinding of the mutation.
+func withCapabilityProviderBinding(node *CapabilityProviderBinding) capabilityproviderbindingOption {
+	return func(m *CapabilityProviderBindingMutation) {
+		m.oldValue = func(context.Context) (*CapabilityProviderBinding, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m CapabilityProviderBindingMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m CapabilityProviderBindingMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of CapabilityProviderBinding entities.
+func (m *CapabilityProviderBindingMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *CapabilityProviderBindingMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *CapabilityProviderBindingMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().CapabilityProviderBinding.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetSpaceID sets the "space_id" field.
+func (m *CapabilityProviderBindingMutation) SetSpaceID(s string) {
+	m.space_id = &s
+}
+
+// SpaceID returns the value of the "space_id" field in the mutation.
+func (m *CapabilityProviderBindingMutation) SpaceID() (r string, exists bool) {
+	v := m.space_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSpaceID returns the old "space_id" field's value of the CapabilityProviderBinding entity.
+// If the CapabilityProviderBinding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityProviderBindingMutation) OldSpaceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSpaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSpaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSpaceID: %w", err)
+	}
+	return oldValue.SpaceID, nil
+}
+
+// ResetSpaceID resets all changes to the "space_id" field.
+func (m *CapabilityProviderBindingMutation) ResetSpaceID() {
+	m.space_id = nil
+}
+
+// SetCapability sets the "capability" field.
+func (m *CapabilityProviderBindingMutation) SetCapability(s string) {
+	m.capability = &s
+}
+
+// Capability returns the value of the "capability" field in the mutation.
+func (m *CapabilityProviderBindingMutation) Capability() (r string, exists bool) {
+	v := m.capability
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCapability returns the old "capability" field's value of the CapabilityProviderBinding entity.
+// If the CapabilityProviderBinding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityProviderBindingMutation) OldCapability(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCapability is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCapability requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCapability: %w", err)
+	}
+	return oldValue.Capability, nil
+}
+
+// ResetCapability resets all changes to the "capability" field.
+func (m *CapabilityProviderBindingMutation) ResetCapability() {
+	m.capability = nil
+}
+
+// SetOperation sets the "operation" field.
+func (m *CapabilityProviderBindingMutation) SetOperation(s string) {
+	m.operation = &s
+}
+
+// Operation returns the value of the "operation" field in the mutation.
+func (m *CapabilityProviderBindingMutation) Operation() (r string, exists bool) {
+	v := m.operation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOperation returns the old "operation" field's value of the CapabilityProviderBinding entity.
+// If the CapabilityProviderBinding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityProviderBindingMutation) OldOperation(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOperation is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOperation requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOperation: %w", err)
+	}
+	return oldValue.Operation, nil
+}
+
+// ResetOperation resets all changes to the "operation" field.
+func (m *CapabilityProviderBindingMutation) ResetOperation() {
+	m.operation = nil
+}
+
+// SetProviderPluginID sets the "provider_plugin_id" field.
+func (m *CapabilityProviderBindingMutation) SetProviderPluginID(s string) {
+	m.provider_plugin_id = &s
+}
+
+// ProviderPluginID returns the value of the "provider_plugin_id" field in the mutation.
+func (m *CapabilityProviderBindingMutation) ProviderPluginID() (r string, exists bool) {
+	v := m.provider_plugin_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProviderPluginID returns the old "provider_plugin_id" field's value of the CapabilityProviderBinding entity.
+// If the CapabilityProviderBinding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityProviderBindingMutation) OldProviderPluginID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProviderPluginID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProviderPluginID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProviderPluginID: %w", err)
+	}
+	return oldValue.ProviderPluginID, nil
+}
+
+// ResetProviderPluginID resets all changes to the "provider_plugin_id" field.
+func (m *CapabilityProviderBindingMutation) ResetProviderPluginID() {
+	m.provider_plugin_id = nil
+}
+
+// SetEndpoint sets the "endpoint" field.
+func (m *CapabilityProviderBindingMutation) SetEndpoint(s string) {
+	m.endpoint = &s
+}
+
+// Endpoint returns the value of the "endpoint" field in the mutation.
+func (m *CapabilityProviderBindingMutation) Endpoint() (r string, exists bool) {
+	v := m.endpoint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEndpoint returns the old "endpoint" field's value of the CapabilityProviderBinding entity.
+// If the CapabilityProviderBinding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityProviderBindingMutation) OldEndpoint(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEndpoint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEndpoint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEndpoint: %w", err)
+	}
+	return oldValue.Endpoint, nil
+}
+
+// ResetEndpoint resets all changes to the "endpoint" field.
+func (m *CapabilityProviderBindingMutation) ResetEndpoint() {
+	m.endpoint = nil
+}
+
+// SetOperationPath sets the "operation_path" field.
+func (m *CapabilityProviderBindingMutation) SetOperationPath(s string) {
+	m.operation_path = &s
+}
+
+// OperationPath returns the value of the "operation_path" field in the mutation.
+func (m *CapabilityProviderBindingMutation) OperationPath() (r string, exists bool) {
+	v := m.operation_path
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOperationPath returns the old "operation_path" field's value of the CapabilityProviderBinding entity.
+// If the CapabilityProviderBinding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityProviderBindingMutation) OldOperationPath(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOperationPath is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOperationPath requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOperationPath: %w", err)
+	}
+	return oldValue.OperationPath, nil
+}
+
+// ClearOperationPath clears the value of the "operation_path" field.
+func (m *CapabilityProviderBindingMutation) ClearOperationPath() {
+	m.operation_path = nil
+	m.clearedFields[capabilityproviderbinding.FieldOperationPath] = struct{}{}
+}
+
+// OperationPathCleared returns if the "operation_path" field was cleared in this mutation.
+func (m *CapabilityProviderBindingMutation) OperationPathCleared() bool {
+	_, ok := m.clearedFields[capabilityproviderbinding.FieldOperationPath]
+	return ok
+}
+
+// ResetOperationPath resets all changes to the "operation_path" field.
+func (m *CapabilityProviderBindingMutation) ResetOperationPath() {
+	m.operation_path = nil
+	delete(m.clearedFields, capabilityproviderbinding.FieldOperationPath)
+}
+
+// SetBindingEpoch sets the "binding_epoch" field.
+func (m *CapabilityProviderBindingMutation) SetBindingEpoch(i int) {
+	m.binding_epoch = &i
+	m.addbinding_epoch = nil
+}
+
+// BindingEpoch returns the value of the "binding_epoch" field in the mutation.
+func (m *CapabilityProviderBindingMutation) BindingEpoch() (r int, exists bool) {
+	v := m.binding_epoch
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBindingEpoch returns the old "binding_epoch" field's value of the CapabilityProviderBinding entity.
+// If the CapabilityProviderBinding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityProviderBindingMutation) OldBindingEpoch(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBindingEpoch is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBindingEpoch requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBindingEpoch: %w", err)
+	}
+	return oldValue.BindingEpoch, nil
+}
+
+// AddBindingEpoch adds i to the "binding_epoch" field.
+func (m *CapabilityProviderBindingMutation) AddBindingEpoch(i int) {
+	if m.addbinding_epoch != nil {
+		*m.addbinding_epoch += i
+	} else {
+		m.addbinding_epoch = &i
+	}
+}
+
+// AddedBindingEpoch returns the value that was added to the "binding_epoch" field in this mutation.
+func (m *CapabilityProviderBindingMutation) AddedBindingEpoch() (r int, exists bool) {
+	v := m.addbinding_epoch
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBindingEpoch resets all changes to the "binding_epoch" field.
+func (m *CapabilityProviderBindingMutation) ResetBindingEpoch() {
+	m.binding_epoch = nil
+	m.addbinding_epoch = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *CapabilityProviderBindingMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *CapabilityProviderBindingMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the CapabilityProviderBinding entity.
+// If the CapabilityProviderBinding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityProviderBindingMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *CapabilityProviderBindingMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetIdentity sets the "identity" field.
+func (m *CapabilityProviderBindingMutation) SetIdentity(value map[string]interface{}) {
+	m.identity = &value
+}
+
+// Identity returns the value of the "identity" field in the mutation.
+func (m *CapabilityProviderBindingMutation) Identity() (r map[string]interface{}, exists bool) {
+	v := m.identity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIdentity returns the old "identity" field's value of the CapabilityProviderBinding entity.
+// If the CapabilityProviderBinding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityProviderBindingMutation) OldIdentity(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIdentity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIdentity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIdentity: %w", err)
+	}
+	return oldValue.Identity, nil
+}
+
+// ResetIdentity resets all changes to the "identity" field.
+func (m *CapabilityProviderBindingMutation) ResetIdentity() {
+	m.identity = nil
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *CapabilityProviderBindingMutation) SetMetadata(value map[string]interface{}) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *CapabilityProviderBindingMutation) Metadata() (r map[string]interface{}, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the CapabilityProviderBinding entity.
+// If the CapabilityProviderBinding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityProviderBindingMutation) OldMetadata(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *CapabilityProviderBindingMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[capabilityproviderbinding.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *CapabilityProviderBindingMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[capabilityproviderbinding.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *CapabilityProviderBindingMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, capabilityproviderbinding.FieldMetadata)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *CapabilityProviderBindingMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *CapabilityProviderBindingMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the CapabilityProviderBinding entity.
+// If the CapabilityProviderBinding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityProviderBindingMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *CapabilityProviderBindingMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *CapabilityProviderBindingMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *CapabilityProviderBindingMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the CapabilityProviderBinding entity.
+// If the CapabilityProviderBinding object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CapabilityProviderBindingMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *CapabilityProviderBindingMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the CapabilityProviderBindingMutation builder.
+func (m *CapabilityProviderBindingMutation) Where(ps ...predicate.CapabilityProviderBinding) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the CapabilityProviderBindingMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *CapabilityProviderBindingMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.CapabilityProviderBinding, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *CapabilityProviderBindingMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *CapabilityProviderBindingMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (CapabilityProviderBinding).
+func (m *CapabilityProviderBindingMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *CapabilityProviderBindingMutation) Fields() []string {
+	fields := make([]string, 0, 12)
+	if m.space_id != nil {
+		fields = append(fields, capabilityproviderbinding.FieldSpaceID)
+	}
+	if m.capability != nil {
+		fields = append(fields, capabilityproviderbinding.FieldCapability)
+	}
+	if m.operation != nil {
+		fields = append(fields, capabilityproviderbinding.FieldOperation)
+	}
+	if m.provider_plugin_id != nil {
+		fields = append(fields, capabilityproviderbinding.FieldProviderPluginID)
+	}
+	if m.endpoint != nil {
+		fields = append(fields, capabilityproviderbinding.FieldEndpoint)
+	}
+	if m.operation_path != nil {
+		fields = append(fields, capabilityproviderbinding.FieldOperationPath)
+	}
+	if m.binding_epoch != nil {
+		fields = append(fields, capabilityproviderbinding.FieldBindingEpoch)
+	}
+	if m.status != nil {
+		fields = append(fields, capabilityproviderbinding.FieldStatus)
+	}
+	if m.identity != nil {
+		fields = append(fields, capabilityproviderbinding.FieldIdentity)
+	}
+	if m.metadata != nil {
+		fields = append(fields, capabilityproviderbinding.FieldMetadata)
+	}
+	if m.created_at != nil {
+		fields = append(fields, capabilityproviderbinding.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, capabilityproviderbinding.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *CapabilityProviderBindingMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case capabilityproviderbinding.FieldSpaceID:
+		return m.SpaceID()
+	case capabilityproviderbinding.FieldCapability:
+		return m.Capability()
+	case capabilityproviderbinding.FieldOperation:
+		return m.Operation()
+	case capabilityproviderbinding.FieldProviderPluginID:
+		return m.ProviderPluginID()
+	case capabilityproviderbinding.FieldEndpoint:
+		return m.Endpoint()
+	case capabilityproviderbinding.FieldOperationPath:
+		return m.OperationPath()
+	case capabilityproviderbinding.FieldBindingEpoch:
+		return m.BindingEpoch()
+	case capabilityproviderbinding.FieldStatus:
+		return m.Status()
+	case capabilityproviderbinding.FieldIdentity:
+		return m.Identity()
+	case capabilityproviderbinding.FieldMetadata:
+		return m.Metadata()
+	case capabilityproviderbinding.FieldCreatedAt:
+		return m.CreatedAt()
+	case capabilityproviderbinding.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *CapabilityProviderBindingMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case capabilityproviderbinding.FieldSpaceID:
+		return m.OldSpaceID(ctx)
+	case capabilityproviderbinding.FieldCapability:
+		return m.OldCapability(ctx)
+	case capabilityproviderbinding.FieldOperation:
+		return m.OldOperation(ctx)
+	case capabilityproviderbinding.FieldProviderPluginID:
+		return m.OldProviderPluginID(ctx)
+	case capabilityproviderbinding.FieldEndpoint:
+		return m.OldEndpoint(ctx)
+	case capabilityproviderbinding.FieldOperationPath:
+		return m.OldOperationPath(ctx)
+	case capabilityproviderbinding.FieldBindingEpoch:
+		return m.OldBindingEpoch(ctx)
+	case capabilityproviderbinding.FieldStatus:
+		return m.OldStatus(ctx)
+	case capabilityproviderbinding.FieldIdentity:
+		return m.OldIdentity(ctx)
+	case capabilityproviderbinding.FieldMetadata:
+		return m.OldMetadata(ctx)
+	case capabilityproviderbinding.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case capabilityproviderbinding.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown CapabilityProviderBinding field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CapabilityProviderBindingMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case capabilityproviderbinding.FieldSpaceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSpaceID(v)
+		return nil
+	case capabilityproviderbinding.FieldCapability:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCapability(v)
+		return nil
+	case capabilityproviderbinding.FieldOperation:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOperation(v)
+		return nil
+	case capabilityproviderbinding.FieldProviderPluginID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProviderPluginID(v)
+		return nil
+	case capabilityproviderbinding.FieldEndpoint:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEndpoint(v)
+		return nil
+	case capabilityproviderbinding.FieldOperationPath:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOperationPath(v)
+		return nil
+	case capabilityproviderbinding.FieldBindingEpoch:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBindingEpoch(v)
+		return nil
+	case capabilityproviderbinding.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case capabilityproviderbinding.FieldIdentity:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIdentity(v)
+		return nil
+	case capabilityproviderbinding.FieldMetadata:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
+		return nil
+	case capabilityproviderbinding.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case capabilityproviderbinding.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown CapabilityProviderBinding field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *CapabilityProviderBindingMutation) AddedFields() []string {
+	var fields []string
+	if m.addbinding_epoch != nil {
+		fields = append(fields, capabilityproviderbinding.FieldBindingEpoch)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *CapabilityProviderBindingMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case capabilityproviderbinding.FieldBindingEpoch:
+		return m.AddedBindingEpoch()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CapabilityProviderBindingMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case capabilityproviderbinding.FieldBindingEpoch:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBindingEpoch(v)
+		return nil
+	}
+	return fmt.Errorf("unknown CapabilityProviderBinding numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *CapabilityProviderBindingMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(capabilityproviderbinding.FieldOperationPath) {
+		fields = append(fields, capabilityproviderbinding.FieldOperationPath)
+	}
+	if m.FieldCleared(capabilityproviderbinding.FieldMetadata) {
+		fields = append(fields, capabilityproviderbinding.FieldMetadata)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *CapabilityProviderBindingMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *CapabilityProviderBindingMutation) ClearField(name string) error {
+	switch name {
+	case capabilityproviderbinding.FieldOperationPath:
+		m.ClearOperationPath()
+		return nil
+	case capabilityproviderbinding.FieldMetadata:
+		m.ClearMetadata()
+		return nil
+	}
+	return fmt.Errorf("unknown CapabilityProviderBinding nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *CapabilityProviderBindingMutation) ResetField(name string) error {
+	switch name {
+	case capabilityproviderbinding.FieldSpaceID:
+		m.ResetSpaceID()
+		return nil
+	case capabilityproviderbinding.FieldCapability:
+		m.ResetCapability()
+		return nil
+	case capabilityproviderbinding.FieldOperation:
+		m.ResetOperation()
+		return nil
+	case capabilityproviderbinding.FieldProviderPluginID:
+		m.ResetProviderPluginID()
+		return nil
+	case capabilityproviderbinding.FieldEndpoint:
+		m.ResetEndpoint()
+		return nil
+	case capabilityproviderbinding.FieldOperationPath:
+		m.ResetOperationPath()
+		return nil
+	case capabilityproviderbinding.FieldBindingEpoch:
+		m.ResetBindingEpoch()
+		return nil
+	case capabilityproviderbinding.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case capabilityproviderbinding.FieldIdentity:
+		m.ResetIdentity()
+		return nil
+	case capabilityproviderbinding.FieldMetadata:
+		m.ResetMetadata()
+		return nil
+	case capabilityproviderbinding.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case capabilityproviderbinding.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown CapabilityProviderBinding field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *CapabilityProviderBindingMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *CapabilityProviderBindingMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *CapabilityProviderBindingMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *CapabilityProviderBindingMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *CapabilityProviderBindingMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *CapabilityProviderBindingMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *CapabilityProviderBindingMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown CapabilityProviderBinding unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *CapabilityProviderBindingMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown CapabilityProviderBinding edge %s", name)
 }
 
 // GroupMutation represents an operation that mutates the Group nodes in the graph.

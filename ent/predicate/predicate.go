@@ -33,6 +33,9 @@ type BackgroundJob func(*sql.Selector)
 // CapabilityGrant is the predicate function for capabilitygrant builders.
 type CapabilityGrant func(*sql.Selector)
 
+// CapabilityProviderBinding is the predicate function for capabilityproviderbinding builders.
+type CapabilityProviderBinding func(*sql.Selector)
+
 // Group is the predicate function for group builders.
 type Group func(*sql.Selector)
 

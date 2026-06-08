@@ -36,7 +36,7 @@ func TestAppModulesAreSeparatedFromReusablePluginListing(t *testing.T) {
 
 	suffix := fmt.Sprintf("%d", time.Now().UTC().UnixNano())
 	reusableID := "test.reusable_" + suffix
-	appModuleID := "app.forge.module_" + suffix
+	appModuleID := "app.sample.module_" + suffix
 	t.Cleanup(func() {
 		cleanupPluginIntegrationRows(context.Background(), store.Client(), t, reusableID, appModuleID)
 	})
@@ -54,18 +54,18 @@ func TestAppModulesAreSeparatedFromReusablePluginListing(t *testing.T) {
 	})
 	createPluginRow(t, ctx, store.Client(), "plugin_listing_app_module_"+suffix, appModuleID, plugins.Manifest{
 		ID:               appModuleID,
-		Name:             "Forge App Module",
+		Name:             "Sample App Module",
 		Version:          "1.0.0",
 		Type:             "app_module",
 		Scope:            "app",
-		AppID:            "forge",
+		AppID:            "sample",
 		Source:           "test",
 		Status:           "enabled",
 		ManifestVersion:  "1.0",
 		PluginAPIVersion: "1.0",
 		RequiresCore:     ">=0.0.1",
 		LocalCapabilities: []plugins.CapabilityDefinition{{
-			ID:          "forge.operations.test" + suffix,
+			ID:          "sample.operations.test" + suffix,
 			Version:     "1.0.0",
 			Level:       "declared",
 			Description: "test-only local capability",
@@ -124,16 +124,16 @@ func TestPluginManifestInstallPrunesStaleAppModuleMetadata(t *testing.T) {
 	})
 
 	suffix := fmt.Sprintf("%d", time.Now().UTC().UnixNano())
-	appModuleID := "app.forge.converge_" + suffix
+	appModuleID := "app.sample.converge_" + suffix
 	pluginRowID := "plugin_" + safeIdentifier(appModuleID)
 	t.Cleanup(func() {
 		cleanupPluginManifestMetadataRows(context.Background(), store.Client(), t, appModuleID, pluginRowID)
 	})
 
 	server := NewServer(nil, store, "1.0.0-test")
-	oldManifest := appModuleConvergenceManifest(appModuleID, suffix, "provider.endpoint", "Old Admin", "/apps/forge/old")
+	oldManifest := appModuleConvergenceManifest(appModuleID, suffix, "provider.endpoint", "Old Admin", "/apps/sample/old")
 	installPluginManifestForTest(t, server, oldManifest)
-	newManifest := appModuleConvergenceManifest(appModuleID, suffix, "runtime.endpoint", "New Admin", "/apps/forge/new")
+	newManifest := appModuleConvergenceManifest(appModuleID, suffix, "runtime.endpoint", "New Admin", "/apps/sample/new")
 	installPluginManifestForTest(t, server, newManifest)
 
 	settingsRec := pluginListRequest(server, "/api/v1/app-modules/"+appModuleID+"/settings")
@@ -213,11 +213,11 @@ func cleanupPluginManifestMetadataRows(ctx context.Context, client *coreent.Clie
 func appModuleConvergenceManifest(pluginID, suffix, endpointSettingKey, menuLabel, menuPath string) plugins.Manifest {
 	return plugins.Manifest{
 		ID:               pluginID,
-		Name:             "Forge App Module Convergence Test",
+		Name:             "Sample App Module Convergence Test",
 		Version:          "1.0.0",
 		Type:             "app_module",
 		Scope:            "app",
-		AppID:            "forge",
+		AppID:            "sample",
 		Source:           "test",
 		Status:           "enabled",
 		ManifestVersion:  "1.0",
@@ -231,7 +231,7 @@ func appModuleConvergenceManifest(pluginID, suffix, endpointSettingKey, menuLabe
 			Key:       endpointSettingKey,
 			ValueType: "string",
 			Scope:     "instance",
-			Default:   "https://forge-runtime.example",
+			Default:   "https://sample-runtime.example",
 		}},
 		Runtime: plugins.ProviderRuntimeDefinition{
 			Type:               "external",
@@ -240,7 +240,7 @@ func appModuleConvergenceManifest(pluginID, suffix, endpointSettingKey, menuLabe
 			EndpointSettingKey: endpointSettingKey,
 		},
 		LocalCapabilities: []plugins.CapabilityDefinition{{
-			ID:          "forge.convergence.test" + suffix,
+			ID:          "sample.convergence.test" + suffix,
 			Version:     "1.0.0",
 			Level:       "declared",
 			Description: "test-only app-private capability",

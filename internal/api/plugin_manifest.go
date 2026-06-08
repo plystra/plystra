@@ -126,6 +126,7 @@ func (s *Server) handlePluginInstall(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to install plugin declarations.", err.Error())
 		return
 	}
+	s.invalidateCapabilityProviderCacheForPlugin(r.Context(), req.Manifest.ID)
 	row, err := s.loadPluginByKey(r.Context(), req.Manifest.ID)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load installed plugin.", err.Error())

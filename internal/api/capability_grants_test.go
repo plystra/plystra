@@ -13,11 +13,20 @@ import (
 	"time"
 
 	coreent "github.com/plystra/core/ent"
+	entauditlog "github.com/plystra/core/ent/auditlog"
 	entcapabilitygrant "github.com/plystra/core/ent/capabilitygrant"
+	entcapabilityproviderbinding "github.com/plystra/core/ent/capabilityproviderbinding"
+	entgroup "github.com/plystra/core/ent/group"
 	entmember "github.com/plystra/core/ent/member"
+	entmemberrole "github.com/plystra/core/ent/memberrole"
+	entpermission "github.com/plystra/core/ent/permission"
 	entplugin "github.com/plystra/core/ent/plugin"
-	entpluginsettingsdefinition "github.com/plystra/core/ent/pluginsettingsdefinition"
-	entpluginsettingsvalue "github.com/plystra/core/ent/pluginsettingsvalue"
+	entresource "github.com/plystra/core/ent/resource"
+	entresourceaction "github.com/plystra/core/ent/resourceaction"
+	entresourcemapping "github.com/plystra/core/ent/resourcemapping"
+	entresourcetype "github.com/plystra/core/ent/resourcetype"
+	entrole "github.com/plystra/core/ent/role"
+	entrolepermission "github.com/plystra/core/ent/rolepermission"
 	entuser "github.com/plystra/core/ent/user"
 	entusermember "github.com/plystra/core/ent/usermember"
 	"github.com/plystra/core/internal/plugins"
@@ -29,9 +38,13 @@ type capabilityGrantFixture struct {
 	SpaceID               string
 	APIKeyID              string
 	APIKey                string
+	ProviderAPIKeyID      string
+	ProviderAPIKey        string
 	ProviderRowID         string
 	ProviderPluginID      string
 	ProviderEndpoint      string
+	SpaceProviderEndpoint string
+	SpaceBindingEpoch     int
 	CallerRowID           string
 	CallerPluginID        string
 	CallerCapabilityID    string
@@ -51,6 +64,15 @@ type capabilityGrantFixture struct {
 	PrincipalUserID       string
 	PrincipalMemberID     string
 	PrincipalUserMemberID string
+	GroupID               string
+	ResourceTypeID        string
+	ResourceActionID      string
+	ResourceMappingID     string
+	PermissionID          string
+	RoleID                string
+	RolePermissionID      string
+	MemberRoleID          string
+	InvoiceResourceID     string
 }
 
 func TestCapabilityGrantLedgerIntegration(t *testing.T) {
@@ -95,8 +117,8 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		if target["provider_id"] != fixture.ProviderPluginID {
 			t.Fatalf("target provider_id = %#v, want %q", target["provider_id"], fixture.ProviderPluginID)
 		}
-		if target["endpoint"] != fixture.ProviderEndpoint {
-			t.Fatalf("target endpoint = %#v, want %q", target["endpoint"], fixture.ProviderEndpoint)
+		if target["endpoint"] != fixture.SpaceProviderEndpoint {
+			t.Fatalf("target endpoint = %#v, want %q", target["endpoint"], fixture.SpaceProviderEndpoint)
 		}
 		if target["operation_url"] == "" {
 			t.Fatalf("target operation_url missing: %#v", target)
@@ -116,11 +138,27 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		issuedGrantToken = requireStringField(t, reissuedData, "grant")
 	})
 
+	t.Run("resolves provider binding from request space without query parameter", func(t *testing.T) {
+		body := capabilityGrantIssueBody(fixture, "invoice.inv_space_binding.approval.v1")
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/capability-grants", fixture.APIKey, body)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("issue without query space status = %d, body=%s", rec.Code, rec.Body.String())
+		}
+		data := decodeCapabilityGrantData(t, rec)
+		target := requireObjectField(t, data, "target")
+		if target["endpoint"] != fixture.SpaceProviderEndpoint {
+			t.Fatalf("target endpoint without query = %#v, want %q", target["endpoint"], fixture.SpaceProviderEndpoint)
+		}
+		if got := intField(t, data, "binding_epoch"); got != fixture.SpaceBindingEpoch {
+			t.Fatalf("binding_epoch without query = %d, want %d", got, fixture.SpaceBindingEpoch)
+		}
+	})
+
 	t.Run("introspects active grant metadata", func(t *testing.T) {
 		if issuedGrantToken == "" {
 			t.Fatalf("grant token was not issued")
 		}
-		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/introspect", fixture.SpaceID), fixture.APIKey, map[string]any{
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/introspect", fixture.SpaceID), fixture.ProviderAPIKey, map[string]any{
 			"grant":              issuedGrantToken,
 			"target_provider_id": fixture.ProviderPluginID,
 			"capability":         fixture.MediatedCapabilityID,
@@ -153,6 +191,17 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-outcomes", fixture.SpaceID), fixture.APIKey, map[string]any{
 			"grant_id":               issuedGrantID,
 			"target_idempotency_key": issuedTargetIdempotencyKey,
+			"target_provider_id":     fixture.NoRequiresPluginID,
+			"status":                 "succeeded",
+			"outcome_event_id":       "evt_wrong_target_" + fixture.Suffix,
+		})
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("outcome wrong target status = %d, want 403, body=%s", rec.Code, rec.Body.String())
+		}
+		rec = capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-outcomes", fixture.SpaceID), fixture.ProviderAPIKey, map[string]any{
+			"grant_id":               issuedGrantID,
+			"target_idempotency_key": issuedTargetIdempotencyKey,
+			"target_provider_id":     fixture.ProviderPluginID,
 			"status":                 "succeeded",
 			"outcome_event_id":       "evt_" + fixture.Suffix,
 			"result_ref":             map[string]any{"resource_type": "approval", "resource_id": "apr_123"},
@@ -183,6 +232,97 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		if outcome["status"] != "succeeded" {
 			t.Fatalf("stored outcome status = %#v, want succeeded", outcome["status"])
 		}
+
+		replay := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-outcomes", fixture.SpaceID), fixture.ProviderAPIKey, map[string]any{
+			"grant_id":               issuedGrantID,
+			"target_idempotency_key": issuedTargetIdempotencyKey,
+			"target_provider_id":     fixture.ProviderPluginID,
+			"status":                 "succeeded",
+			"outcome_event_id":       "evt_" + fixture.Suffix,
+		})
+		if replay.Code != http.StatusOK {
+			t.Fatalf("outcome replay status = %d, want 200, body=%s", replay.Code, replay.Body.String())
+		}
+		replayData := decodeCapabilityGrantData(t, replay)
+		if replayData["outcome_status"] != "succeeded" {
+			t.Fatalf("replayed outcome_status = %#v, want succeeded", replayData["outcome_status"])
+		}
+
+		conflict := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-outcomes", fixture.SpaceID), fixture.ProviderAPIKey, map[string]any{
+			"grant_id":               issuedGrantID,
+			"target_idempotency_key": issuedTargetIdempotencyKey,
+			"target_provider_id":     fixture.ProviderPluginID,
+			"status":                 "failed",
+			"outcome_event_id":       "evt_conflict_" + fixture.Suffix,
+		})
+		if conflict.Code != http.StatusConflict {
+			t.Fatalf("outcome conflict status = %d, want 409, body=%s", conflict.Code, conflict.Body.String())
+		}
+
+		reissueUsedBody := capabilityGrantIssueBody(fixture, "invoice.inv_123.approval.v1")
+		reissueUsed := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-grants", fixture.SpaceID), fixture.APIKey, reissueUsedBody)
+		if reissueUsed.Code != http.StatusConflict {
+			t.Fatalf("reissue used grant status = %d, want 409, body=%s", reissueUsed.Code, reissueUsed.Body.String())
+		}
+		payload := decodeCapabilityGrantEnvelope(t, reissueUsed)
+		errorPayload := requireObjectField(t, payload, "error")
+		if errorPayload["code"] != "CAPABILITY_GRANT_REISSUE_DENIED" {
+			t.Fatalf("reissue used grant error code = %#v, want CAPABILITY_GRANT_REISSUE_DENIED", errorPayload["code"])
+		}
+
+		introspectUsed := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/introspect", fixture.SpaceID), fixture.ProviderAPIKey, map[string]any{
+			"grant":              issuedGrantToken,
+			"target_provider_id": fixture.ProviderPluginID,
+			"capability":         fixture.MediatedCapabilityID,
+			"operation":          "create_request",
+		})
+		if introspectUsed.Code != http.StatusOK {
+			t.Fatalf("introspect used grant status = %d, body=%s", introspectUsed.Code, introspectUsed.Body.String())
+		}
+		inactive := decodeCapabilityGrantData(t, introspectUsed)
+		if active, _ := inactive["active"].(bool); active {
+			t.Fatalf("used grant introspected active: %#v", inactive)
+		}
+		if inactive["reason"] != "grant_inactive" {
+			t.Fatalf("used grant reason = %#v, want grant_inactive", inactive["reason"])
+		}
+	})
+
+	t.Run("explicit revoke makes mediated grant fail closed", func(t *testing.T) {
+		body := capabilityGrantIssueBody(fixture, "invoice.inv_explicit_revoke.approval.v1")
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-grants", fixture.SpaceID), fixture.APIKey, body)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("issue explicit revoke grant status = %d, body=%s", rec.Code, rec.Body.String())
+		}
+		data := decodeCapabilityGrantData(t, rec)
+		grantID := requireStringField(t, data, "grant_id")
+		grantToken := requireStringField(t, data, "grant")
+		revoke := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/capability-grants/"+grantID+"/revoke", fixture.APIKey, map[string]any{
+			"reason": "test explicit revoke",
+		})
+		if revoke.Code != http.StatusOK {
+			t.Fatalf("revoke status = %d, want 200, body=%s", revoke.Code, revoke.Body.String())
+		}
+		revoked := decodeCapabilityGrantData(t, revoke)
+		if revoked["status"] != "revoked" || revoked["revoked_reason"] != "test explicit revoke" {
+			t.Fatalf("revoked grant mismatch: %#v", revoked)
+		}
+		introspect := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/introspect", fixture.SpaceID), fixture.ProviderAPIKey, map[string]any{
+			"grant":              grantToken,
+			"target_provider_id": fixture.ProviderPluginID,
+			"capability":         fixture.MediatedCapabilityID,
+			"operation":          "create_request",
+		})
+		if introspect.Code != http.StatusOK {
+			t.Fatalf("introspect revoked grant status = %d, body=%s", introspect.Code, introspect.Body.String())
+		}
+		inactive := decodeCapabilityGrantData(t, introspect)
+		if active, _ := inactive["active"].(bool); active {
+			t.Fatalf("explicitly revoked grant introspected active: %#v", inactive)
+		}
+		if inactive["reason"] != "grant_revoked" {
+			t.Fatalf("explicit revoke reason = %#v, want grant_revoked", inactive["reason"])
+		}
 	})
 
 	t.Run("introspection fails closed after principal binding revocation", func(t *testing.T) {
@@ -202,6 +342,15 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 			t.Fatalf("revoke principal binding: %v", err)
 		}
 		rec = capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/introspect", fixture.SpaceID), fixture.APIKey, map[string]any{
+			"grant":              grantToken,
+			"target_provider_id": fixture.ProviderPluginID,
+			"capability":         fixture.MediatedCapabilityID,
+			"operation":          "create_request",
+		})
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("introspect with caller key status = %d, want 403, body=%s", rec.Code, rec.Body.String())
+		}
+		rec = capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/introspect", fixture.SpaceID), fixture.ProviderAPIKey, map[string]any{
 			"grant":              grantToken,
 			"target_provider_id": fixture.ProviderPluginID,
 			"capability":         fixture.MediatedCapabilityID,
@@ -254,6 +403,65 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 			t.Fatalf("error code = %#v, want CAPABILITY_REQUIREMENT_MISSING", errorPayload["code"])
 		}
 		assertNoGrantForIdempotencyKey(t, ctx, store.Client(), fixture.SpaceID, fixture.ProviderPluginID, "workflow.self_call.v1")
+	})
+
+	t.Run("denies grant when principal lacks resource action permission", func(t *testing.T) {
+		if err := store.Client().MemberRole.UpdateOneID(fixture.MemberRoleID).
+			SetStatus("revoked").
+			Exec(ctx); err != nil {
+			t.Fatalf("revoke member role: %v", err)
+		}
+		body := capabilityGrantIssueBody(fixture, "invoice.authz_denied.v1")
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-grants", fixture.SpaceID), fixture.APIKey, body)
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("resource authorization denial status = %d, want 403, body=%s", rec.Code, rec.Body.String())
+		}
+		payload := decodeCapabilityGrantEnvelope(t, rec)
+		errorPayload := requireObjectField(t, payload, "error")
+		if errorPayload["code"] != "AUTHORIZATION_DENIED" {
+			t.Fatalf("error code = %#v, want AUTHORIZATION_DENIED", errorPayload["code"])
+		}
+		assertNoGrantForIdempotencyKey(t, ctx, store.Client(), fixture.SpaceID, fixture.CallerPluginID, "invoice.authz_denied.v1")
+		if err := store.Client().MemberRole.UpdateOneID(fixture.MemberRoleID).
+			SetStatus("active").
+			Exec(ctx); err != nil {
+			t.Fatalf("restore member role: %v", err)
+		}
+	})
+
+	t.Run("introspection fails closed after resource authorization revocation", func(t *testing.T) {
+		body := capabilityGrantIssueBody(fixture, "invoice.authz_revoked_after_issue.v1")
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-grants", fixture.SpaceID), fixture.APIKey, body)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("issue authz revocation grant status = %d, body=%s", rec.Code, rec.Body.String())
+		}
+		grantToken := requireStringField(t, decodeCapabilityGrantData(t, rec), "grant")
+		if err := store.Client().MemberRole.UpdateOneID(fixture.MemberRoleID).
+			SetStatus("revoked").
+			Exec(ctx); err != nil {
+			t.Fatalf("revoke member role after issue: %v", err)
+		}
+		introspect := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/introspect", fixture.SpaceID), fixture.ProviderAPIKey, map[string]any{
+			"grant":              grantToken,
+			"target_provider_id": fixture.ProviderPluginID,
+			"capability":         fixture.MediatedCapabilityID,
+			"operation":          "create_request",
+		})
+		if introspect.Code != http.StatusOK {
+			t.Fatalf("introspect authz revoked grant status = %d, body=%s", introspect.Code, introspect.Body.String())
+		}
+		inactive := decodeCapabilityGrantData(t, introspect)
+		if active, _ := inactive["active"].(bool); active {
+			t.Fatalf("authz revoked grant introspected active: %#v", inactive)
+		}
+		if inactive["reason"] != "principal_authorization_revoked" {
+			t.Fatalf("authz revoked reason = %#v, want principal_authorization_revoked", inactive["reason"])
+		}
+		if err := store.Client().MemberRole.UpdateOneID(fixture.MemberRoleID).
+			SetStatus("active").
+			Exec(ctx); err != nil {
+			t.Fatalf("restore member role after authz revocation: %v", err)
+		}
 	})
 
 	t.Run("enforces call graph allowed callers and depth", func(t *testing.T) {
@@ -339,6 +547,117 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		}
 		assertNoGrantForIdempotencyKey(t, ctx, store.Client(), fixture.SpaceID, fixture.CallerPluginID, "payment.pay_123.charge.v1")
 	})
+
+	t.Run("manages provider binding and revokes resolver path by binding status", func(t *testing.T) {
+		bindingID := "cpb_" + safeIdentifier(fixture.SpaceID+"_"+fixture.MediatedCapabilityID+"_create_request")
+		list := capabilityGrantJSONRequest(handler, http.MethodGet, "/api/v1/capability-provider-bindings?space_id="+fixture.SpaceID, fixture.APIKey, nil)
+		if list.Code != http.StatusOK {
+			t.Fatalf("list bindings status = %d, body=%s", list.Code, list.Body.String())
+		}
+		listPayload := decodeCapabilityGrantEnvelope(t, list)
+		rows, ok := listPayload["data"].([]any)
+		if !ok || len(rows) == 0 {
+			t.Fatalf("list bindings returned no rows: %#v", listPayload["data"])
+		}
+
+		upsert := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/capability-provider-bindings", fixture.APIKey, map[string]any{
+			"space_id":           fixture.SpaceID,
+			"capability":         fixture.MediatedCapabilityID,
+			"operation":          "create_request",
+			"provider_plugin_id": fixture.ProviderPluginID,
+			"endpoint":           "https://workflow-new-" + fixture.Suffix + ".space.internal",
+			"operation_path":     "/v1/capabilities/" + strings.ReplaceAll(fixture.MediatedCapabilityID, ".", "/") + "/create_request",
+			"identity":           map[string]any{"provider_id": fixture.ProviderPluginID, "endpoint_id": "ep_new_" + fixture.Suffix},
+			"metadata":           map[string]any{"reason": "test_rebind"},
+			"status":             "active",
+		})
+		if upsert.Code != http.StatusOK {
+			t.Fatalf("upsert existing binding status = %d, body=%s", upsert.Code, upsert.Body.String())
+		}
+		upsertData := decodeCapabilityGrantData(t, upsert)
+		if got := intField(t, upsertData, "binding_epoch"); got != fixture.SpaceBindingEpoch+1 {
+			t.Fatalf("rebinding epoch = %d, want %d", got, fixture.SpaceBindingEpoch+1)
+		}
+
+		staleBody := capabilityGrantIssueBody(fixture, "invoice.stale_provider.v1")
+		staleGrant := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/capability-grants", fixture.APIKey, staleBody)
+		if staleGrant.Code != http.StatusCreated {
+			t.Fatalf("stale grant issue status = %d, body=%s", staleGrant.Code, staleGrant.Body.String())
+		}
+		staleData := decodeCapabilityGrantData(t, staleGrant)
+		staleToken := requireStringField(t, staleData, "grant")
+		staleEpoch := intField(t, staleData, "binding_epoch")
+
+		body := capabilityGrantIssueBody(fixture, "invoice.rebound_provider.v1")
+		grant := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/capability-grants", fixture.APIKey, body)
+		if grant.Code != http.StatusCreated {
+			t.Fatalf("grant after rebind status = %d, body=%s", grant.Code, grant.Body.String())
+		}
+		grantData := decodeCapabilityGrantData(t, grant)
+		target := requireObjectField(t, grantData, "target")
+		if target["endpoint"] != "https://workflow-new-"+fixture.Suffix+".space.internal" {
+			t.Fatalf("grant target endpoint after rebind = %#v", target["endpoint"])
+		}
+		if got := intField(t, grantData, "binding_epoch"); got != fixture.SpaceBindingEpoch+1 {
+			t.Fatalf("grant binding_epoch after rebind = %d, want %d", got, fixture.SpaceBindingEpoch+1)
+		}
+
+		secondRebind := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/capability-provider-bindings", fixture.APIKey, map[string]any{
+			"space_id":           fixture.SpaceID,
+			"capability":         fixture.MediatedCapabilityID,
+			"operation":          "create_request",
+			"provider_plugin_id": fixture.ProviderPluginID,
+			"endpoint":           "https://workflow-next-" + fixture.Suffix + ".space.internal",
+			"operation_path":     "/v1/capabilities/" + strings.ReplaceAll(fixture.MediatedCapabilityID, ".", "/") + "/create_request",
+			"identity":           map[string]any{"provider_id": fixture.ProviderPluginID, "endpoint_id": "ep_next_" + fixture.Suffix},
+			"status":             "active",
+		})
+		if secondRebind.Code != http.StatusOK {
+			t.Fatalf("second rebind status = %d, body=%s", secondRebind.Code, secondRebind.Body.String())
+		}
+		staleIntrospect := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/grants/introspect", fixture.SpaceID), fixture.ProviderAPIKey, map[string]any{
+			"grant":              staleToken,
+			"target_provider_id": fixture.ProviderPluginID,
+			"capability":         fixture.MediatedCapabilityID,
+			"operation":          "create_request",
+		})
+		if staleIntrospect.Code != http.StatusOK {
+			t.Fatalf("stale binding introspect status = %d, body=%s", staleIntrospect.Code, staleIntrospect.Body.String())
+		}
+		staleInactive := decodeCapabilityGrantData(t, staleIntrospect)
+		if active, _ := staleInactive["active"].(bool); active {
+			t.Fatalf("stale binding grant introspected active: %#v", staleInactive)
+		}
+		if staleInactive["reason"] != "provider_binding_stale" {
+			t.Fatalf("stale binding reason = %#v, want provider_binding_stale; grant_epoch=%d", staleInactive["reason"], staleEpoch)
+		}
+
+		bad := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/capability-provider-bindings", fixture.APIKey, map[string]any{
+			"space_id":           fixture.SpaceID,
+			"capability":         fixture.MediatedCapabilityID,
+			"operation":          "create_request",
+			"provider_plugin_id": fixture.ProviderPluginID,
+			"endpoint":           "https://user:pass@workflow.example.test",
+			"identity":           map[string]any{"provider_id": fixture.ProviderPluginID},
+		})
+		if bad.Code != http.StatusBadRequest {
+			t.Fatalf("credential endpoint binding status = %d, want 400, body=%s", bad.Code, bad.Body.String())
+		}
+
+		disabled := capabilityGrantJSONRequest(handler, http.MethodDelete, "/api/v1/capability-provider-bindings/"+bindingID, fixture.APIKey, nil)
+		if disabled.Code != http.StatusOK {
+			t.Fatalf("disable binding status = %d, body=%s", disabled.Code, disabled.Body.String())
+		}
+		disabledData := decodeCapabilityGrantData(t, disabled)
+		if disabledData["status"] != "disabled" {
+			t.Fatalf("disabled binding status = %#v, want disabled", disabledData["status"])
+		}
+		body = capabilityGrantIssueBody(fixture, "invoice.disabled_provider.v1")
+		deniedGrant := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/capability-grants", fixture.APIKey, body)
+		if deniedGrant.Code != http.StatusNotFound {
+			t.Fatalf("grant with disabled binding status = %d, want 404, body=%s", deniedGrant.Code, deniedGrant.Body.String())
+		}
+	})
 }
 
 func capabilityGrantTestDatabaseURL() string {
@@ -357,9 +676,12 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 		Suffix:                suffix,
 		SpaceID:               "space_capability_grants_" + suffix,
 		APIKeyID:              "ak_capability_grants_" + suffix,
+		ProviderAPIKeyID:      "ak_capability_grants_provider_" + suffix,
 		ProviderRowID:         "plugin_capability_grants_provider_" + suffix,
 		ProviderPluginID:      "test.workflow_" + suffix,
 		ProviderEndpoint:      "http://workflow-provider-" + suffix + ".internal",
+		SpaceProviderEndpoint: "http://workflow-provider-" + suffix + ".space.internal",
+		SpaceBindingEpoch:     7,
 		CallerRowID:           "plugin_capability_grants_caller_" + suffix,
 		CallerPluginID:        "test.invoice_" + suffix,
 		CallerCapabilityID:    "resource.invoice_" + suffix,
@@ -379,6 +701,15 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 		PrincipalUserID:       "user_capability_grants_" + suffix,
 		PrincipalMemberID:     "member_capability_grants_" + suffix,
 		PrincipalUserMemberID: "um_capability_grants_" + suffix,
+		GroupID:               "group_capability_grants_" + suffix,
+		ResourceTypeID:        "rt_capability_grants_invoice_" + suffix,
+		ResourceActionID:      "ra_capability_grants_invoice_approve_" + suffix,
+		ResourceMappingID:     "rm_capability_grants_invoice_" + suffix,
+		PermissionID:          "perm_capability_grants_invoice_approve_" + suffix,
+		RoleID:                "role_capability_grants_approver_" + suffix,
+		RolePermissionID:      "rp_capability_grants_approve_" + suffix,
+		MemberRoleID:          "mr_capability_grants_approver_" + suffix,
+		InvoiceResourceID:     "invoice_capability_grants_" + suffix,
 	}
 
 	apiKey, err := newAPIKeyPlaintext(fixture.APIKeyID)
@@ -386,6 +717,11 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 		t.Fatalf("generate api key: %v", err)
 	}
 	fixture.APIKey = apiKey
+	providerAPIKey, err := newAPIKeyPlaintext(fixture.ProviderAPIKeyID)
+	if err != nil {
+		t.Fatalf("generate provider api key: %v", err)
+	}
+	fixture.ProviderAPIKey = providerAPIKey
 
 	if _, err := client.Space.Create().SetID(fixture.SpaceID).SetName("Capability Grant Test Space").SetSlug("capability-grants-" + suffix).Save(ctx); err != nil {
 		t.Fatalf("create space: %v", err)
@@ -416,30 +752,119 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 		Save(ctx); err != nil {
 		t.Fatalf("create principal user member: %v", err)
 	}
+	if _, err := client.Group.Create().
+		SetID(fixture.GroupID).
+		SetSpaceID(fixture.SpaceID).
+		SetName("capability-grants").
+		SetDisplayName("Capability Grants").
+		SetPath("capability_grants").
+		SetDepth(0).
+		Save(ctx); err != nil {
+		t.Fatalf("create authorization group: %v", err)
+	}
+	if _, err := client.ResourceType.Create().
+		SetID(fixture.ResourceTypeID).
+		SetKey("invoice").
+		SetDisplayName("Invoice").
+		SetSource("test").
+		SetStatus("active").
+		Save(ctx); err != nil {
+		t.Fatalf("create invoice resource type: %v", err)
+	}
+	if _, err := client.ResourceAction.Create().
+		SetID(fixture.ResourceActionID).
+		SetResourceTypeID(fixture.ResourceTypeID).
+		SetKey("approve").
+		SetDisplayName("Approve").
+		SetRiskLevel("normal").
+		SetAuditDefault(true).
+		Save(ctx); err != nil {
+		t.Fatalf("create invoice approve action: %v", err)
+	}
+	if _, err := client.ResourceMapping.Create().
+		SetID(fixture.ResourceMappingID).
+		SetResourceTypeID(fixture.ResourceTypeID).
+		SetStorageKind("internal_table").
+		SetTableName("resources").
+		SetIDField("id").
+		SetSpaceField("space_id").
+		SetGroupField("group_id").
+		SetOwnerMemberField("owner_member_id").
+		SetMetadataField("metadata").
+		SetStatus("active").
+		Save(ctx); err != nil {
+		t.Fatalf("create invoice resource mapping: %v", err)
+	}
+	if _, err := client.Permission.Create().
+		SetID(fixture.PermissionID).
+		SetResource("invoice").
+		SetAction("approve").
+		SetScope("space").
+		SetStatus("active").
+		Save(ctx); err != nil {
+		t.Fatalf("create invoice approve permission: %v", err)
+	}
+	if _, err := client.Role.Create().
+		SetID(fixture.RoleID).
+		SetSpaceID(fixture.SpaceID).
+		SetKey("capability_approver").
+		SetName("Capability Approver").
+		SetStatus("active").
+		Save(ctx); err != nil {
+		t.Fatalf("create capability approver role: %v", err)
+	}
+	if _, err := client.RolePermission.Create().
+		SetID(fixture.RolePermissionID).
+		SetRoleID(fixture.RoleID).
+		SetPermissionID(fixture.PermissionID).
+		Save(ctx); err != nil {
+		t.Fatalf("create role permission: %v", err)
+	}
+	if _, err := client.MemberRole.Create().
+		SetID(fixture.MemberRoleID).
+		SetMemberID(fixture.PrincipalMemberID).
+		SetRoleID(fixture.RoleID).
+		SetSpaceID(fixture.SpaceID).
+		SetStatus("active").
+		Save(ctx); err != nil {
+		t.Fatalf("create member role: %v", err)
+	}
+	if _, err := client.Resource.Create().
+		SetID(fixture.InvoiceResourceID).
+		SetResourceType("invoice").
+		SetSpaceID(fixture.SpaceID).
+		SetGroupID(fixture.GroupID).
+		SetOwnerMemberID(fixture.PrincipalMemberID).
+		SetDisplayName("Capability Grant Invoice").
+		SetVisibility("private").
+		SetStatus("active").
+		Save(ctx); err != nil {
+		t.Fatalf("create invoice resource: %v", err)
+	}
 	if _, err := client.ApiKey.Create().
 		SetID(fixture.APIKeyID).
 		SetName("Capability grant test key").
 		SetKeyPrefix(apiKeyPrefix(fixture.APIKeyID)).
 		SetKeyHash(apiKeyHash(apiKey)).
-		SetLevel("space").
-		SetSpaceID(fixture.SpaceID).
-		SetPermissionKeys([]string{"capabilities:invoke", "capabilities:manage"}).
+		SetLevel("instance").
+		SetPermissionKeys([]string{"capabilities:invoke", "capabilities:manage", "plugins:read", "plugins:manage"}).
 		Save(ctx); err != nil {
 		t.Fatalf("create api key: %v", err)
+	}
+	if _, err := client.ApiKey.Create().
+		SetID(fixture.ProviderAPIKeyID).
+		SetName("Capability grant provider runtime key").
+		SetKeyPrefix(apiKeyPrefix(fixture.ProviderAPIKeyID)).
+		SetKeyHash(apiKeyHash(providerAPIKey)).
+		SetLevel("instance").
+		SetPermissionKeys([]string{"capabilities:manage"}).
+		SetMetadata(map[string]any{"provider_plugin_id": fixture.ProviderPluginID}).
+		Save(ctx); err != nil {
+		t.Fatalf("create provider api key: %v", err)
 	}
 
 	providerManifest := capabilityGrantProviderManifest(fixture)
 	createPluginRow(t, ctx, client, fixture.ProviderRowID, fixture.ProviderPluginID, providerManifest)
-	if _, err := client.PluginSettingsDefinition.Create().
-		SetID("psd_capability_grants_endpoint_" + suffix).
-		SetPluginID(fixture.ProviderRowID).
-		SetKey("provider.endpoint").
-		SetValueType("string").
-		SetScope("instance").
-		SetDefaultValue(map[string]any{"value": fixture.ProviderEndpoint}).
-		Save(ctx); err != nil {
-		t.Fatalf("create provider endpoint setting definition: %v", err)
-	}
 
 	createPluginRow(t, ctx, client, fixture.CallerRowID, fixture.CallerPluginID, capabilityGrantCallerManifest(fixture, true))
 	createPluginRow(t, ctx, client, fixture.DisallowedRowID, fixture.DisallowedPluginID, capabilityGrantDisallowedCallerManifest(fixture))
@@ -447,6 +872,9 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 	createPluginRow(t, ctx, client, fixture.LocalProviderRowID, fixture.LocalProviderPluginID, capabilityGrantLocalProviderManifest(fixture))
 	createPluginRow(t, ctx, client, fixture.LocalCallerRowID, fixture.LocalCallerPluginID, capabilityGrantLocalCallerManifest(fixture, fixture.LocalCallerPluginID, "delivery"))
 	createPluginRow(t, ctx, client, fixture.ForeignCallerRowID, fixture.ForeignCallerPluginID, capabilityGrantLocalCallerManifest(fixture, fixture.ForeignCallerPluginID, "other"))
+	createCapabilityProviderBinding(t, ctx, client, fixture, fixture.MediatedCapabilityID, "create_request", fixture.ProviderPluginID, fixture.SpaceProviderEndpoint, "/v1/capabilities/"+strings.ReplaceAll(fixture.MediatedCapabilityID, ".", "/")+"/create_request", fixture.SpaceBindingEpoch)
+	createCapabilityProviderBinding(t, ctx, client, fixture, fixture.BrokeredCapabilityID, "charge", fixture.ProviderPluginID, fixture.SpaceProviderEndpoint, "/v1/capabilities/"+strings.ReplaceAll(fixture.BrokeredCapabilityID, ".", "/")+"/charge", fixture.SpaceBindingEpoch)
+	createCapabilityProviderBinding(t, ctx, client, fixture, fixture.LocalCapabilityID, "execute", fixture.LocalProviderPluginID, "http://local-provider-"+suffix+".space.internal", "/v1/local/delivery/execute", 3)
 
 	return fixture
 }
@@ -470,6 +898,28 @@ func createPluginRow(t *testing.T, ctx context.Context, client *coreent.Client, 
 	}
 }
 
+func createCapabilityProviderBinding(t *testing.T, ctx context.Context, client *coreent.Client, fixture capabilityGrantFixture, capabilityID, operation, providerID, endpoint, operationPath string, epoch int) {
+	t.Helper()
+	bindingID := "cpb_" + safeIdentifier(fixture.SpaceID+"_"+capabilityID+"_"+operation)
+	create := client.CapabilityProviderBinding.Create().
+		SetID(bindingID).
+		SetSpaceID(fixture.SpaceID).
+		SetCapability(capabilityID).
+		SetOperation(operation).
+		SetProviderPluginID(providerID).
+		SetEndpoint(endpoint).
+		SetBindingEpoch(epoch).
+		SetStatus("active").
+		SetIdentity(map[string]any{"provider_id": providerID, "binding_id": bindingID}).
+		SetMetadata(map[string]any{"test": "capability_grants"})
+	if operationPath != "" {
+		create.SetOperationPath(operationPath)
+	}
+	if _, err := create.Save(ctx); err != nil {
+		t.Fatalf("create capability provider binding %s %s: %v", capabilityID, operation, err)
+	}
+}
+
 func capabilityGrantProviderManifest(fixture capabilityGrantFixture) plugins.Manifest {
 	return plugins.Manifest{
 		ID:               fixture.ProviderPluginID,
@@ -480,17 +930,10 @@ func capabilityGrantProviderManifest(fixture capabilityGrantFixture) plugins.Man
 		ManifestVersion:  "1.0",
 		PluginAPIVersion: "1.0",
 		RequiresCore:     ">=1.0.0",
-		Settings: []plugins.SettingDefinition{{
-			Key:       "provider.endpoint",
-			ValueType: "string",
-			Scope:     "instance",
-			Default:   fixture.ProviderEndpoint,
-		}},
 		Runtime: plugins.ProviderRuntimeDefinition{
-			Type:               "external",
-			Protocol:           "http_json",
-			Version:            "1.0.0",
-			EndpointSettingKey: "provider.endpoint",
+			Type:     "external",
+			Protocol: "http_json",
+			Version:  "1.0.0",
 		},
 		Capabilities: []plugins.CapabilityDefinition{
 			{
@@ -657,10 +1100,10 @@ func cleanupCapabilityGrantFixture(ctx context.Context, t *testing.T, client *co
 	}
 	_, err := client.CapabilityGrant.Delete().Where(entcapabilitygrant.SpaceID(fixture.SpaceID)).Exec(ctx)
 	ignore("capability grants", err)
-	_, err = client.PluginSettingsValue.Delete().Where(entpluginsettingsvalue.PluginID(fixture.ProviderRowID)).Exec(ctx)
-	ignore("plugin setting values", err)
-	_, err = client.PluginSettingsDefinition.Delete().Where(entpluginsettingsdefinition.PluginID(fixture.ProviderRowID)).Exec(ctx)
-	ignore("plugin setting definitions", err)
+	_, err = client.CapabilityProviderBinding.Delete().Where(entcapabilityproviderbinding.SpaceID(fixture.SpaceID)).Exec(ctx)
+	ignore("capability provider bindings", err)
+	_, err = client.AuditLog.Delete().Where(entauditlog.SpaceID(fixture.SpaceID)).Exec(ctx)
+	ignore("audit logs", err)
 	_, err = client.Plugin.Delete().Where(entplugin.IDIn(
 		fixture.ProviderRowID,
 		fixture.CallerRowID,
@@ -671,7 +1114,31 @@ func cleanupCapabilityGrantFixture(ctx context.Context, t *testing.T, client *co
 		fixture.ForeignCallerRowID,
 	)).Exec(ctx)
 	ignore("plugins", err)
+	_, err = client.Resource.Delete().Where(entresource.SpaceID(fixture.SpaceID)).Exec(ctx)
+	ignore("resources", err)
+	_, err = client.MemberRole.Delete().Where(entmemberrole.SpaceID(fixture.SpaceID)).Exec(ctx)
+	ignore("member roles", err)
+	_, err = client.RolePermission.Delete().Where(entrolepermission.RoleID(fixture.RoleID)).Exec(ctx)
+	ignore("role permissions", err)
+	_, err = client.Role.Delete().Where(entrole.SpaceID(fixture.SpaceID)).Exec(ctx)
+	ignore("roles", err)
+	_, err = client.Permission.Delete().Where(entpermission.ID(fixture.PermissionID)).Exec(ctx)
+	ignore("permissions", err)
+	_, err = client.ResourceMapping.Delete().Where(entresourcemapping.ResourceTypeID(fixture.ResourceTypeID)).Exec(ctx)
+	ignore("resource mappings", err)
+	_, err = client.ResourceAction.Delete().Where(entresourceaction.ResourceTypeID(fixture.ResourceTypeID)).Exec(ctx)
+	ignore("resource actions", err)
+	_, err = client.ResourceType.Delete().Where(entresourcetype.ID(fixture.ResourceTypeID)).Exec(ctx)
+	ignore("resource types", err)
+	_, err = client.Group.Delete().Where(entgroup.SpaceID(fixture.SpaceID)).Exec(ctx)
+	ignore("groups", err)
 	ignore("api key", client.ApiKey.UpdateOneID(fixture.APIKeyID).
+		SetStatus("revoked").
+		SetRevokedAt(now).
+		SetRevokedReason("test cleanup").
+		SetDeletedAt(now).
+		Exec(ctx))
+	ignore("provider api key", client.ApiKey.UpdateOneID(fixture.ProviderAPIKeyID).
 		SetStatus("revoked").
 		SetRevokedAt(now).
 		SetRevokedReason("test cleanup").
@@ -698,8 +1165,9 @@ func capabilityGrantIssueBody(fixture capabilityGrantFixture, idempotencyKey str
 		},
 		"executor": map[string]any{"plugin_id": fixture.CallerPluginID},
 		"resource": map[string]any{
-			"type": "invoice",
-			"id":   "inv_123",
+			"resource_type": "invoice",
+			"resource_id":   fixture.InvoiceResourceID,
+			"action":        "approve",
 		},
 		"input_summary": map[string]any{
 			"amount":   12000,
@@ -765,6 +1233,19 @@ func requireStringField(t *testing.T, values map[string]any, key string) string 
 		t.Fatalf("%s is not a non-empty string: %#v", key, values[key])
 	}
 	return value
+}
+
+func intField(t *testing.T, values map[string]any, key string) int {
+	t.Helper()
+	switch value := values[key].(type) {
+	case float64:
+		return int(value)
+	case int:
+		return value
+	default:
+		t.Fatalf("%s is not a number: %#v", key, values[key])
+		return 0
+	}
 }
 
 func assertNoGrantForIdempotencyKey(t *testing.T, ctx context.Context, client *coreent.Client, spaceID, callerPluginID, idempotencyKey string) {

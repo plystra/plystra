@@ -14,6 +14,7 @@ import (
 	"github.com/plystra/core/ent/auditlog"
 	"github.com/plystra/core/ent/backgroundjob"
 	"github.com/plystra/core/ent/capabilitygrant"
+	"github.com/plystra/core/ent/capabilityproviderbinding"
 	"github.com/plystra/core/ent/group"
 	"github.com/plystra/core/ent/member"
 	"github.com/plystra/core/ent/memberrole"
@@ -378,6 +379,50 @@ func init() {
 	capabilitygrantDescID := capabilitygrantFields[0].Descriptor()
 	// capabilitygrant.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	capabilitygrant.IDValidator = capabilitygrantDescID.Validators[0].(func(string) error)
+	capabilityproviderbindingFields := schema.CapabilityProviderBinding{}.Fields()
+	_ = capabilityproviderbindingFields
+	// capabilityproviderbindingDescSpaceID is the schema descriptor for space_id field.
+	capabilityproviderbindingDescSpaceID := capabilityproviderbindingFields[1].Descriptor()
+	// capabilityproviderbinding.SpaceIDValidator is a validator for the "space_id" field. It is called by the builders before save.
+	capabilityproviderbinding.SpaceIDValidator = capabilityproviderbindingDescSpaceID.Validators[0].(func(string) error)
+	// capabilityproviderbindingDescCapability is the schema descriptor for capability field.
+	capabilityproviderbindingDescCapability := capabilityproviderbindingFields[2].Descriptor()
+	// capabilityproviderbinding.CapabilityValidator is a validator for the "capability" field. It is called by the builders before save.
+	capabilityproviderbinding.CapabilityValidator = capabilityproviderbindingDescCapability.Validators[0].(func(string) error)
+	// capabilityproviderbindingDescOperation is the schema descriptor for operation field.
+	capabilityproviderbindingDescOperation := capabilityproviderbindingFields[3].Descriptor()
+	// capabilityproviderbinding.OperationValidator is a validator for the "operation" field. It is called by the builders before save.
+	capabilityproviderbinding.OperationValidator = capabilityproviderbindingDescOperation.Validators[0].(func(string) error)
+	// capabilityproviderbindingDescProviderPluginID is the schema descriptor for provider_plugin_id field.
+	capabilityproviderbindingDescProviderPluginID := capabilityproviderbindingFields[4].Descriptor()
+	// capabilityproviderbinding.ProviderPluginIDValidator is a validator for the "provider_plugin_id" field. It is called by the builders before save.
+	capabilityproviderbinding.ProviderPluginIDValidator = capabilityproviderbindingDescProviderPluginID.Validators[0].(func(string) error)
+	// capabilityproviderbindingDescEndpoint is the schema descriptor for endpoint field.
+	capabilityproviderbindingDescEndpoint := capabilityproviderbindingFields[5].Descriptor()
+	// capabilityproviderbinding.EndpointValidator is a validator for the "endpoint" field. It is called by the builders before save.
+	capabilityproviderbinding.EndpointValidator = capabilityproviderbindingDescEndpoint.Validators[0].(func(string) error)
+	// capabilityproviderbindingDescBindingEpoch is the schema descriptor for binding_epoch field.
+	capabilityproviderbindingDescBindingEpoch := capabilityproviderbindingFields[7].Descriptor()
+	// capabilityproviderbinding.DefaultBindingEpoch holds the default value on creation for the binding_epoch field.
+	capabilityproviderbinding.DefaultBindingEpoch = capabilityproviderbindingDescBindingEpoch.Default.(int)
+	// capabilityproviderbindingDescStatus is the schema descriptor for status field.
+	capabilityproviderbindingDescStatus := capabilityproviderbindingFields[8].Descriptor()
+	// capabilityproviderbinding.DefaultStatus holds the default value on creation for the status field.
+	capabilityproviderbinding.DefaultStatus = capabilityproviderbindingDescStatus.Default.(string)
+	// capabilityproviderbindingDescCreatedAt is the schema descriptor for created_at field.
+	capabilityproviderbindingDescCreatedAt := capabilityproviderbindingFields[11].Descriptor()
+	// capabilityproviderbinding.DefaultCreatedAt holds the default value on creation for the created_at field.
+	capabilityproviderbinding.DefaultCreatedAt = capabilityproviderbindingDescCreatedAt.Default.(func() time.Time)
+	// capabilityproviderbindingDescUpdatedAt is the schema descriptor for updated_at field.
+	capabilityproviderbindingDescUpdatedAt := capabilityproviderbindingFields[12].Descriptor()
+	// capabilityproviderbinding.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	capabilityproviderbinding.DefaultUpdatedAt = capabilityproviderbindingDescUpdatedAt.Default.(func() time.Time)
+	// capabilityproviderbinding.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	capabilityproviderbinding.UpdateDefaultUpdatedAt = capabilityproviderbindingDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// capabilityproviderbindingDescID is the schema descriptor for id field.
+	capabilityproviderbindingDescID := capabilityproviderbindingFields[0].Descriptor()
+	// capabilityproviderbinding.IDValidator is a validator for the "id" field. It is called by the builders before save.
+	capabilityproviderbinding.IDValidator = capabilityproviderbindingDescID.Validators[0].(func(string) error)
 	groupFields := schema.Group{}.Fields()
 	_ = groupFields
 	// groupDescSpaceID is the schema descriptor for space_id field.

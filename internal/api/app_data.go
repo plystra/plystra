@@ -32,6 +32,7 @@ import (
 
 const appDataRecordBaseResourceType = "app_data_record"
 const maxAppDataBatchOperations = 25
+const maxAppDataAuthorizedListScans = 1000
 const appDataMutationPolicyServiceAppendOnly = "service_append_only"
 const appDataServiceKeyHeader = "X-Plystra-App-Data-Service-Key"
 
@@ -446,66 +447,108 @@ func (s *Server) listAppDataRecords(w http.ResponseWriter, r *http.Request, mode
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", err.Error(), nil)
 		return
 	}
-	q := client.AppDataRecord.Query().Where(entappdatarecord.SpaceID(model.SpaceID), entappdatarecord.ModelID(model.ID), entappdatarecord.DeletedAtIsNil())
+	basePredicates := []predicate.AppDataRecord{
+		entappdatarecord.SpaceID(model.SpaceID),
+		entappdatarecord.ModelID(model.ID),
+		entappdatarecord.DeletedAtIsNil(),
+	}
 	if status := strings.TrimSpace(r.URL.Query().Get("status")); status != "" {
-		q = q.Where(entappdatarecord.Status(status))
+		basePredicates = append(basePredicates, entappdatarecord.Status(status))
 	}
 	if groupID := strings.TrimSpace(r.URL.Query().Get("group_id")); groupID != "" {
-		q = q.Where(entappdatarecord.GroupID(groupID))
+		basePredicates = append(basePredicates, entappdatarecord.GroupID(groupID))
 	}
 	if ownerMemberID := strings.TrimSpace(r.URL.Query().Get("owner_member_id")); ownerMemberID != "" {
-		q = q.Where(entappdatarecord.OwnerMemberID(ownerMemberID))
+		basePredicates = append(basePredicates, entappdatarecord.OwnerMemberID(ownerMemberID))
 	}
 	if visibility := strings.TrimSpace(r.URL.Query().Get("visibility")); visibility != "" {
-		q = q.Where(entappdatarecord.Visibility(visibility))
+		basePredicates = append(basePredicates, entappdatarecord.Visibility(visibility))
 	}
 	predicates, err := appDataRecordQueryPredicates(r.URL.Query(), appDataSearchFieldsForModel(model))
 	if err != nil {
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", err.Error(), nil)
 		return
 	}
-	if len(predicates) > 0 {
-		q = q.Where(predicates...)
-	}
-	if listOptions.Cursor != nil {
-		q = q.Where(appDataRecordCursorPredicate(listOptions))
-	}
-	q = q.Order(appDataRecordOrderOptions(listOptions)...)
-	records, err := q.Limit(listOptions.Limit + 1).All(r.Context())
-	if err != nil {
-		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list app data records.", err.Error())
-		return
-	}
-	hasMore := len(records) > listOptions.Limit
-	if hasMore {
-		records = records[:listOptions.Limit]
-	}
+	basePredicates = append(basePredicates, predicates...)
 	actor := appDataActorFromRequest(r, authz.ActorContext{SpaceID: model.SpaceID})
 	serviceAuthorized := s.appDataServiceAuthorized(r, "read", model.SpaceID)
-	rows := make([]map[string]any, 0, len(records))
-	for _, record := range records {
-		var decision any
-		if serviceAuthorized {
-			decision = appDataServiceDecision(r, actor, "read", record)
-		} else {
-			checked, ok := s.authorizeAppDataRecord(w, r, actor, "read", record)
-			if !ok {
-				return
-			}
-			decision = checked
-		}
-		row := appDataRecordMap(record)
-		row["authorization"] = decision
-		rows = append(rows, row)
-	}
+	rows := make([]map[string]any, 0, listOptions.Limit)
+	scanOptions := listOptions
+	hasMore := false
 	var nextCursor *string
-	if hasMore && len(records) > 0 {
-		cursor, err := encodeAppDataRecordCursor(listOptions, records[len(records)-1])
+	scanned := 0
+	for len(rows) < listOptions.Limit {
+		q := client.AppDataRecord.Query().Where(basePredicates...)
+		if scanOptions.Cursor != nil {
+			q = q.Where(appDataRecordCursorPredicate(scanOptions))
+		}
+		batchLimit := appDataRecordAuthorizedListScanLimit(listOptions.Limit - len(rows))
+		records, err := q.Order(appDataRecordOrderOptions(listOptions)...).Limit(batchLimit).All(r.Context())
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list app data records.", err.Error())
+			return
+		}
+		if len(records) == 0 {
+			break
+		}
+		scanned += len(records)
+		scannedAll := true
+		var lastScanned *coreent.AppDataRecord
+		for index, record := range records {
+			lastScanned = record
+			var decision any
+			if serviceAuthorized {
+				decision = appDataServiceDecision(r, actor, "read", record)
+			} else {
+				checked, allowed, ok := s.checkAppDataRecordAuthorization(w, r, actor, "read", record)
+				if !ok {
+					return
+				}
+				if !allowed {
+					continue
+				}
+				decision = checked
+			}
+			row := appDataRecordMap(record)
+			row["authorization"] = decision
+			rows = append(rows, row)
+			if len(rows) == listOptions.Limit {
+				scannedAll = index == len(records)-1
+				break
+			}
+		}
+		if lastScanned == nil {
+			break
+		}
+		cursor, err := encodeAppDataRecordCursor(listOptions, lastScanned)
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to build app data pagination cursor.", err.Error())
 			return
 		}
+		if len(rows) == listOptions.Limit {
+			hasMore = !scannedAll || len(records) == batchLimit
+			if hasMore {
+				nextCursor = &cursor
+			}
+			break
+		}
 		nextCursor = &cursor
+		if scanned >= maxAppDataAuthorizedListScans {
+			hasMore = len(records) == batchLimit
+			if !hasMore {
+				nextCursor = nil
+			}
+			break
+		}
+		scanOptions.Cursor, err = decodeAppDataRecordCursor(cursor)
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to advance app data pagination cursor.", err.Error())
+			return
+		}
+		if len(records) < batchLimit {
+			nextCursor = nil
+			break
+		}
 	}
 	writeListPage(w, r, http.StatusOK, rows, listOptions.Limit, nextCursor, hasMore)
 }
@@ -1674,15 +1717,55 @@ func appDataModelMutationPolicy(model *coreent.AppDataModel) string {
 }
 
 func (s *Server) authorizeAppDataRecord(w http.ResponseWriter, r *http.Request, actor authz.ActorContext, action string, record *coreent.AppDataRecord) (*authz.Decision, bool) {
+	decision, allowed, ok := s.checkAppDataRecordAuthorization(w, r, actor, action, record)
+	if !ok {
+		return nil, false
+	}
+	if !allowed {
+		writeError(w, r, http.StatusForbidden, "AUTHORIZATION_DENIED", "The action is not allowed.", decision)
+		return decision, false
+	}
+	return decision, true
+}
+
+func (s *Server) checkAppDataRecordAuthorization(w http.ResponseWriter, r *http.Request, actor authz.ActorContext, action string, record *coreent.AppDataRecord) (*authz.Decision, bool, bool) {
 	target, err := s.appDataRecordTarget(r.Context(), record)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to build app data authorization target.", err.Error())
-		return nil, false
+		return nil, false, false
 	}
 	if actor.SpaceID == "" {
 		actor.SpaceID = record.SpaceID
 	}
-	return s.authorizeTarget(w, r, actor, appDataModelResourceType(record.ModelKey), record.ID, action, target)
+	decision, err := authz.Check(r.Context(), s.authzStore, authz.CheckInput{
+		Actor:        actor,
+		ResourceType: appDataModelResourceType(record.ModelKey),
+		ResourceID:   record.ID,
+		Action:       action,
+		Target:       &target,
+		RequestID:    requestIDFrom(r),
+		IP:           remoteIPFrom(r),
+		UserAgent:    r.UserAgent(),
+	})
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Authorization check failed.", err.Error())
+		return nil, false, false
+	}
+	return decision, decision.IsAllowed(), true
+}
+
+func appDataRecordAuthorizedListScanLimit(remaining int) int {
+	if remaining < 1 {
+		return 1
+	}
+	limit := remaining * 4
+	if limit < 25 {
+		limit = 25
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	return limit
 }
 
 func appDataRecordListOptionsFromRequest(r *http.Request) (appDataRecordListOptions, error) {

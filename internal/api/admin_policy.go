@@ -59,8 +59,14 @@ func adminRequirementFor(method, path, querySpaceID string) adminRequirement {
 	if path == "/api/v1/capability-grants" {
 		return adminRequirement{PermissionKey: "capabilities:invoke", SpaceID: querySpaceID}
 	}
+	if strings.HasPrefix(path, "/api/v1/capability-grants/") {
+		return adminRequirement{PermissionKey: "capabilities:manage", SpaceID: querySpaceID}
+	}
 	if path == "/api/v1/grants/introspect" || path == "/api/v1/capability-outcomes" {
 		return adminRequirement{PermissionKey: "capabilities:manage", SpaceID: querySpaceID}
+	}
+	if path == "/api/v1/capability-provider-bindings" || strings.HasPrefix(path, "/api/v1/capability-provider-bindings/") {
+		return adminRequirement{PermissionKey: "plugins:" + readOrManage, SpaceID: querySpaceID}
 	}
 	if path == "/api/v1/authz/check" || path == "/api/v1/authz/explain" {
 		return adminRequirement{PermissionKey: "authz:check"}

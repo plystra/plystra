@@ -809,11 +809,6 @@ func validateProviderRuntime(runtime ProviderRuntimeDefinition, instanceSettingK
 			errors = append(errors, "runtime.endpoint_setting_key references unknown instance setting")
 		}
 	}
-	if runtime.Type == "external" || runtime.Type == "managed" {
-		if strings.TrimSpace(runtime.EndpointSettingKey) == "" {
-			errors = append(errors, "runtime.endpoint_setting_key is required for external or managed runtimes")
-		}
-	}
 	if runtime.SchemaCompatibility != nil {
 		compat := runtime.SchemaCompatibility
 		if compat.Min <= 0 || compat.Max <= 0 || compat.Preferred <= 0 || compat.Min > compat.Max || compat.Preferred < compat.Min || compat.Preferred > compat.Max {

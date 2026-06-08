@@ -300,6 +300,33 @@ components:
                     type: string
                 target_idempotency_key:
                     type: string
+                target_provider_id:
+                    type: string
+            type: object
+        ApiCapabilityProviderBindingMutationRequest:
+            properties:
+                capability:
+                    type: string
+                endpoint:
+                    type: string
+                identity:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                operation:
+                    type: string
+                operation_path:
+                    type: string
+                provider_plugin_id:
+                    type: string
+                space_id:
+                    type: string
+                status:
+                    type: string
             type: object
         ApiDataRowMutationRequest:
             properties:
@@ -926,6 +953,11 @@ components:
                 user_member_id:
                     type: string
             type: object
+        ApiOpenAPICapabilityGrantRevokeRequest:
+            properties:
+                reason:
+                    type: string
+            type: object
         ApiOpenAPICapabilityGrantTarget:
             properties:
                 endpoint:
@@ -940,6 +972,42 @@ components:
         ApiOpenAPICapabilityGrantTargetIdentity:
             properties:
                 provider_id:
+                    type: string
+            type: object
+        ApiOpenAPICapabilityProviderBinding:
+            properties:
+                binding_epoch:
+                    type: integer
+                capability:
+                    type: string
+                created_at:
+                    format: date-time
+                    type: string
+                endpoint:
+                    type: string
+                id:
+                    type: string
+                identity:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                metadata:
+                    additionalProperties: {}
+                    nullable: true
+                    type: object
+                operation:
+                    type: string
+                operation_path:
+                    type: string
+                provider_plugin_id:
+                    type: string
+                space_id:
+                    type: string
+                status:
+                    example: active
+                    type: string
+                updated_at:
+                    format: date-time
                     type: string
             type: object
         ApiOpenAPIDataRowMutationResponse:
@@ -1041,6 +1109,14 @@ components:
             properties:
                 data:
                     $ref: '#/components/schemas/ApiOpenAPICapabilityGrant'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
+        ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityProviderBinding:
+            properties:
+                data:
+                    $ref: '#/components/schemas/ApiOpenAPICapabilityProviderBinding'
                 request_id:
                     example: req_01hzyj6b6q8
                     type: string
@@ -1461,6 +1537,19 @@ components:
                     example: req_01hzyj6b6q8
                     type: string
             type: object
+        ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityProviderBinding:
+            properties:
+                data:
+                    items:
+                        $ref: '#/components/schemas/ApiOpenAPICapabilityProviderBinding'
+                    nullable: true
+                    type: array
+                pagination:
+                    $ref: '#/components/schemas/ApiOpenAPIPagination'
+                request_id:
+                    example: req_01hzyj6b6q8
+                    type: string
+            type: object
         ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup:
             properties:
                 data:
@@ -1839,7 +1928,7 @@ components:
                 admin_menus_count:
                     type: integer
                 app_id:
-                    example: forge
+                    example: sample
                     type: string
                 created_at:
                     format: date-time
@@ -4227,6 +4316,41 @@ paths:
             summary: Issue a governed capability invocation grant
             tags:
                 - Capability Grants
+    /api/v1/capability-grants/{capability_grant_id}/revoke:
+        post:
+            description: Immediately revokes a mediated capability grant so provider runtimes fail closed on their next introspection before execution.
+            operationId: revokeCapabilityGrant
+            parameters:
+                - in: path
+                  name: capability_grant_id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiOpenAPICapabilityGrantRevokeRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityGrant'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Revoke a capability grant
+            tags:
+                - Capability Grants
     /api/v1/capability-outcomes:
         post:
             description: Provider runtimes report idempotent execution outcomes so Core can reconcile mediated grants without being in the synchronous business-response path.
@@ -4254,6 +4378,164 @@ paths:
                 - BearerAuth: []
                 - ApiKeyAuth: []
             summary: Record a capability grant outcome receipt
+            tags:
+                - Capability Grants
+    /api/v1/capability-provider-bindings:
+        get:
+            description: Lists Core-governed Space-scoped provider bindings used by the capability resolver.
+            operationId: listCapabilityProviderBindings
+            parameters:
+                - in: query
+                  name: space_id
+                  schema:
+                    type: string
+                - in: query
+                  name: capability
+                  schema:
+                    type: string
+                - in: query
+                  name: status
+                  schema:
+                    type: string
+                - in: query
+                  name: limit
+                  schema:
+                    maximum: 200
+                    minimum: 1
+                    type: integer
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityProviderBinding'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: List capability provider bindings
+            tags:
+                - Capability Grants
+        post:
+            description: Binds a Space capability operation to an enabled provider plugin. Rebinding increments binding_epoch so callers re-request grants after provider changes.
+            operationId: upsertCapabilityProviderBinding
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiCapabilityProviderBindingMutationRequest'
+                required: true
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityProviderBinding'
+                    description: Created
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Create or update a capability provider binding
+            tags:
+                - Capability Grants
+    /api/v1/capability-provider-bindings/{binding_id}:
+        delete:
+            operationId: disableCapabilityProviderBinding
+            parameters:
+                - in: path
+                  name: binding_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityProviderBinding'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Disable a capability provider binding
+            tags:
+                - Capability Grants
+        get:
+            operationId: getCapabilityProviderBinding
+            parameters:
+                - in: path
+                  name: binding_id
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityProviderBinding'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Get a capability provider binding
+            tags:
+                - Capability Grants
+        patch:
+            operationId: updateCapabilityProviderBinding
+            parameters:
+                - in: path
+                  name: binding_id
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ApiCapabilityProviderBindingMutationRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityProviderBinding'
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ApiOpenAPIErrorEnvelope'
+                    description: Error response.
+            security:
+                - BearerAuth: []
+                - ApiKeyAuth: []
+            summary: Update a capability provider binding
             tags:
                 - Capability Grants
     /api/v1/console/overview:

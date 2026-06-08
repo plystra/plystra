@@ -11,12 +11,13 @@ import (
 )
 
 type Server struct {
-	pool        *pgxpool.Pool
-	ent         *coreent.Client
-	authzStore  authz.Store
-	kernel      *kernel.App
-	coreVersion string
-	authLimiter *loginAttemptLimiter
+	pool                    *pgxpool.Pool
+	ent                     *coreent.Client
+	authzStore              authz.Store
+	kernel                  *kernel.App
+	coreVersion             string
+	authLimiter             *loginAttemptLimiter
+	capabilityProviderCache *capabilityProviderResolverCache
 }
 
 type entClientProvider interface {
@@ -34,11 +35,12 @@ func NewServer(pool *pgxpool.Pool, authzStore authz.Store, coreVersion string) *
 		entClient = provider.Client()
 	}
 	return &Server{
-		pool:        pool,
-		ent:         entClient,
-		authzStore:  authzStore,
-		coreVersion: coreVersion,
-		authLimiter: newLoginAttemptLimiterFromEnv(),
+		pool:                    pool,
+		ent:                     entClient,
+		authzStore:              authzStore,
+		coreVersion:             coreVersion,
+		authLimiter:             newLoginAttemptLimiterFromEnv(),
+		capabilityProviderCache: newCapabilityProviderResolverCache(defaultCapabilityProviderResolverCacheTTL),
 	}
 }
 
@@ -49,8 +51,11 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/v1/version", s.handleVersion)
 	mux.HandleFunc("/api/v1/capabilities", s.handleCapabilities)
 	mux.HandleFunc("/api/v1/capability-grants", s.handleCapabilityGrants)
+	mux.HandleFunc("/api/v1/capability-grants/", s.handleCapabilityGrantSubroutes)
 	mux.HandleFunc("/api/v1/grants/introspect", s.handleGrantIntrospect)
 	mux.HandleFunc("/api/v1/capability-outcomes", s.handleCapabilityOutcomes)
+	mux.HandleFunc("/api/v1/capability-provider-bindings", s.handleCapabilityProviderBindings)
+	mux.HandleFunc("/api/v1/capability-provider-bindings/", s.handleCapabilityProviderBindingSubroutes)
 	mux.HandleFunc("/metrics", s.handleMetrics)
 	mux.HandleFunc("/api/v1/console/overview", s.handleOverview)
 	mux.HandleFunc("/api/v1/auth/register", s.handleAuthRegister)

@@ -10,12 +10,13 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	coreent "github.com/plystra/core/ent"
 	entcapabilitygrant "github.com/plystra/core/ent/capabilitygrant"
+	entcapabilityproviderbinding "github.com/plystra/core/ent/capabilityproviderbinding"
 	entplugin "github.com/plystra/core/ent/plugin"
-	entpluginsettingsvalue "github.com/plystra/core/ent/pluginsettingsvalue"
 	"github.com/plystra/core/internal/authz"
 	"github.com/plystra/core/internal/plugins"
 )
@@ -24,6 +25,8 @@ const (
 	capabilityGrantBearerPrefix = "ply_grant_"
 	defaultCapabilityGrantTTL   = 30 * time.Second
 	maxCapabilityGrantTTL       = 5 * time.Minute
+
+	defaultCapabilityProviderResolverCacheTTL = 30 * time.Second
 )
 
 type capabilityGrantRequest struct {
@@ -39,6 +42,13 @@ type capabilityGrantRequest struct {
 	CorrelationID  string                   `json:"correlation_id"`
 	TTLMS          int                      `json:"ttl_ms"`
 	Metadata       map[string]any           `json:"metadata"`
+}
+
+type capabilityGrantAuthorizationContext struct {
+	ResourceType string
+	ResourceID   string
+	Action       string
+	Target       *authz.TargetSnapshot
 }
 
 type capabilityGrantPrincipal struct {
@@ -61,12 +71,17 @@ type grantIntrospectionRequest struct {
 type capabilityOutcomeRequest struct {
 	GrantID              string         `json:"grant_id"`
 	TargetIdempotencyKey string         `json:"target_idempotency_key"`
+	TargetProviderID     string         `json:"target_provider_id"`
 	Status               string         `json:"status"`
 	ResultRef            map[string]any `json:"result_ref"`
 	Events               []any          `json:"events"`
 	FinishedAt           *time.Time     `json:"finished_at"`
 	OutcomeEventID       string         `json:"outcome_event_id"`
 	Metadata             map[string]any `json:"metadata"`
+}
+
+type capabilityGrantRevokeRequest struct {
+	Reason string `json:"reason"`
 }
 
 type capabilityProviderBinding struct {
@@ -76,6 +91,7 @@ type capabilityProviderBinding struct {
 	Local          bool
 	Endpoint       string
 	OperationPath  string
+	Identity       map[string]any
 	BindingEpoch   int
 	InvocationMode string
 	GrantTTL       time.Duration
@@ -87,6 +103,68 @@ type governedPluginManifest struct {
 	Type     string
 	Scope    string
 	AppID    string
+}
+
+type capabilityProviderResolverCache struct {
+	mu      sync.RWMutex
+	ttl     time.Duration
+	entries map[string]capabilityProviderResolverCacheEntry
+}
+
+type capabilityProviderResolverCacheEntry struct {
+	provider  capabilityProviderBinding
+	expiresAt time.Time
+}
+
+func newCapabilityProviderResolverCache(ttl time.Duration) *capabilityProviderResolverCache {
+	if ttl <= 0 {
+		ttl = defaultCapabilityProviderResolverCacheTTL
+	}
+	return &capabilityProviderResolverCache{
+		ttl:     ttl,
+		entries: map[string]capabilityProviderResolverCacheEntry{},
+	}
+}
+
+func (c *capabilityProviderResolverCache) get(spaceID, capabilityID, operationName string, now time.Time) (capabilityProviderBinding, bool) {
+	if c == nil {
+		return capabilityProviderBinding{}, false
+	}
+	key := capabilityProviderResolverCacheKey(spaceID, capabilityID, operationName)
+	c.mu.RLock()
+	entry, ok := c.entries[key]
+	c.mu.RUnlock()
+	if !ok || !entry.expiresAt.After(now.UTC()) {
+		if ok {
+			c.invalidate(spaceID, capabilityID, operationName)
+		}
+		return capabilityProviderBinding{}, false
+	}
+	return entry.provider, true
+}
+
+func (c *capabilityProviderResolverCache) set(spaceID, capabilityID, operationName string, provider capabilityProviderBinding, now time.Time) {
+	if c == nil {
+		return
+	}
+	key := capabilityProviderResolverCacheKey(spaceID, capabilityID, operationName)
+	c.mu.Lock()
+	c.entries[key] = capabilityProviderResolverCacheEntry{provider: provider, expiresAt: now.UTC().Add(c.ttl)}
+	c.mu.Unlock()
+}
+
+func (c *capabilityProviderResolverCache) invalidate(spaceID, capabilityID, operationName string) {
+	if c == nil {
+		return
+	}
+	key := capabilityProviderResolverCacheKey(spaceID, capabilityID, operationName)
+	c.mu.Lock()
+	delete(c.entries, key)
+	c.mu.Unlock()
+}
+
+func capabilityProviderResolverCacheKey(spaceID, capabilityID, operationName string) string {
+	return strings.TrimSpace(spaceID) + "\x00" + strings.TrimSpace(capabilityID) + "\x00" + strings.TrimSpace(operationName)
 }
 
 func (s *Server) handleCapabilityGrants(w http.ResponseWriter, r *http.Request) {
@@ -110,7 +188,7 @@ func (s *Server) handleCapabilityGrants(w http.ResponseWriter, r *http.Request) 
 	if ok := s.requireCapabilityGrantPermission(w, r, "capabilities:invoke", req.SpaceID); !ok {
 		return
 	}
-	provider, err := s.resolveCapabilityProvider(r, req.Capability, req.Operation)
+	provider, err := s.resolveCapabilityProvider(r, req.SpaceID, req.Capability, req.Operation)
 	if errors.Is(err, errCapabilityProviderNotFound) {
 		writeError(w, r, http.StatusNotFound, "CAPABILITY_PROVIDER_NOT_FOUND", "No enabled provider is installed for this capability operation.", nil)
 		return
@@ -148,6 +226,20 @@ func (s *Server) handleCapabilityGrants(w http.ResponseWriter, r *http.Request) 
 		writeError(w, r, http.StatusForbidden, "CAPABILITY_PRINCIPAL_INACTIVE", "Capability principal is not active for this Space.", map[string]any{"reason": reason})
 		return
 	}
+	authorizationContext, err := capabilityGrantAuthorizationContextFromResource(req.Resource)
+	if err != nil {
+		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Capability grant resource authorization context is invalid.", err.Error())
+		return
+	}
+	decision, err := s.authorizeCapabilityGrantPrincipal(r, req, authorizationContext)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to authorize capability grant principal.", err.Error())
+		return
+	}
+	if !decision.IsAllowed() {
+		writeError(w, r, http.StatusForbidden, "AUTHORIZATION_DENIED", "Capability grant principal is not authorized for the requested resource action.", decision)
+		return
+	}
 	if err := s.validateCapabilityCallGraph(r, req, provider); err != nil {
 		writeError(w, r, http.StatusForbidden, "CAPABILITY_CALL_GRAPH_DENIED", "Capability call graph policy denied the grant.", err.Error())
 		return
@@ -160,16 +252,29 @@ func (s *Server) handleCapabilityGrants(w http.ResponseWriter, r *http.Request) 
 		entcapabilitygrant.IdempotencyKey(req.IdempotencyKey),
 	).Only(r.Context())
 	if err == nil {
+		now := time.Now().UTC()
+		if !capabilityGrantReissuable(existing, provider, now) {
+			writeError(w, r, http.StatusConflict, "CAPABILITY_GRANT_REISSUE_DENIED", "Existing capability grant cannot be reissued for this idempotency key.", map[string]any{
+				"grant_id":         existing.ID,
+				"status":           existing.Status,
+				"outcome_status":   existing.OutcomeStatus,
+				"binding_epoch":    existing.BindingEpoch,
+				"provider_epoch":   provider.BindingEpoch,
+				"revoked":          existing.RevokedAt != nil,
+				"expires_at":       formatTime(existing.ExpiresAt),
+				"idempotency_key":  req.IdempotencyKey,
+				"caller_plugin_id": req.Executor.PluginID,
+			})
+			return
+		}
 		grantToken, tokenErr := newCapabilityGrantToken()
 		if tokenErr != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to reissue capability grant token.", tokenErr.Error())
 			return
 		}
-		now := time.Now().UTC()
 		ttl := req.grantTTL(provider.GrantTTL)
 		existing, err = client.CapabilityGrant.UpdateOneID(existing.ID).
 			SetTokenHash(capabilityGrantTokenHash(grantToken)).
-			SetStatus("active").
 			SetExpiresAt(now.Add(ttl)).
 			SetExpectedOutcomeBy(now.Add(ttl + ttl/2)).
 			Save(r.Context())
@@ -198,6 +303,7 @@ func (s *Server) handleCapabilityGrants(w http.ResponseWriter, r *http.Request) 
 	metadata := nonNilMap(req.Metadata)
 	metadata["resource"] = nonNilMap(req.Resource)
 	metadata["input_summary"] = nonNilMap(req.InputSummary)
+	metadata["authorization"] = capabilityGrantDecisionSummary(decision)
 	row, err := client.CapabilityGrant.Create().
 		SetID(grantID).
 		SetTokenHash(capabilityGrantTokenHash(grantToken)).
@@ -210,7 +316,7 @@ func (s *Server) handleCapabilityGrants(w http.ResponseWriter, r *http.Request) 
 		SetCallerPluginID(req.Executor.PluginID).
 		SetTargetProviderID(provider.ProviderID).
 		SetNillableParentGrantID(optionalString(req.ParentGrantID)).
-		SetNillableDecisionID(optionalString(newEntityID("dec"))).
+		SetNillableDecisionID(optionalString(decision.Audit.ID)).
 		SetCorrelationID(correlationID).
 		SetIdempotencyKey(req.IdempotencyKey).
 		SetTargetIdempotencyKey(targetIdempotencyKey).
@@ -227,6 +333,62 @@ func (s *Server) handleCapabilityGrants(w http.ResponseWriter, r *http.Request) 
 	}
 	s.recordCapabilityGrantAudit(r, row, "capability.grant.issued", "Capability grant issued")
 	writeData(w, r, http.StatusCreated, capabilityGrantIssuedMap(row, grantToken, provider))
+}
+
+func (s *Server) handleCapabilityGrantSubroutes(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1/capability-grants/")
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(parts) == 2 && parts[0] != "" && parts[1] == "revoke" {
+		if r.Method != http.MethodPost {
+			writeMethodNotAllowed(w, r)
+			return
+		}
+		s.revokeCapabilityGrant(w, r, parts[0])
+		return
+	}
+	http.NotFound(w, r)
+}
+
+func (s *Server) revokeCapabilityGrant(w http.ResponseWriter, r *http.Request, grantID string) {
+	client, ok := s.requireEnt(w, r)
+	if !ok {
+		return
+	}
+	var req capabilityGrantRevokeRequest
+	if !decodeOptionalJSON(w, r, &req) {
+		return
+	}
+	row, err := client.CapabilityGrant.Query().Where(entcapabilitygrant.ID(grantID)).Only(r.Context())
+	if coreent.IsNotFound(err) {
+		writeError(w, r, http.StatusNotFound, "CAPABILITY_GRANT_NOT_FOUND", "Capability grant was not found.", nil)
+		return
+	}
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load capability grant.", err.Error())
+		return
+	}
+	if ok := s.requireCapabilityGrantPermission(w, r, "capabilities:manage", row.SpaceID); !ok {
+		return
+	}
+	if row.Status == "revoked" && row.RevokedAt != nil {
+		writeData(w, r, http.StatusOK, capabilityGrantMap(row))
+		return
+	}
+	reason := strings.TrimSpace(req.Reason)
+	if reason == "" {
+		reason = "explicit_revoke"
+	}
+	updated, err := client.CapabilityGrant.UpdateOneID(row.ID).
+		SetStatus("revoked").
+		SetRevokedAt(time.Now().UTC()).
+		SetRevokedReason(reason).
+		Save(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusConflict, "CAPABILITY_GRANT_REVOKE_FAILED", "Failed to revoke capability grant.", err.Error())
+		return
+	}
+	s.recordCapabilityGrantAudit(r, updated, "capability.grant.revoked", "Capability grant revoked")
+	writeData(w, r, http.StatusOK, capabilityGrantMap(updated))
 }
 
 func (s *Server) handleGrantIntrospect(w http.ResponseWriter, r *http.Request) {
@@ -259,6 +421,9 @@ func (s *Server) handleGrantIntrospect(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to introspect grant.", err.Error())
 		return
 	}
+	if ok := s.requireProviderRuntimePrincipal(w, r, req.TargetProviderID); !ok {
+		return
+	}
 	if ok := s.requireCapabilityGrantPermission(w, r, "capabilities:manage", row.SpaceID); !ok {
 		return
 	}
@@ -271,6 +436,20 @@ func (s *Server) handleGrantIntrospect(w http.ResponseWriter, r *http.Request) {
 		}, row.SpaceID)
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to validate grant principal.", err.Error())
+			return
+		}
+	}
+	if active {
+		active, reason, err = s.capabilityGrantAuthorizationActive(r, row)
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to validate grant resource authorization.", err.Error())
+			return
+		}
+	}
+	if active {
+		active, reason, err = s.capabilityGrantBindingActive(r.Context(), row)
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to validate grant provider binding.", err.Error())
 			return
 		}
 	}
@@ -311,9 +490,11 @@ func (s *Server) handleCapabilityOutcomes(w http.ResponseWriter, r *http.Request
 	}
 	req.GrantID = strings.TrimSpace(req.GrantID)
 	req.TargetIdempotencyKey = strings.TrimSpace(req.TargetIdempotencyKey)
+	req.TargetProviderID = strings.TrimSpace(req.TargetProviderID)
 	req.Status = strings.TrimSpace(req.Status)
-	if req.GrantID == "" || req.TargetIdempotencyKey == "" || !validCapabilityOutcomeStatus(req.Status) {
-		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "grant_id, target_idempotency_key, and a valid status are required.", nil)
+	req.OutcomeEventID = strings.TrimSpace(req.OutcomeEventID)
+	if req.GrantID == "" || req.TargetIdempotencyKey == "" || req.TargetProviderID == "" || req.OutcomeEventID == "" || !validCapabilityOutcomeStatus(req.Status) {
+		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "grant_id, target_idempotency_key, target_provider_id, outcome_event_id, and a valid status are required.", nil)
 		return
 	}
 	row, err := client.CapabilityGrant.Query().Where(
@@ -328,15 +509,47 @@ func (s *Server) handleCapabilityOutcomes(w http.ResponseWriter, r *http.Request
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load capability grant.", err.Error())
 		return
 	}
+	if row.TargetProviderID != req.TargetProviderID {
+		writeError(w, r, http.StatusForbidden, "CAPABILITY_OUTCOME_TARGET_MISMATCH", "Capability outcome receipt target does not match the grant audience.", map[string]any{
+			"grant_id":           row.ID,
+			"target_provider_id": req.TargetProviderID,
+			"grant_target":       row.TargetProviderID,
+			"target_idempotency": row.TargetIdempotencyKey,
+			"capability":         row.Capability,
+			"operation":          row.Operation,
+		})
+		return
+	}
+	if ok := s.requireProviderRuntimePrincipal(w, r, row.TargetProviderID); !ok {
+		return
+	}
 	if ok := s.requireCapabilityGrantPermission(w, r, "capabilities:manage", row.SpaceID); !ok {
 		return
 	}
 	metadata := nonNilMap(row.Metadata)
+	outcomeEventID := req.OutcomeEventID
+	if existingOutcome := mapFromAny(metadata["outcome"]); len(existingOutcome) > 0 {
+		existingOutcomeEventID := strings.TrimSpace(stringFromMap(existingOutcome, "outcome_event_id"))
+		if outcomeEventID != "" && existingOutcomeEventID == outcomeEventID {
+			writeData(w, r, http.StatusOK, capabilityGrantMap(row))
+			return
+		}
+		if row.OutcomeStatus != "" && row.OutcomeStatus != "pending" {
+			writeError(w, r, http.StatusConflict, "CAPABILITY_OUTCOME_CONFLICT", "Capability grant already has a different terminal outcome receipt.", map[string]any{
+				"grant_id":                  row.ID,
+				"target_idempotency_key":    row.TargetIdempotencyKey,
+				"existing_outcome_status":   row.OutcomeStatus,
+				"existing_outcome_event_id": existingOutcomeEventID,
+				"outcome_event_id":          outcomeEventID,
+			})
+			return
+		}
+	}
 	outcome := map[string]any{
 		"status":           req.Status,
 		"result_ref":       nonNilMap(req.ResultRef),
 		"events":           req.Events,
-		"outcome_event_id": strings.TrimSpace(req.OutcomeEventID),
+		"outcome_event_id": outcomeEventID,
 		"finished_at":      time.Now().UTC().Format(time.RFC3339),
 	}
 	if req.FinishedAt != nil {
@@ -417,56 +630,192 @@ func validateCapabilityGrantRequest(req capabilityGrantRequest) error {
 	return nil
 }
 
+func capabilityGrantAuthorizationContextFromResource(resource map[string]any) (capabilityGrantAuthorizationContext, error) {
+	values := nonNilMap(resource)
+	resourceType := firstNonEmpty(stringFromMap(values, "resource_type"), stringFromMap(values, "type"))
+	resourceID := firstNonEmpty(stringFromMap(values, "resource_id"), stringFromMap(values, "id"), stringFromMap(values, "external_id"))
+	action := firstNonEmpty(stringFromMap(values, "action"), stringFromMap(values, "resource_action"))
+	if resourceType == "" || resourceID == "" || action == "" {
+		return capabilityGrantAuthorizationContext{}, errors.New("resource_type, resource_id, and action are required")
+	}
+	targetValues := mapFromAny(values["target"])
+	if len(targetValues) == 0 && (stringFromMap(values, "space_id") != "" || stringFromMap(values, "group_id") != "" || stringFromMap(values, "group_path") != "" || stringFromMap(values, "owner_member_id") != "") {
+		targetValues = values
+	}
+	out := capabilityGrantAuthorizationContext{
+		ResourceType: resourceType,
+		ResourceID:   resourceID,
+		Action:       action,
+	}
+	if len(targetValues) > 0 {
+		spaceID := stringFromMap(targetValues, "space_id")
+		if spaceID == "" {
+			return capabilityGrantAuthorizationContext{}, errors.New("inline target requires space_id")
+		}
+		targetResourceType := firstNonEmpty(stringFromMap(targetValues, "resource_type"), stringFromMap(targetValues, "type"), resourceType)
+		if targetResourceType != resourceType {
+			return capabilityGrantAuthorizationContext{}, errors.New("inline target resource_type must match resource_type")
+		}
+		targetResourceID := firstNonEmpty(stringFromMap(targetValues, "resource_id"), stringFromMap(targetValues, "id"), stringFromMap(targetValues, "external_id"), resourceID)
+		target := authz.TargetSnapshot{
+			Resource: authz.ResourceSnapshot{
+				ID:            targetResourceID,
+				ExternalID:    firstNonEmpty(stringFromMap(targetValues, "external_id"), targetResourceID),
+				Type:          resourceType,
+				SpaceID:       spaceID,
+				GroupID:       stringFromMap(targetValues, "group_id"),
+				GroupPath:     stringFromMap(targetValues, "group_path"),
+				OwnerMemberID: stringFromMap(targetValues, "owner_member_id"),
+				DisplayName:   stringFromMap(targetValues, "display_name"),
+				Visibility:    stringFromMap(targetValues, "visibility"),
+				Status:        firstNonEmpty(stringFromMap(targetValues, "status"), "active"),
+				Metadata:      mapFromAny(targetValues["metadata"]),
+			},
+		}
+		if target.Resource.GroupID != "" || target.Resource.GroupPath != "" {
+			target.Group = &authz.GroupSnapshot{
+				ID:      firstNonEmpty(target.Resource.GroupID, "group_inline_"+safeIdentifier(spaceID+"_"+target.Resource.GroupPath)),
+				SpaceID: spaceID,
+				Path:    firstNonEmpty(target.Resource.GroupPath, target.Resource.GroupID),
+				Status:  "active",
+			}
+		}
+		out.Target = &target
+	}
+	return out, nil
+}
+
+func (s *Server) authorizeCapabilityGrantPrincipal(r *http.Request, req capabilityGrantRequest, authorizationContext capabilityGrantAuthorizationContext) (*authz.Decision, error) {
+	if s.authzStore == nil {
+		return nil, errors.New("authz store is not configured")
+	}
+	input := authz.CheckInput{
+		Actor: authz.ActorContext{
+			UserID:       req.Principal.UserID,
+			MemberID:     req.Principal.MemberID,
+			UserMemberID: req.Principal.UserMemberID,
+			SpaceID:      req.SpaceID,
+		},
+		ResourceType:  authorizationContext.ResourceType,
+		ResourceID:    authorizationContext.ResourceID,
+		Action:        authorizationContext.Action,
+		Target:        authorizationContext.Target,
+		InlineContext: authorizationContext.Target != nil,
+		RequestID:     requestIDFrom(r),
+		IP:            remoteIPFrom(r),
+		UserAgent:     r.UserAgent(),
+	}
+	if s.kernel != nil {
+		return s.authzViaKernel(r, input)
+	}
+	return authz.Check(r.Context(), s.authzStore, input)
+}
+
+func capabilityGrantDecisionSummary(decision *authz.Decision) map[string]any {
+	if decision == nil {
+		return map[string]any{}
+	}
+	out := map[string]any{
+		"decision":      decision.Decision,
+		"reason":        decision.Reason,
+		"trace_id":      decision.TraceID,
+		"audit_log_id":  decision.Audit.ID,
+		"resource_type": decision.Audit.ResourceType,
+		"resource_id":   decision.Audit.ResourceID,
+		"action":        decision.Audit.Action,
+	}
+	if decision.DenyCode != nil {
+		out["deny_code"] = string(*decision.DenyCode)
+	}
+	return out
+}
+
+func capabilityGrantReissuable(row *coreent.CapabilityGrant, provider capabilityProviderBinding, now time.Time) bool {
+	if row == nil {
+		return false
+	}
+	if row.Status != "active" || row.OutcomeStatus != "pending" {
+		return false
+	}
+	if row.RevokedAt != nil || !row.ExpiresAt.After(now.UTC()) {
+		return false
+	}
+	return row.TargetProviderID == provider.ProviderID && row.BindingEpoch == provider.BindingEpoch
+}
+
 var errCapabilityProviderNotFound = errors.New("capability provider not found")
 
-func (s *Server) resolveCapabilityProvider(r *http.Request, capabilityID, operationName string) (capabilityProviderBinding, error) {
-	spaceID := strings.TrimSpace(r.URL.Query().Get("space_id"))
-	rows, err := s.ent.Plugin.Query().Where(entplugin.Status("enabled")).All(r.Context())
+func (s *Server) resolveCapabilityProvider(r *http.Request, spaceID, capabilityID, operationName string) (capabilityProviderBinding, error) {
+	spaceID = strings.TrimSpace(spaceID)
+	capabilityID = strings.TrimSpace(capabilityID)
+	operationName = strings.TrimSpace(operationName)
+	if spaceID == "" && r != nil {
+		spaceID = strings.TrimSpace(r.URL.Query().Get("space_id"))
+	}
+	if spaceID == "" {
+		return capabilityProviderBinding{}, errCapabilityProviderNotFound
+	}
+	if cached, ok := s.capabilityProviderCache.get(spaceID, capabilityID, operationName, time.Now().UTC()); ok {
+		return cached, nil
+	}
+	binding, err := s.ent.CapabilityProviderBinding.Query().Where(
+		entcapabilityproviderbinding.SpaceID(spaceID),
+		entcapabilityproviderbinding.Capability(capabilityID),
+		entcapabilityproviderbinding.Operation(operationName),
+		entcapabilityproviderbinding.Status("active"),
+	).Only(r.Context())
+	if coreent.IsNotFound(err) {
+		return capabilityProviderBinding{}, errCapabilityProviderNotFound
+	}
 	if err != nil {
 		return capabilityProviderBinding{}, err
 	}
-	for _, row := range rows {
-		raw, err := json.Marshal(row.Manifest)
-		if err != nil {
-			return capabilityProviderBinding{}, err
+	row, err := s.ent.Plugin.Query().
+		Where(entplugin.Key(binding.ProviderPluginID), entplugin.Status("enabled")).
+		Only(r.Context())
+	if coreent.IsNotFound(err) {
+		return capabilityProviderBinding{}, errCapabilityProviderNotFound
+	}
+	if err != nil {
+		return capabilityProviderBinding{}, err
+	}
+	raw, err := json.Marshal(row.Manifest)
+	if err != nil {
+		return capabilityProviderBinding{}, err
+	}
+	var manifest plugins.Manifest
+	if err := json.Unmarshal(raw, &manifest); err != nil {
+		return capabilityProviderBinding{}, err
+	}
+	for _, capability := range manifestProvidedCapabilities(manifest) {
+		if capability.ID != capabilityID {
+			continue
 		}
-		var manifest plugins.Manifest
-		if err := json.Unmarshal(raw, &manifest); err != nil {
-			return capabilityProviderBinding{}, err
+		operation, ok := capabilityOperationByName(capability, operationName)
+		if !ok {
+			continue
 		}
-		for _, capability := range manifestProvidedCapabilities(manifest) {
-			if capability.ID != capabilityID {
-				continue
-			}
-			operation, ok := capabilityOperationByName(capability, operationName)
-			if !ok {
-				continue
-			}
-			if operation.Invocation.Mode == "brokered_action_gateway" {
-				return capabilityProviderBinding{}, fmt.Errorf("capability %s operation %s requires Action Gateway, not mediated grant issuance", capabilityID, operationName)
-			}
-			if operation.Invocation.Mode != "revocable_mediated_grant" && operation.Invocation.Mode != "ephemeral_signed_grant" && operation.Invocation.Mode != "query" {
-				continue
-			}
-			provider := capabilityProviderBinding{
-				PluginKey:      manifest.ID,
-				ProviderID:     manifest.ID,
-				AppID:          strings.TrimSpace(firstNonEmpty(derefString(row.AppID), manifest.AppID)),
-				Local:          capabilityLocalToManifest(manifest, capability.ID),
-				Endpoint:       s.providerEndpointSetting(r, row.ID, manifest.Runtime.EndpointSettingKey),
-				OperationPath:  capabilityOperationPath(manifest, capabilityID, operationName),
-				BindingEpoch:   s.providerBindingEpoch(r, row.ID, spaceID),
-				InvocationMode: operation.Invocation.Mode,
-				GrantTTL:       time.Duration(operation.Invocation.GrantTTLMS) * time.Millisecond,
-				CallGraph:      operation.CallGraph,
-			}
-			if spaceID != "" {
-				if endpoint := s.providerEndpointSettingForSpace(r, row.ID, manifest.Runtime.EndpointSettingKey, spaceID); endpoint != "" {
-					provider.Endpoint = endpoint
-				}
-			}
-			return provider, nil
+		if operation.Invocation.Mode == "brokered_action_gateway" {
+			return capabilityProviderBinding{}, fmt.Errorf("capability %s operation %s requires Action Gateway, not mediated grant issuance", capabilityID, operationName)
 		}
+		if operation.Invocation.Mode != "revocable_mediated_grant" && operation.Invocation.Mode != "ephemeral_signed_grant" && operation.Invocation.Mode != "query" {
+			return capabilityProviderBinding{}, errCapabilityProviderNotFound
+		}
+		provider := capabilityProviderBinding{
+			PluginKey:      manifest.ID,
+			ProviderID:     manifest.ID,
+			AppID:          strings.TrimSpace(firstNonEmpty(derefString(row.AppID), manifest.AppID)),
+			Local:          capabilityLocalToManifest(manifest, capability.ID),
+			Endpoint:       strings.TrimSpace(binding.Endpoint),
+			OperationPath:  firstNonEmpty(derefString(binding.OperationPath), capabilityOperationPath(manifest, capabilityID, operationName)),
+			Identity:       nonNilMap(binding.Identity),
+			BindingEpoch:   binding.BindingEpoch,
+			InvocationMode: operation.Invocation.Mode,
+			GrantTTL:       time.Duration(operation.Invocation.GrantTTLMS) * time.Millisecond,
+			CallGraph:      operation.CallGraph,
+		}
+		s.capabilityProviderCache.set(spaceID, capabilityID, operationName, provider, time.Now().UTC())
+		return provider, nil
 	}
 	return capabilityProviderBinding{}, errCapabilityProviderNotFound
 }
@@ -565,63 +914,6 @@ func normalizedPluginGovernance(row *coreent.Plugin, manifest plugins.Manifest) 
 	return pluginType, pluginScope, appID
 }
 
-func (s *Server) providerEndpointSetting(r *http.Request, pluginID, settingKey string) string {
-	return s.providerEndpointSettingForSpace(r, pluginID, settingKey, "")
-}
-
-func (s *Server) providerEndpointSettingForSpace(r *http.Request, pluginID, settingKey, spaceID string) string {
-	settingKey = strings.TrimSpace(settingKey)
-	if settingKey == "" {
-		return ""
-	}
-	definition, valueSpaceID, err := s.resolvePluginSettingDefinition(r.Context(), pluginID, settingKey, spaceID)
-	if err != nil {
-		if strings.TrimSpace(spaceID) == "" {
-			return ""
-		}
-		definition, valueSpaceID, err = s.resolvePluginSettingDefinition(r.Context(), pluginID, settingKey, "")
-		if err != nil {
-			return ""
-		}
-	}
-	value := definition.DefaultValue
-	settingValue, err := s.ent.PluginSettingsValue.Query().
-		Where(entpluginsettingsvalue.PluginID(pluginID), entpluginsettingsvalue.Key(settingKey), entpluginsettingsvalue.SpaceID(valueSpaceID)).
-		Only(r.Context())
-	if err == nil && settingValue != nil {
-		value = settingValue.Value
-	}
-	return stringFromMap(value, "value")
-}
-
-func (s *Server) providerBindingEpoch(r *http.Request, pluginID, spaceID string) int {
-	for _, key := range []string{"provider.binding_epoch", "binding_epoch"} {
-		value := s.providerEndpointSettingForSpace(r, pluginID, key, spaceID)
-		if epoch, ok := parsePositiveInt(value); ok {
-			return epoch
-		}
-	}
-	return 1
-}
-
-func parsePositiveInt(value string) (int, bool) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return 0, false
-	}
-	n := 0
-	for _, r := range value {
-		if r < '0' || r > '9' {
-			return 0, false
-		}
-		n = n*10 + int(r-'0')
-		if n <= 0 {
-			return 0, false
-		}
-	}
-	return n, n > 0
-}
-
 func capabilityOperationByName(capability plugins.CapabilityDefinition, name string) (plugins.CapabilityOperationDefinition, bool) {
 	for _, operation := range capability.Operations {
 		if operation.Name == name {
@@ -674,6 +966,53 @@ func (s *Server) capabilityPrincipalActive(ctx context.Context, principal capabi
 		return false, "principal_membership_revoked", nil
 	}
 	return false, "principal_space_mismatch", nil
+}
+
+func (s *Server) capabilityGrantBindingActive(ctx context.Context, row *coreent.CapabilityGrant) (bool, string, error) {
+	if row == nil {
+		return false, "grant_not_found", nil
+	}
+	binding, err := s.ent.CapabilityProviderBinding.Query().Where(
+		entcapabilityproviderbinding.SpaceID(row.SpaceID),
+		entcapabilityproviderbinding.Capability(row.Capability),
+		entcapabilityproviderbinding.Operation(row.Operation),
+		entcapabilityproviderbinding.Status("active"),
+	).Only(ctx)
+	if coreent.IsNotFound(err) {
+		return false, "provider_binding_revoked", nil
+	}
+	if err != nil {
+		return false, "", err
+	}
+	if binding.ProviderPluginID != row.TargetProviderID || binding.BindingEpoch != row.BindingEpoch {
+		return false, "provider_binding_stale", nil
+	}
+	return true, "", nil
+}
+
+func (s *Server) capabilityGrantAuthorizationActive(r *http.Request, row *coreent.CapabilityGrant) (bool, string, error) {
+	if row == nil {
+		return false, "grant_not_found", nil
+	}
+	resource := mapFromAny(nonNilMap(row.Metadata)["resource"])
+	if len(resource) == 0 {
+		return false, "grant_authorization_context_missing", nil
+	}
+	authorizationContext, err := capabilityGrantAuthorizationContextFromResource(resource)
+	if err != nil {
+		return false, "grant_authorization_context_invalid", nil
+	}
+	decision, err := s.authorizeCapabilityGrantPrincipal(r, capabilityGrantRequest{
+		SpaceID:   row.SpaceID,
+		Principal: capabilityGrantPrincipal{UserID: derefString(row.PrincipalUserID), MemberID: derefString(row.PrincipalMemberID), UserMemberID: derefString(row.PrincipalUserMemberID)},
+	}, authorizationContext)
+	if err != nil {
+		return false, "", err
+	}
+	if decision == nil || !decision.IsAllowed() {
+		return false, "principal_authorization_revoked", nil
+	}
+	return true, "", nil
 }
 
 func (s *Server) validateCapabilityCallGraph(r *http.Request, req capabilityGrantRequest, provider capabilityProviderBinding) error {
@@ -824,6 +1163,35 @@ func (s *Server) requireCapabilityGrantPermission(w http.ResponseWriter, r *http
 	return true
 }
 
+func (s *Server) requireProviderRuntimePrincipal(w http.ResponseWriter, r *http.Request, targetProviderID string) bool {
+	principal, ok := adminPrincipalFrom(r)
+	if !ok {
+		writeError(w, r, http.StatusUnauthorized, "AUTHENTICATION_REQUIRED", "A valid provider runtime API key is required.", nil)
+		return false
+	}
+	if principal.CredentialType != "api_key" {
+		writeError(w, r, http.StatusForbidden, "CAPABILITY_PROVIDER_IDENTITY_REQUIRED", "Capability provider runtime calls require a provider-bound API key.", map[string]any{"target_provider_id": targetProviderID})
+		return false
+	}
+	providerID := apiKeyProviderRuntimeID(principal.APIKey)
+	if providerID == "" || providerID != targetProviderID {
+		writeError(w, r, http.StatusForbidden, "CAPABILITY_PROVIDER_IDENTITY_REQUIRED", "API key is not bound to the target capability provider.", map[string]any{
+			"target_provider_id": targetProviderID,
+			"api_key_provider":   providerID,
+		})
+		return false
+	}
+	return true
+}
+
+func apiKeyProviderRuntimeID(key *coreent.ApiKey) string {
+	if key == nil {
+		return ""
+	}
+	metadata := nonNilMap(key.Metadata)
+	return firstNonEmpty(stringFromMap(metadata, "provider_plugin_id"), stringFromMap(metadata, "plugin_id"), stringFromMap(metadata, "provider_id"))
+}
+
 func capabilityGrantActive(row *coreent.CapabilityGrant, targetProviderID, capabilityID, operationName string, now time.Time) (bool, string) {
 	if row == nil {
 		return false, "grant_not_found"
@@ -834,7 +1202,7 @@ func capabilityGrantActive(row *coreent.CapabilityGrant, targetProviderID, capab
 	if row.RevokedAt != nil || row.Status == "revoked" {
 		return false, "grant_revoked"
 	}
-	if row.Status != "active" && row.Status != "used" {
+	if row.Status != "active" {
 		return false, "grant_inactive"
 	}
 	if !row.ExpiresAt.After(now.UTC()) {
@@ -914,13 +1282,15 @@ func capabilityGrantIssuedMap(row *coreent.CapabilityGrant, token string, provid
 	if token != "" {
 		out["grant"] = token
 	}
+	identity := nonNilMap(provider.Identity)
+	if len(identity) == 0 {
+		identity["provider_id"] = provider.ProviderID
+	}
 	out["target"] = map[string]any{
 		"provider_id":   provider.ProviderID,
 		"endpoint":      provider.Endpoint,
 		"operation_url": provider.OperationPath,
-		"identity": map[string]any{
-			"provider_id": provider.ProviderID,
-		},
+		"identity":      identity,
 	}
 	return out
 }

@@ -1818,6 +1818,66 @@
         ]
       }
     },
+    "/api/v1/capability-grants/{capability_grant_id}/revoke": {
+      "post": {
+        "tags": [
+          "Capability Grants"
+        ],
+        "summary": "Revoke a capability grant",
+        "description": "Immediately revokes a mediated capability grant so provider runtimes fail closed on their next introspection before execution.",
+        "operationId": "revokeCapabilityGrant",
+        "parameters": [
+          {
+            "name": "capability_grant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiOpenAPICapabilityGrantRevokeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityGrant"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/capability-outcomes": {
       "post": {
         "tags": [
@@ -1853,6 +1913,279 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityGrant"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/capability-provider-bindings": {
+      "get": {
+        "tags": [
+          "Capability Grants"
+        ],
+        "summary": "List capability provider bindings",
+        "description": "Lists Core-governed Space-scoped provider bindings used by the capability resolver.",
+        "operationId": "listCapabilityProviderBindings",
+        "parameters": [
+          {
+            "name": "space_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "capability",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityProviderBinding"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Capability Grants"
+        ],
+        "summary": "Create or update a capability provider binding",
+        "description": "Binds a Space capability operation to an enabled provider plugin. Rebinding increments binding_epoch so callers re-request grants after provider changes.",
+        "operationId": "upsertCapabilityProviderBinding",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiCapabilityProviderBindingMutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityProviderBinding"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/capability-provider-bindings/{binding_id}": {
+      "delete": {
+        "tags": [
+          "Capability Grants"
+        ],
+        "summary": "Disable a capability provider binding",
+        "operationId": "disableCapabilityProviderBinding",
+        "parameters": [
+          {
+            "name": "binding_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityProviderBinding"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "Capability Grants"
+        ],
+        "summary": "Get a capability provider binding",
+        "operationId": "getCapabilityProviderBinding",
+        "parameters": [
+          {
+            "name": "binding_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityProviderBinding"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Capability Grants"
+        ],
+        "summary": "Update a capability provider binding",
+        "operationId": "updateCapabilityProviderBinding",
+        "parameters": [
+          {
+            "name": "binding_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiCapabilityProviderBindingMutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityProviderBinding"
                 }
               }
             }
@@ -8643,6 +8976,45 @@
           },
           "target_idempotency_key": {
             "type": "string"
+          },
+          "target_provider_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiCapabilityProviderBindingMutationRequest": {
+        "type": "object",
+        "properties": {
+          "capability": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "identity": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "operation": {
+            "type": "string"
+          },
+          "operation_path": {
+            "type": "string"
+          },
+          "provider_plugin_id": {
+            "type": "string"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
           }
         }
       },
@@ -9541,6 +9913,14 @@
           }
         }
       },
+      "ApiOpenAPICapabilityGrantRevokeRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
       "ApiOpenAPICapabilityGrantTarget": {
         "type": "object",
         "properties": {
@@ -9563,6 +9943,57 @@
         "properties": {
           "provider_id": {
             "type": "string"
+          }
+        }
+      },
+      "ApiOpenAPICapabilityProviderBinding": {
+        "type": "object",
+        "properties": {
+          "binding_epoch": {
+            "type": "integer"
+          },
+          "capability": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "identity": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {},
+            "nullable": true
+          },
+          "operation": {
+            "type": "string"
+          },
+          "operation_path": {
+            "type": "string"
+          },
+          "provider_plugin_id": {
+            "type": "string"
+          },
+          "space_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "example": "active"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -9714,6 +10145,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/ApiOpenAPICapabilityGrant"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req_01hzyj6b6q8"
+          }
+        }
+      },
+      "ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityProviderBinding": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ApiOpenAPICapabilityProviderBinding"
           },
           "request_id": {
             "type": "string",
@@ -10335,6 +10778,25 @@
           }
         }
       },
+      "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPICapabilityProviderBinding": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiOpenAPICapabilityProviderBinding"
+            },
+            "nullable": true
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/ApiOpenAPIPagination"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "req_01hzyj6b6q8"
+          }
+        }
+      },
       "ApiOpenAPIListEnvelopeGithubComPlystraCoreInternalApiOpenAPIGroup": {
         "type": "object",
         "properties": {
@@ -10882,7 +11344,7 @@
           },
           "app_id": {
             "type": "string",
-            "example": "forge"
+            "example": "sample"
           },
           "created_at": {
             "type": "string",

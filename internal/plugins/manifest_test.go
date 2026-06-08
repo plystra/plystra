@@ -600,6 +600,46 @@ func TestValidateManifestRejectsInvalidSettingDefault(t *testing.T) {
 	assertContainsError(t, errors, "settings[0].default must be a boolean")
 }
 
+func TestValidateManifestAllowsExternalRuntimeWithoutEndpointSetting(t *testing.T) {
+	manifest := Manifest{
+		ID:               "plystra.workflow",
+		Name:             "Workflow",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "approval_request",
+			DisplayName: "Approval Request",
+			Actions:     []ActionDefinition{{Key: "create", RiskLevel: "normal"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "approval_request", Action: "create", Scopes: []string{"space"}}},
+		Runtime: ProviderRuntimeDefinition{
+			Type:     "external",
+			Protocol: "http_json",
+			Version:  "0.0.1",
+		},
+		Capabilities: []CapabilityDefinition{{
+			ID:         "workflow.approval",
+			Version:    "0.0.1",
+			Level:      "standard",
+			Audit:      CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane:  CapabilityDataPlaneDefinition{Allowed: []string{"direct_db"}},
+			Operations: []CapabilityOperationDefinition{standardWorkflowOperation()},
+		}},
+		Routes: []RouteDefinition{{
+			Method:       "POST",
+			Path:         "/contract/v1/workflow/approvals",
+			ResourceType: "approval_request",
+			Action:       "create",
+			Handler:      "create_approval",
+		}},
+	}
+	if errors := ValidateManifestForCore(manifest, "0.0.1"); len(errors) > 0 {
+		t.Fatalf("ValidateManifestForCore returned errors: %#v", errors)
+	}
+}
+
 func TestValidateManifestRejectsCapabilityWithoutGovernance(t *testing.T) {
 	manifest := Manifest{
 		ID:               "plystra.invoice",
@@ -723,6 +763,21 @@ func standardSendEmailOperation() CapabilityOperationDefinition {
 			Cancellation:   "best_effort",
 		},
 		Delegation: CapabilityDelegationDefinition{Mode: "plugin_service"},
+		CallGraph:  CapabilityCallGraphDefinition{MaxDepth: 4},
+	}
+}
+
+func standardWorkflowOperation() CapabilityOperationDefinition {
+	return CapabilityOperationDefinition{
+		Name: "create_request",
+		Invocation: CapabilityInvocationDefinition{
+			Mode:           "revocable_mediated_grant",
+			GrantTTLMS:     30000,
+			Introspection:  "required",
+			OutcomeReceipt: "required",
+			Idempotency:    "required",
+		},
+		Delegation: CapabilityDelegationDefinition{Mode: "preserve_principal"},
 		CallGraph:  CapabilityCallGraphDefinition{MaxDepth: 4},
 	}
 }

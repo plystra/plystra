@@ -211,6 +211,41 @@ func TestAppDataStoreIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("list filters unauthorized records without failing page", func(t *testing.T) {
+		siblingRecordID := "record_appdata_sibling_visible_" + fixture.Suffix
+		createSibling := appDataJSONRequest(handler, http.MethodPost, "/api/v1/spaces/"+fixture.SpaceID+"/data/models/"+fixture.ModelKey+"/records", siblingToken, map[string]any{
+			"id":              siblingRecordID,
+			"group_id":        fixture.SiblingGroupID,
+			"display_name":    "Sibling Customer",
+			"visibility":      "group",
+			"data":            map[string]any{"name": "Sibling Customer"},
+			"owner_member_id": fixture.SiblingMemberID,
+		})
+		if createSibling.Code != http.StatusCreated {
+			t.Fatalf("create sibling record status = %d, want 201, body=%s", createSibling.Code, createSibling.Body.String())
+		}
+		rec := appDataJSONRequest(handler, http.MethodGet, "/api/v1/spaces/"+fixture.SpaceID+"/data/models/"+fixture.ModelKey+"/records?sort=id&order=asc&limit=20", ownerToken, nil)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("owner list mixed records status = %d, want 200, body=%s", rec.Code, rec.Body.String())
+		}
+		payload := decodeAppDataPayload(t, rec)
+		rows := payload["data"].([]any)
+		ids := map[string]bool{}
+		for _, raw := range rows {
+			row, ok := raw.(map[string]any)
+			if !ok {
+				t.Fatalf("list row is not object: %#v", raw)
+			}
+			ids[row["id"].(string)] = true
+		}
+		if !ids[fixture.RecordID] {
+			t.Fatalf("owner list missing authorized record %s: %#v", fixture.RecordID, ids)
+		}
+		if ids[siblingRecordID] {
+			t.Fatalf("owner list leaked unauthorized sibling record %s: %#v", siblingRecordID, ids)
+		}
+	})
+
 	t.Run("batch records are transactional across operations", func(t *testing.T) {
 		firstID := "record_appdata_batch_first_" + fixture.Suffix
 		secondID := "record_appdata_batch_second_" + fixture.Suffix

@@ -21,6 +21,7 @@ import (
 	"github.com/plystra/core/ent/auditlog"
 	"github.com/plystra/core/ent/backgroundjob"
 	"github.com/plystra/core/ent/capabilitygrant"
+	"github.com/plystra/core/ent/capabilityproviderbinding"
 	"github.com/plystra/core/ent/group"
 	"github.com/plystra/core/ent/member"
 	"github.com/plystra/core/ent/memberrole"
@@ -100,34 +101,35 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			admingrant.Table:               admingrant.ValidColumn,
-			apikey.Table:                   apikey.ValidColumn,
-			appdatamodel.Table:             appdatamodel.ValidColumn,
-			appdatarecord.Table:            appdatarecord.ValidColumn,
-			appdatarecordrevision.Table:    appdatarecordrevision.ValidColumn,
-			auditeventtype.Table:           auditeventtype.ValidColumn,
-			auditlog.Table:                 auditlog.ValidColumn,
-			backgroundjob.Table:            backgroundjob.ValidColumn,
-			capabilitygrant.Table:          capabilitygrant.ValidColumn,
-			group.Table:                    group.ValidColumn,
-			member.Table:                   member.ValidColumn,
-			memberrole.Table:               memberrole.ValidColumn,
-			permission.Table:               permission.ValidColumn,
-			plugin.Table:                   plugin.ValidColumn,
-			pluginadminmenu.Table:          pluginadminmenu.ValidColumn,
-			pluginsettingsdefinition.Table: pluginsettingsdefinition.ValidColumn,
-			pluginsettingsvalue.Table:      pluginsettingsvalue.ValidColumn,
-			resource.Table:                 resource.ValidColumn,
-			resourceaction.Table:           resourceaction.ValidColumn,
-			resourcemapping.Table:          resourcemapping.ValidColumn,
-			resourcetype.Table:             resourcetype.ValidColumn,
-			role.Table:                     role.ValidColumn,
-			rolepermission.Table:           rolepermission.ValidColumn,
-			session.Table:                  session.ValidColumn,
-			space.Table:                    space.ValidColumn,
-			templateinstallation.Table:     templateinstallation.ValidColumn,
-			user.Table:                     user.ValidColumn,
-			usermember.Table:               usermember.ValidColumn,
+			admingrant.Table:                admingrant.ValidColumn,
+			apikey.Table:                    apikey.ValidColumn,
+			appdatamodel.Table:              appdatamodel.ValidColumn,
+			appdatarecord.Table:             appdatarecord.ValidColumn,
+			appdatarecordrevision.Table:     appdatarecordrevision.ValidColumn,
+			auditeventtype.Table:            auditeventtype.ValidColumn,
+			auditlog.Table:                  auditlog.ValidColumn,
+			backgroundjob.Table:             backgroundjob.ValidColumn,
+			capabilitygrant.Table:           capabilitygrant.ValidColumn,
+			capabilityproviderbinding.Table: capabilityproviderbinding.ValidColumn,
+			group.Table:                     group.ValidColumn,
+			member.Table:                    member.ValidColumn,
+			memberrole.Table:                memberrole.ValidColumn,
+			permission.Table:                permission.ValidColumn,
+			plugin.Table:                    plugin.ValidColumn,
+			pluginadminmenu.Table:           pluginadminmenu.ValidColumn,
+			pluginsettingsdefinition.Table:  pluginsettingsdefinition.ValidColumn,
+			pluginsettingsvalue.Table:       pluginsettingsvalue.ValidColumn,
+			resource.Table:                  resource.ValidColumn,
+			resourceaction.Table:            resourceaction.ValidColumn,
+			resourcemapping.Table:           resourcemapping.ValidColumn,
+			resourcetype.Table:              resourcetype.ValidColumn,
+			role.Table:                      role.ValidColumn,
+			rolepermission.Table:            rolepermission.ValidColumn,
+			session.Table:                   session.ValidColumn,
+			space.Table:                     space.ValidColumn,
+			templateinstallation.Table:      templateinstallation.ValidColumn,
+			user.Table:                      user.ValidColumn,
+			usermember.Table:                usermember.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

@@ -528,7 +528,7 @@ type openAPIPlugin struct {
 	Version          string         `json:"version"`
 	Type             string         `json:"type" example:"plugin"`
 	Scope            string         `json:"scope" example:"public"`
-	AppID            string         `json:"app_id,omitempty" example:"forge"`
+	AppID            string         `json:"app_id,omitempty" example:"sample"`
 	Source           string         `json:"source"`
 	Status           string         `json:"status"`
 	Manifest         map[string]any `json:"manifest"`
@@ -580,6 +580,22 @@ type openAPIPluginSetting struct {
 	UpdatedAt    string         `json:"updated_at" format:"date-time"`
 }
 
+type openAPICapabilityProviderBinding struct {
+	ID               string         `json:"id"`
+	SpaceID          string         `json:"space_id"`
+	Capability       string         `json:"capability"`
+	Operation        string         `json:"operation"`
+	ProviderPluginID string         `json:"provider_plugin_id"`
+	Endpoint         string         `json:"endpoint"`
+	OperationPath    string         `json:"operation_path,omitempty"`
+	BindingEpoch     int            `json:"binding_epoch"`
+	Status           string         `json:"status" example:"active"`
+	Identity         map[string]any `json:"identity"`
+	Metadata         map[string]any `json:"metadata"`
+	CreatedAt        string         `json:"created_at" format:"date-time"`
+	UpdatedAt        string         `json:"updated_at" format:"date-time"`
+}
+
 type openAPICapabilityGrantPrincipal struct {
 	UserID       string `json:"user_id,omitempty"`
 	MemberID     string `json:"member_id,omitempty"`
@@ -628,6 +644,10 @@ type openAPICapabilityGrant struct {
 	Metadata              map[string]any                `json:"metadata"`
 	CreatedAt             string                        `json:"created_at" format:"date-time"`
 	UpdatedAt             string                        `json:"updated_at" format:"date-time"`
+}
+
+type openAPICapabilityGrantRevokeRequest struct {
+	Reason string `json:"reason,omitempty"`
 }
 
 type openAPIGrantIntrospectionResponse struct {
@@ -905,8 +925,27 @@ func openAPIRoutes() []openAPIRoute {
 		{Method: http.MethodPost, Path: "/api/v1/authz/check", Tag: "Authorization", ID: "checkAuthorization", Summary: "Run authorization check", Body: new(authzRequest), Response: new(openAPIEnvelope[openAPIAuthzCheckResponse]), Security: openAPIAdmin},
 		{Method: http.MethodPost, Path: "/api/v1/authz/explain", Tag: "Authorization", ID: "explainAuthorization", Summary: "Run authorization explain trace", Body: new(authzRequest), Response: new(openAPIEnvelope[map[string]any]), Security: openAPIAdmin},
 		{Method: http.MethodPost, Path: "/api/v1/capability-grants", Tag: "Capability Grants", ID: "issueCapabilityGrant", Summary: "Issue a governed capability invocation grant", Description: "Resolves an enabled capability provider, verifies the caller declared the required capability, records a revocable grant ledger row, and returns a target endpoint plus opaque grant token. Core does not proxy the business payload.", Body: new(capabilityGrantRequest), Response: new(openAPIEnvelope[openAPICapabilityGrant]), Status: http.StatusCreated, Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/capability-grants/{capability_grant_id}/revoke", Tag: "Capability Grants", ID: "revokeCapabilityGrant", Summary: "Revoke a capability grant", Description: "Immediately revokes a mediated capability grant so provider runtimes fail closed on their next introspection before execution.", Params: new(struct {
+			CapabilityGrantID string `path:"capability_grant_id" json:"capability_grant_id"`
+		}), Body: new(openAPICapabilityGrantRevokeRequest), Response: new(openAPIEnvelope[openAPICapabilityGrant]), Security: openAPIAdmin},
 		{Method: http.MethodPost, Path: "/api/v1/grants/introspect", Tag: "Capability Grants", ID: "introspectCapabilityGrant", Summary: "Introspect a mediated capability grant", Description: "Provider runtimes call this before executing a revocable mediated grant. The response contains authorization metadata only; business payloads never pass through Core.", Body: new(grantIntrospectionRequest), Response: new(openAPIEnvelope[openAPIGrantIntrospectionResponse]), Security: openAPIAdmin},
 		{Method: http.MethodPost, Path: "/api/v1/capability-outcomes", Tag: "Capability Grants", ID: "recordCapabilityOutcome", Summary: "Record a capability grant outcome receipt", Description: "Provider runtimes report idempotent execution outcomes so Core can reconcile mediated grants without being in the synchronous business-response path.", Body: new(capabilityOutcomeRequest), Response: new(openAPIEnvelope[openAPICapabilityGrant]), Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/capability-provider-bindings", Tag: "Capability Grants", ID: "listCapabilityProviderBindings", Summary: "List capability provider bindings", Description: "Lists Core-governed Space-scoped provider bindings used by the capability resolver.", Params: new(struct {
+			SpaceID    string `query:"space_id"`
+			Capability string `query:"capability"`
+			Status     string `query:"status"`
+			Limit      int    `query:"limit" minimum:"1" maximum:"200"`
+		}), Response: new(openAPIListEnvelope[openAPICapabilityProviderBinding]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/capability-provider-bindings", Tag: "Capability Grants", ID: "upsertCapabilityProviderBinding", Summary: "Create or update a capability provider binding", Description: "Binds a Space capability operation to an enabled provider plugin. Rebinding increments binding_epoch so callers re-request grants after provider changes.", Body: new(capabilityProviderBindingMutationRequest), Response: new(openAPIEnvelope[openAPICapabilityProviderBinding]), Status: http.StatusCreated, Security: openAPIAdmin},
+		{Method: http.MethodGet, Path: "/api/v1/capability-provider-bindings/{binding_id}", Tag: "Capability Grants", ID: "getCapabilityProviderBinding", Summary: "Get a capability provider binding", Params: new(struct {
+			BindingID string `path:"binding_id"`
+		}), Response: new(openAPIEnvelope[openAPICapabilityProviderBinding]), Security: openAPIAdmin},
+		{Method: http.MethodPatch, Path: "/api/v1/capability-provider-bindings/{binding_id}", Tag: "Capability Grants", ID: "updateCapabilityProviderBinding", Summary: "Update a capability provider binding", Params: new(struct {
+			BindingID string `path:"binding_id"`
+		}), Body: new(capabilityProviderBindingMutationRequest), Response: new(openAPIEnvelope[openAPICapabilityProviderBinding]), Security: openAPIAdmin},
+		{Method: http.MethodDelete, Path: "/api/v1/capability-provider-bindings/{binding_id}", Tag: "Capability Grants", ID: "disableCapabilityProviderBinding", Summary: "Disable a capability provider binding", Params: new(struct {
+			BindingID string `path:"binding_id"`
+		}), Response: new(openAPIEnvelope[openAPICapabilityProviderBinding]), Security: openAPIAdmin},
 
 		{Method: http.MethodGet, Path: "/api/v1/users", Tag: "Users", ID: "listUsers", Summary: "List users", Params: new(openAPILimitQuery), Response: new(openAPIListEnvelope[openAPIUser]), Security: openAPIAdmin},
 		{Method: http.MethodPost, Path: "/api/v1/users", Tag: "Users", ID: "createUser", Summary: "Create a user", Body: new(userMutationRequest), Response: new(openAPIEnvelope[openAPIUser]), Status: http.StatusCreated, Security: openAPIAdmin},

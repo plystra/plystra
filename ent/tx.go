@@ -30,6 +30,8 @@ type Tx struct {
 	BackgroundJob *BackgroundJobClient
 	// CapabilityGrant is the client for interacting with the CapabilityGrant builders.
 	CapabilityGrant *CapabilityGrantClient
+	// CapabilityProviderBinding is the client for interacting with the CapabilityProviderBinding builders.
+	CapabilityProviderBinding *CapabilityProviderBindingClient
 	// Group is the client for interacting with the Group builders.
 	Group *GroupClient
 	// Member is the client for interacting with the Member builders.
@@ -208,6 +210,7 @@ func (tx *Tx) init() {
 	tx.AuditLog = NewAuditLogClient(tx.config)
 	tx.BackgroundJob = NewBackgroundJobClient(tx.config)
 	tx.CapabilityGrant = NewCapabilityGrantClient(tx.config)
+	tx.CapabilityProviderBinding = NewCapabilityProviderBindingClient(tx.config)
 	tx.Group = NewGroupClient(tx.config)
 	tx.Member = NewMemberClient(tx.config)
 	tx.MemberRole = NewMemberRoleClient(tx.config)

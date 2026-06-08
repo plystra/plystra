@@ -117,6 +117,18 @@ func (f CapabilityGrantFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Va
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CapabilityGrantMutation", m)
 }
 
+// The CapabilityProviderBindingFunc type is an adapter to allow the use of ordinary
+// function as CapabilityProviderBinding mutator.
+type CapabilityProviderBindingFunc func(context.Context, *ent.CapabilityProviderBindingMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CapabilityProviderBindingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.CapabilityProviderBindingMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CapabilityProviderBindingMutation", m)
+}
+
 // The GroupFunc type is an adapter to allow the use of ordinary
 // function as Group mutator.
 type GroupFunc func(context.Context, *ent.GroupMutation) (ent.Value, error)
