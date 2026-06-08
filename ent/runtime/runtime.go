@@ -188,16 +188,24 @@ func init() {
 	appdatamodelDescSource := appdatamodelFields[5].Descriptor()
 	// appdatamodel.DefaultSource holds the default value on creation for the source field.
 	appdatamodel.DefaultSource = appdatamodelDescSource.Default.(string)
+	// appdatamodelDescTenantScoped is the schema descriptor for tenant_scoped field.
+	appdatamodelDescTenantScoped := appdatamodelFields[12].Descriptor()
+	// appdatamodel.DefaultTenantScoped holds the default value on creation for the tenant_scoped field.
+	appdatamodel.DefaultTenantScoped = appdatamodelDescTenantScoped.Default.(bool)
+	// appdatamodelDescAuditEnforcement is the schema descriptor for audit_enforcement field.
+	appdatamodelDescAuditEnforcement := appdatamodelFields[13].Descriptor()
+	// appdatamodel.DefaultAuditEnforcement holds the default value on creation for the audit_enforcement field.
+	appdatamodel.DefaultAuditEnforcement = appdatamodelDescAuditEnforcement.Default.(string)
 	// appdatamodelDescStatus is the schema descriptor for status field.
-	appdatamodelDescStatus := appdatamodelFields[8].Descriptor()
+	appdatamodelDescStatus := appdatamodelFields[14].Descriptor()
 	// appdatamodel.DefaultStatus holds the default value on creation for the status field.
 	appdatamodel.DefaultStatus = appdatamodelDescStatus.Default.(string)
 	// appdatamodelDescCreatedAt is the schema descriptor for created_at field.
-	appdatamodelDescCreatedAt := appdatamodelFields[11].Descriptor()
+	appdatamodelDescCreatedAt := appdatamodelFields[17].Descriptor()
 	// appdatamodel.DefaultCreatedAt holds the default value on creation for the created_at field.
 	appdatamodel.DefaultCreatedAt = appdatamodelDescCreatedAt.Default.(func() time.Time)
 	// appdatamodelDescUpdatedAt is the schema descriptor for updated_at field.
-	appdatamodelDescUpdatedAt := appdatamodelFields[12].Descriptor()
+	appdatamodelDescUpdatedAt := appdatamodelFields[18].Descriptor()
 	// appdatamodel.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	appdatamodel.DefaultUpdatedAt = appdatamodelDescUpdatedAt.Default.(func() time.Time)
 	// appdatamodel.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

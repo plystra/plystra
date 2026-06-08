@@ -99,6 +99,36 @@ func DeclaredResourceKey(v string) predicate.AppDataModel {
 	return predicate.AppDataModel(sql.FieldEQ(FieldDeclaredResourceKey, v))
 }
 
+// OwnerPluginType applies equality check predicate on the "owner_plugin_type" field. It's identical to OwnerPluginTypeEQ.
+func OwnerPluginType(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldOwnerPluginType, v))
+}
+
+// AppID applies equality check predicate on the "app_id" field. It's identical to AppIDEQ.
+func AppID(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldAppID, v))
+}
+
+// TrustBundleID applies equality check predicate on the "trust_bundle_id" field. It's identical to TrustBundleIDEQ.
+func TrustBundleID(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldTrustBundleID, v))
+}
+
+// OwnerModuleKey applies equality check predicate on the "owner_module_key" field. It's identical to OwnerModuleKeyEQ.
+func OwnerModuleKey(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldOwnerModuleKey, v))
+}
+
+// TenantScoped applies equality check predicate on the "tenant_scoped" field. It's identical to TenantScopedEQ.
+func TenantScoped(v bool) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldTenantScoped, v))
+}
+
+// AuditEnforcement applies equality check predicate on the "audit_enforcement" field. It's identical to AuditEnforcementEQ.
+func AuditEnforcement(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldAuditEnforcement, v))
+}
+
 // Status applies equality check predicate on the "status" field. It's identical to StatusEQ.
 func Status(v string) predicate.AppDataModel {
 	return predicate.AppDataModel(sql.FieldEQ(FieldStatus, v))
@@ -602,6 +632,381 @@ func DeclaredResourceKeyEqualFold(v string) predicate.AppDataModel {
 // DeclaredResourceKeyContainsFold applies the ContainsFold predicate on the "declared_resource_key" field.
 func DeclaredResourceKeyContainsFold(v string) predicate.AppDataModel {
 	return predicate.AppDataModel(sql.FieldContainsFold(FieldDeclaredResourceKey, v))
+}
+
+// OwnerPluginTypeEQ applies the EQ predicate on the "owner_plugin_type" field.
+func OwnerPluginTypeEQ(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldOwnerPluginType, v))
+}
+
+// OwnerPluginTypeNEQ applies the NEQ predicate on the "owner_plugin_type" field.
+func OwnerPluginTypeNEQ(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNEQ(FieldOwnerPluginType, v))
+}
+
+// OwnerPluginTypeIn applies the In predicate on the "owner_plugin_type" field.
+func OwnerPluginTypeIn(vs ...string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldIn(FieldOwnerPluginType, vs...))
+}
+
+// OwnerPluginTypeNotIn applies the NotIn predicate on the "owner_plugin_type" field.
+func OwnerPluginTypeNotIn(vs ...string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNotIn(FieldOwnerPluginType, vs...))
+}
+
+// OwnerPluginTypeGT applies the GT predicate on the "owner_plugin_type" field.
+func OwnerPluginTypeGT(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldGT(FieldOwnerPluginType, v))
+}
+
+// OwnerPluginTypeGTE applies the GTE predicate on the "owner_plugin_type" field.
+func OwnerPluginTypeGTE(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldGTE(FieldOwnerPluginType, v))
+}
+
+// OwnerPluginTypeLT applies the LT predicate on the "owner_plugin_type" field.
+func OwnerPluginTypeLT(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldLT(FieldOwnerPluginType, v))
+}
+
+// OwnerPluginTypeLTE applies the LTE predicate on the "owner_plugin_type" field.
+func OwnerPluginTypeLTE(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldLTE(FieldOwnerPluginType, v))
+}
+
+// OwnerPluginTypeContains applies the Contains predicate on the "owner_plugin_type" field.
+func OwnerPluginTypeContains(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldContains(FieldOwnerPluginType, v))
+}
+
+// OwnerPluginTypeHasPrefix applies the HasPrefix predicate on the "owner_plugin_type" field.
+func OwnerPluginTypeHasPrefix(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldHasPrefix(FieldOwnerPluginType, v))
+}
+
+// OwnerPluginTypeHasSuffix applies the HasSuffix predicate on the "owner_plugin_type" field.
+func OwnerPluginTypeHasSuffix(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldHasSuffix(FieldOwnerPluginType, v))
+}
+
+// OwnerPluginTypeIsNil applies the IsNil predicate on the "owner_plugin_type" field.
+func OwnerPluginTypeIsNil() predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldIsNull(FieldOwnerPluginType))
+}
+
+// OwnerPluginTypeNotNil applies the NotNil predicate on the "owner_plugin_type" field.
+func OwnerPluginTypeNotNil() predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNotNull(FieldOwnerPluginType))
+}
+
+// OwnerPluginTypeEqualFold applies the EqualFold predicate on the "owner_plugin_type" field.
+func OwnerPluginTypeEqualFold(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEqualFold(FieldOwnerPluginType, v))
+}
+
+// OwnerPluginTypeContainsFold applies the ContainsFold predicate on the "owner_plugin_type" field.
+func OwnerPluginTypeContainsFold(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldContainsFold(FieldOwnerPluginType, v))
+}
+
+// AppIDEQ applies the EQ predicate on the "app_id" field.
+func AppIDEQ(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldAppID, v))
+}
+
+// AppIDNEQ applies the NEQ predicate on the "app_id" field.
+func AppIDNEQ(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNEQ(FieldAppID, v))
+}
+
+// AppIDIn applies the In predicate on the "app_id" field.
+func AppIDIn(vs ...string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldIn(FieldAppID, vs...))
+}
+
+// AppIDNotIn applies the NotIn predicate on the "app_id" field.
+func AppIDNotIn(vs ...string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNotIn(FieldAppID, vs...))
+}
+
+// AppIDGT applies the GT predicate on the "app_id" field.
+func AppIDGT(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldGT(FieldAppID, v))
+}
+
+// AppIDGTE applies the GTE predicate on the "app_id" field.
+func AppIDGTE(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldGTE(FieldAppID, v))
+}
+
+// AppIDLT applies the LT predicate on the "app_id" field.
+func AppIDLT(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldLT(FieldAppID, v))
+}
+
+// AppIDLTE applies the LTE predicate on the "app_id" field.
+func AppIDLTE(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldLTE(FieldAppID, v))
+}
+
+// AppIDContains applies the Contains predicate on the "app_id" field.
+func AppIDContains(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldContains(FieldAppID, v))
+}
+
+// AppIDHasPrefix applies the HasPrefix predicate on the "app_id" field.
+func AppIDHasPrefix(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldHasPrefix(FieldAppID, v))
+}
+
+// AppIDHasSuffix applies the HasSuffix predicate on the "app_id" field.
+func AppIDHasSuffix(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldHasSuffix(FieldAppID, v))
+}
+
+// AppIDIsNil applies the IsNil predicate on the "app_id" field.
+func AppIDIsNil() predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldIsNull(FieldAppID))
+}
+
+// AppIDNotNil applies the NotNil predicate on the "app_id" field.
+func AppIDNotNil() predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNotNull(FieldAppID))
+}
+
+// AppIDEqualFold applies the EqualFold predicate on the "app_id" field.
+func AppIDEqualFold(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEqualFold(FieldAppID, v))
+}
+
+// AppIDContainsFold applies the ContainsFold predicate on the "app_id" field.
+func AppIDContainsFold(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldContainsFold(FieldAppID, v))
+}
+
+// TrustBundleIDEQ applies the EQ predicate on the "trust_bundle_id" field.
+func TrustBundleIDEQ(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDNEQ applies the NEQ predicate on the "trust_bundle_id" field.
+func TrustBundleIDNEQ(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNEQ(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDIn applies the In predicate on the "trust_bundle_id" field.
+func TrustBundleIDIn(vs ...string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldIn(FieldTrustBundleID, vs...))
+}
+
+// TrustBundleIDNotIn applies the NotIn predicate on the "trust_bundle_id" field.
+func TrustBundleIDNotIn(vs ...string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNotIn(FieldTrustBundleID, vs...))
+}
+
+// TrustBundleIDGT applies the GT predicate on the "trust_bundle_id" field.
+func TrustBundleIDGT(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldGT(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDGTE applies the GTE predicate on the "trust_bundle_id" field.
+func TrustBundleIDGTE(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldGTE(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDLT applies the LT predicate on the "trust_bundle_id" field.
+func TrustBundleIDLT(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldLT(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDLTE applies the LTE predicate on the "trust_bundle_id" field.
+func TrustBundleIDLTE(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldLTE(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDContains applies the Contains predicate on the "trust_bundle_id" field.
+func TrustBundleIDContains(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldContains(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDHasPrefix applies the HasPrefix predicate on the "trust_bundle_id" field.
+func TrustBundleIDHasPrefix(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldHasPrefix(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDHasSuffix applies the HasSuffix predicate on the "trust_bundle_id" field.
+func TrustBundleIDHasSuffix(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldHasSuffix(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDIsNil applies the IsNil predicate on the "trust_bundle_id" field.
+func TrustBundleIDIsNil() predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldIsNull(FieldTrustBundleID))
+}
+
+// TrustBundleIDNotNil applies the NotNil predicate on the "trust_bundle_id" field.
+func TrustBundleIDNotNil() predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNotNull(FieldTrustBundleID))
+}
+
+// TrustBundleIDEqualFold applies the EqualFold predicate on the "trust_bundle_id" field.
+func TrustBundleIDEqualFold(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEqualFold(FieldTrustBundleID, v))
+}
+
+// TrustBundleIDContainsFold applies the ContainsFold predicate on the "trust_bundle_id" field.
+func TrustBundleIDContainsFold(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldContainsFold(FieldTrustBundleID, v))
+}
+
+// OwnerModuleKeyEQ applies the EQ predicate on the "owner_module_key" field.
+func OwnerModuleKeyEQ(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldOwnerModuleKey, v))
+}
+
+// OwnerModuleKeyNEQ applies the NEQ predicate on the "owner_module_key" field.
+func OwnerModuleKeyNEQ(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNEQ(FieldOwnerModuleKey, v))
+}
+
+// OwnerModuleKeyIn applies the In predicate on the "owner_module_key" field.
+func OwnerModuleKeyIn(vs ...string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldIn(FieldOwnerModuleKey, vs...))
+}
+
+// OwnerModuleKeyNotIn applies the NotIn predicate on the "owner_module_key" field.
+func OwnerModuleKeyNotIn(vs ...string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNotIn(FieldOwnerModuleKey, vs...))
+}
+
+// OwnerModuleKeyGT applies the GT predicate on the "owner_module_key" field.
+func OwnerModuleKeyGT(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldGT(FieldOwnerModuleKey, v))
+}
+
+// OwnerModuleKeyGTE applies the GTE predicate on the "owner_module_key" field.
+func OwnerModuleKeyGTE(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldGTE(FieldOwnerModuleKey, v))
+}
+
+// OwnerModuleKeyLT applies the LT predicate on the "owner_module_key" field.
+func OwnerModuleKeyLT(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldLT(FieldOwnerModuleKey, v))
+}
+
+// OwnerModuleKeyLTE applies the LTE predicate on the "owner_module_key" field.
+func OwnerModuleKeyLTE(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldLTE(FieldOwnerModuleKey, v))
+}
+
+// OwnerModuleKeyContains applies the Contains predicate on the "owner_module_key" field.
+func OwnerModuleKeyContains(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldContains(FieldOwnerModuleKey, v))
+}
+
+// OwnerModuleKeyHasPrefix applies the HasPrefix predicate on the "owner_module_key" field.
+func OwnerModuleKeyHasPrefix(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldHasPrefix(FieldOwnerModuleKey, v))
+}
+
+// OwnerModuleKeyHasSuffix applies the HasSuffix predicate on the "owner_module_key" field.
+func OwnerModuleKeyHasSuffix(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldHasSuffix(FieldOwnerModuleKey, v))
+}
+
+// OwnerModuleKeyIsNil applies the IsNil predicate on the "owner_module_key" field.
+func OwnerModuleKeyIsNil() predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldIsNull(FieldOwnerModuleKey))
+}
+
+// OwnerModuleKeyNotNil applies the NotNil predicate on the "owner_module_key" field.
+func OwnerModuleKeyNotNil() predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNotNull(FieldOwnerModuleKey))
+}
+
+// OwnerModuleKeyEqualFold applies the EqualFold predicate on the "owner_module_key" field.
+func OwnerModuleKeyEqualFold(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEqualFold(FieldOwnerModuleKey, v))
+}
+
+// OwnerModuleKeyContainsFold applies the ContainsFold predicate on the "owner_module_key" field.
+func OwnerModuleKeyContainsFold(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldContainsFold(FieldOwnerModuleKey, v))
+}
+
+// TenantScopedEQ applies the EQ predicate on the "tenant_scoped" field.
+func TenantScopedEQ(v bool) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldTenantScoped, v))
+}
+
+// TenantScopedNEQ applies the NEQ predicate on the "tenant_scoped" field.
+func TenantScopedNEQ(v bool) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNEQ(FieldTenantScoped, v))
+}
+
+// AuditEnforcementEQ applies the EQ predicate on the "audit_enforcement" field.
+func AuditEnforcementEQ(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEQ(FieldAuditEnforcement, v))
+}
+
+// AuditEnforcementNEQ applies the NEQ predicate on the "audit_enforcement" field.
+func AuditEnforcementNEQ(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNEQ(FieldAuditEnforcement, v))
+}
+
+// AuditEnforcementIn applies the In predicate on the "audit_enforcement" field.
+func AuditEnforcementIn(vs ...string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldIn(FieldAuditEnforcement, vs...))
+}
+
+// AuditEnforcementNotIn applies the NotIn predicate on the "audit_enforcement" field.
+func AuditEnforcementNotIn(vs ...string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldNotIn(FieldAuditEnforcement, vs...))
+}
+
+// AuditEnforcementGT applies the GT predicate on the "audit_enforcement" field.
+func AuditEnforcementGT(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldGT(FieldAuditEnforcement, v))
+}
+
+// AuditEnforcementGTE applies the GTE predicate on the "audit_enforcement" field.
+func AuditEnforcementGTE(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldGTE(FieldAuditEnforcement, v))
+}
+
+// AuditEnforcementLT applies the LT predicate on the "audit_enforcement" field.
+func AuditEnforcementLT(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldLT(FieldAuditEnforcement, v))
+}
+
+// AuditEnforcementLTE applies the LTE predicate on the "audit_enforcement" field.
+func AuditEnforcementLTE(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldLTE(FieldAuditEnforcement, v))
+}
+
+// AuditEnforcementContains applies the Contains predicate on the "audit_enforcement" field.
+func AuditEnforcementContains(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldContains(FieldAuditEnforcement, v))
+}
+
+// AuditEnforcementHasPrefix applies the HasPrefix predicate on the "audit_enforcement" field.
+func AuditEnforcementHasPrefix(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldHasPrefix(FieldAuditEnforcement, v))
+}
+
+// AuditEnforcementHasSuffix applies the HasSuffix predicate on the "audit_enforcement" field.
+func AuditEnforcementHasSuffix(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldHasSuffix(FieldAuditEnforcement, v))
+}
+
+// AuditEnforcementEqualFold applies the EqualFold predicate on the "audit_enforcement" field.
+func AuditEnforcementEqualFold(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldEqualFold(FieldAuditEnforcement, v))
+}
+
+// AuditEnforcementContainsFold applies the ContainsFold predicate on the "audit_enforcement" field.
+func AuditEnforcementContainsFold(v string) predicate.AppDataModel {
+	return predicate.AppDataModel(sql.FieldContainsFold(FieldAuditEnforcement, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.

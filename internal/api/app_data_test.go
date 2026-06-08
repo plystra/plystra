@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	coreent "github.com/plystra/core/ent"
+	"github.com/plystra/core/internal/plugins"
 )
 
 func TestAppDataMutationPolicyViolation(t *testing.T) {
@@ -52,15 +53,33 @@ func TestAppDataModelGovernanceMetadataReservesOwnershipFields(t *testing.T) {
 	out := appDataModelGovernanceMetadata(map[string]any{
 		"owner_plugin_key":      "app.other",
 		"declared_resource_key": "other_model",
+		"owner_plugin_type":     "plugin",
+		"app_id":                "other",
+		"trust_bundle_id":       "other.default",
+		"owner_module_key":      "app.other.module",
+		"tenant_scoped":         false,
+		"audit_enforcement":     "grant_only",
 		"ownership_source":      "caller",
 		"purpose":               "test",
 	}, appDataModelOwnership{
 		OwnerPluginKey:      "app.example.module",
 		DeclaredResourceKey: "example_record",
+		OwnerPluginType:     "app_module",
+		AppID:               "example",
+		TrustBundleID:       "example.default",
+		OwnerModuleKey:      "app.example.module",
+		TenantScoped:        true,
+		AuditEnforcement:    "controlled_action",
 		Source:              appDataOwnershipSourceManifest,
 	})
 	if out["owner_plugin_key"] != "app.example.module" || out["declared_resource_key"] != "example_record" || out["ownership_source"] != appDataOwnershipSourceManifest {
 		t.Fatalf("governance metadata was not owned by Core: %#v", out)
+	}
+	if out["owner_plugin_type"] != "app_module" || out["app_id"] != "example" || out["trust_bundle_id"] != "example.default" || out["owner_module_key"] != "app.example.module" {
+		t.Fatalf("app module governance metadata was not owned by Core: %#v", out)
+	}
+	if out["tenant_scoped"] != true || out["audit_enforcement"] != "controlled_action" {
+		t.Fatalf("data-plane governance metadata was not owned by Core: %#v", out)
 	}
 	if out["purpose"] != "test" {
 		t.Fatalf("non-governance metadata was dropped: %#v", out)
@@ -75,8 +94,48 @@ func TestReqDeclaresPluginOwnership(t *testing.T) {
 	if !reqDeclaresPluginOwnership(&appDataModelMutationRequest{Metadata: map[string]any{"owner_plugin_key": "app.example.module"}}) {
 		t.Fatal("owner_plugin_key metadata should be reserved")
 	}
+	if !reqDeclaresPluginOwnership(&appDataModelMutationRequest{Metadata: map[string]any{"trust_bundle_id": "example.default"}}) {
+		t.Fatal("trust_bundle_id metadata should be reserved")
+	}
+	if !reqDeclaresPluginOwnership(&appDataModelMutationRequest{Metadata: map[string]any{"audit_enforcement": "controlled_action"}}) {
+		t.Fatal("audit_enforcement metadata should be reserved")
+	}
 	if reqDeclaresPluginOwnership(&appDataModelMutationRequest{Metadata: map[string]any{"purpose": "test"}}) {
 		t.Fatal("ordinary metadata should not be treated as plugin ownership")
+	}
+}
+
+func TestAppDataAuditEnforcementForManifestUsesStrongestCoreDataCapability(t *testing.T) {
+	manifest := plugins.Manifest{
+		Capabilities: []plugins.CapabilityDefinition{{
+			ID:        "billing.invoice",
+			Audit:     plugins.CapabilityAuditDefinition{Enforcement: "reported_event"},
+			DataPlane: plugins.CapabilityDataPlaneDefinition{Allowed: []string{"core_data_api"}},
+		}},
+		LocalCapabilities: []plugins.CapabilityDefinition{{
+			ID:        "billing.payment",
+			Audit:     plugins.CapabilityAuditDefinition{Enforcement: "controlled_action"},
+			DataPlane: plugins.CapabilityDataPlaneDefinition{Allowed: []string{"action_gateway", "core_data_api"}},
+		}},
+	}
+	if got := appDataAuditEnforcementForManifest(manifest); got != "controlled_action" {
+		t.Fatalf("audit enforcement = %q, want controlled_action", got)
+	}
+	manifest.Capabilities[0].DataPlane.Allowed = []string{"direct_db"}
+	manifest.LocalCapabilities[0].DataPlane.Allowed = []string{"action_gateway"}
+	if got := appDataAuditEnforcementForManifest(manifest); got != "" {
+		t.Fatalf("manifest without core_data_api should not authorize app data, got %q", got)
+	}
+}
+
+func TestOwnerModuleKeyForManifestOnlyAppModules(t *testing.T) {
+	row := &coreent.Plugin{Key: "app.example.module", Type: "app_module"}
+	manifest := plugins.Manifest{ID: "app.example.module", Type: "app_module"}
+	if got := ownerModuleKeyForManifest(row, manifest); got != "app.example.module" {
+		t.Fatalf("owner module key = %q", got)
+	}
+	if got := ownerModuleKeyForManifest(&coreent.Plugin{Key: "plystra.email", Type: "plugin"}, plugins.Manifest{ID: "plystra.email", Type: "plugin"}); got != "" {
+		t.Fatalf("reusable plugin should not set owner module key, got %q", got)
 	}
 }
 

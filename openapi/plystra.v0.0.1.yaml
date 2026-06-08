@@ -719,6 +719,10 @@ components:
             type: object
         ApiOpenAPIAppDataModel:
             properties:
+                app_id:
+                    type: string
+                audit_enforcement:
+                    type: string
                 created_at:
                     format: date-time
                     type: string
@@ -740,7 +744,11 @@ components:
                     additionalProperties: {}
                     nullable: true
                     type: object
+                owner_module_key:
+                    type: string
                 owner_plugin_key:
+                    type: string
+                owner_plugin_type:
                     type: string
                 permissions:
                     items:
@@ -756,6 +764,10 @@ components:
                 space_id:
                     type: string
                 status:
+                    type: string
+                tenant_scoped:
+                    type: boolean
+                trust_bundle_id:
                     type: string
                 updated_at:
                     format: date-time

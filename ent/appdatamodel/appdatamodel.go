@@ -27,6 +27,18 @@ const (
 	FieldOwnerPluginKey = "owner_plugin_key"
 	// FieldDeclaredResourceKey holds the string denoting the declared_resource_key field in the database.
 	FieldDeclaredResourceKey = "declared_resource_key"
+	// FieldOwnerPluginType holds the string denoting the owner_plugin_type field in the database.
+	FieldOwnerPluginType = "owner_plugin_type"
+	// FieldAppID holds the string denoting the app_id field in the database.
+	FieldAppID = "app_id"
+	// FieldTrustBundleID holds the string denoting the trust_bundle_id field in the database.
+	FieldTrustBundleID = "trust_bundle_id"
+	// FieldOwnerModuleKey holds the string denoting the owner_module_key field in the database.
+	FieldOwnerModuleKey = "owner_module_key"
+	// FieldTenantScoped holds the string denoting the tenant_scoped field in the database.
+	FieldTenantScoped = "tenant_scoped"
+	// FieldAuditEnforcement holds the string denoting the audit_enforcement field in the database.
+	FieldAuditEnforcement = "audit_enforcement"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldSchema holds the string denoting the schema field in the database.
@@ -53,6 +65,12 @@ var Columns = []string{
 	FieldSource,
 	FieldOwnerPluginKey,
 	FieldDeclaredResourceKey,
+	FieldOwnerPluginType,
+	FieldAppID,
+	FieldTrustBundleID,
+	FieldOwnerModuleKey,
+	FieldTenantScoped,
+	FieldAuditEnforcement,
 	FieldStatus,
 	FieldSchema,
 	FieldMetadata,
@@ -80,6 +98,10 @@ var (
 	DisplayNameValidator func(string) error
 	// DefaultSource holds the default value on creation for the "source" field.
 	DefaultSource string
+	// DefaultTenantScoped holds the default value on creation for the "tenant_scoped" field.
+	DefaultTenantScoped bool
+	// DefaultAuditEnforcement holds the default value on creation for the "audit_enforcement" field.
+	DefaultAuditEnforcement string
 	// DefaultStatus holds the default value on creation for the "status" field.
 	DefaultStatus string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -133,6 +155,36 @@ func ByOwnerPluginKey(opts ...sql.OrderTermOption) OrderOption {
 // ByDeclaredResourceKey orders the results by the declared_resource_key field.
 func ByDeclaredResourceKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeclaredResourceKey, opts...).ToFunc()
+}
+
+// ByOwnerPluginType orders the results by the owner_plugin_type field.
+func ByOwnerPluginType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOwnerPluginType, opts...).ToFunc()
+}
+
+// ByAppID orders the results by the app_id field.
+func ByAppID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAppID, opts...).ToFunc()
+}
+
+// ByTrustBundleID orders the results by the trust_bundle_id field.
+func ByTrustBundleID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTrustBundleID, opts...).ToFunc()
+}
+
+// ByOwnerModuleKey orders the results by the owner_module_key field.
+func ByOwnerModuleKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOwnerModuleKey, opts...).ToFunc()
+}
+
+// ByTenantScoped orders the results by the tenant_scoped field.
+func ByTenantScoped(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTenantScoped, opts...).ToFunc()
+}
+
+// ByAuditEnforcement orders the results by the audit_enforcement field.
+func ByAuditEnforcement(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAuditEnforcement, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

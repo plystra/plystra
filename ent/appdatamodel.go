@@ -32,6 +32,18 @@ type AppDataModel struct {
 	OwnerPluginKey *string `json:"owner_plugin_key,omitempty"`
 	// DeclaredResourceKey holds the value of the "declared_resource_key" field.
 	DeclaredResourceKey *string `json:"declared_resource_key,omitempty"`
+	// OwnerPluginType holds the value of the "owner_plugin_type" field.
+	OwnerPluginType *string `json:"owner_plugin_type,omitempty"`
+	// AppID holds the value of the "app_id" field.
+	AppID *string `json:"app_id,omitempty"`
+	// TrustBundleID holds the value of the "trust_bundle_id" field.
+	TrustBundleID *string `json:"trust_bundle_id,omitempty"`
+	// OwnerModuleKey holds the value of the "owner_module_key" field.
+	OwnerModuleKey *string `json:"owner_module_key,omitempty"`
+	// TenantScoped holds the value of the "tenant_scoped" field.
+	TenantScoped bool `json:"tenant_scoped,omitempty"`
+	// AuditEnforcement holds the value of the "audit_enforcement" field.
+	AuditEnforcement string `json:"audit_enforcement,omitempty"`
 	// Status holds the value of the "status" field.
 	Status string `json:"status,omitempty"`
 	// Schema holds the value of the "schema" field.
@@ -54,7 +66,9 @@ func (*AppDataModel) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case appdatamodel.FieldSchema, appdatamodel.FieldMetadata:
 			values[i] = new([]byte)
-		case appdatamodel.FieldID, appdatamodel.FieldSpaceID, appdatamodel.FieldKey, appdatamodel.FieldDisplayName, appdatamodel.FieldDescription, appdatamodel.FieldSource, appdatamodel.FieldOwnerPluginKey, appdatamodel.FieldDeclaredResourceKey, appdatamodel.FieldStatus:
+		case appdatamodel.FieldTenantScoped:
+			values[i] = new(sql.NullBool)
+		case appdatamodel.FieldID, appdatamodel.FieldSpaceID, appdatamodel.FieldKey, appdatamodel.FieldDisplayName, appdatamodel.FieldDescription, appdatamodel.FieldSource, appdatamodel.FieldOwnerPluginKey, appdatamodel.FieldDeclaredResourceKey, appdatamodel.FieldOwnerPluginType, appdatamodel.FieldAppID, appdatamodel.FieldTrustBundleID, appdatamodel.FieldOwnerModuleKey, appdatamodel.FieldAuditEnforcement, appdatamodel.FieldStatus:
 			values[i] = new(sql.NullString)
 		case appdatamodel.FieldCreatedAt, appdatamodel.FieldUpdatedAt, appdatamodel.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -123,6 +137,46 @@ func (_m *AppDataModel) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.DeclaredResourceKey = new(string)
 				*_m.DeclaredResourceKey = value.String
+			}
+		case appdatamodel.FieldOwnerPluginType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field owner_plugin_type", values[i])
+			} else if value.Valid {
+				_m.OwnerPluginType = new(string)
+				*_m.OwnerPluginType = value.String
+			}
+		case appdatamodel.FieldAppID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field app_id", values[i])
+			} else if value.Valid {
+				_m.AppID = new(string)
+				*_m.AppID = value.String
+			}
+		case appdatamodel.FieldTrustBundleID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field trust_bundle_id", values[i])
+			} else if value.Valid {
+				_m.TrustBundleID = new(string)
+				*_m.TrustBundleID = value.String
+			}
+		case appdatamodel.FieldOwnerModuleKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field owner_module_key", values[i])
+			} else if value.Valid {
+				_m.OwnerModuleKey = new(string)
+				*_m.OwnerModuleKey = value.String
+			}
+		case appdatamodel.FieldTenantScoped:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field tenant_scoped", values[i])
+			} else if value.Valid {
+				_m.TenantScoped = value.Bool
+			}
+		case appdatamodel.FieldAuditEnforcement:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field audit_enforcement", values[i])
+			} else if value.Valid {
+				_m.AuditEnforcement = value.String
 			}
 		case appdatamodel.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -227,6 +281,32 @@ func (_m *AppDataModel) String() string {
 		builder.WriteString("declared_resource_key=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	if v := _m.OwnerPluginType; v != nil {
+		builder.WriteString("owner_plugin_type=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.AppID; v != nil {
+		builder.WriteString("app_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.TrustBundleID; v != nil {
+		builder.WriteString("trust_bundle_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.OwnerModuleKey; v != nil {
+		builder.WriteString("owner_module_key=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("tenant_scoped=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TenantScoped))
+	builder.WriteString(", ")
+	builder.WriteString("audit_enforcement=")
+	builder.WriteString(_m.AuditEnforcement)
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)

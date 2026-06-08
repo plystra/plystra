@@ -94,6 +94,90 @@ func (_c *AppDataModelCreate) SetNillableDeclaredResourceKey(v *string) *AppData
 	return _c
 }
 
+// SetOwnerPluginType sets the "owner_plugin_type" field.
+func (_c *AppDataModelCreate) SetOwnerPluginType(v string) *AppDataModelCreate {
+	_c.mutation.SetOwnerPluginType(v)
+	return _c
+}
+
+// SetNillableOwnerPluginType sets the "owner_plugin_type" field if the given value is not nil.
+func (_c *AppDataModelCreate) SetNillableOwnerPluginType(v *string) *AppDataModelCreate {
+	if v != nil {
+		_c.SetOwnerPluginType(*v)
+	}
+	return _c
+}
+
+// SetAppID sets the "app_id" field.
+func (_c *AppDataModelCreate) SetAppID(v string) *AppDataModelCreate {
+	_c.mutation.SetAppID(v)
+	return _c
+}
+
+// SetNillableAppID sets the "app_id" field if the given value is not nil.
+func (_c *AppDataModelCreate) SetNillableAppID(v *string) *AppDataModelCreate {
+	if v != nil {
+		_c.SetAppID(*v)
+	}
+	return _c
+}
+
+// SetTrustBundleID sets the "trust_bundle_id" field.
+func (_c *AppDataModelCreate) SetTrustBundleID(v string) *AppDataModelCreate {
+	_c.mutation.SetTrustBundleID(v)
+	return _c
+}
+
+// SetNillableTrustBundleID sets the "trust_bundle_id" field if the given value is not nil.
+func (_c *AppDataModelCreate) SetNillableTrustBundleID(v *string) *AppDataModelCreate {
+	if v != nil {
+		_c.SetTrustBundleID(*v)
+	}
+	return _c
+}
+
+// SetOwnerModuleKey sets the "owner_module_key" field.
+func (_c *AppDataModelCreate) SetOwnerModuleKey(v string) *AppDataModelCreate {
+	_c.mutation.SetOwnerModuleKey(v)
+	return _c
+}
+
+// SetNillableOwnerModuleKey sets the "owner_module_key" field if the given value is not nil.
+func (_c *AppDataModelCreate) SetNillableOwnerModuleKey(v *string) *AppDataModelCreate {
+	if v != nil {
+		_c.SetOwnerModuleKey(*v)
+	}
+	return _c
+}
+
+// SetTenantScoped sets the "tenant_scoped" field.
+func (_c *AppDataModelCreate) SetTenantScoped(v bool) *AppDataModelCreate {
+	_c.mutation.SetTenantScoped(v)
+	return _c
+}
+
+// SetNillableTenantScoped sets the "tenant_scoped" field if the given value is not nil.
+func (_c *AppDataModelCreate) SetNillableTenantScoped(v *bool) *AppDataModelCreate {
+	if v != nil {
+		_c.SetTenantScoped(*v)
+	}
+	return _c
+}
+
+// SetAuditEnforcement sets the "audit_enforcement" field.
+func (_c *AppDataModelCreate) SetAuditEnforcement(v string) *AppDataModelCreate {
+	_c.mutation.SetAuditEnforcement(v)
+	return _c
+}
+
+// SetNillableAuditEnforcement sets the "audit_enforcement" field if the given value is not nil.
+func (_c *AppDataModelCreate) SetNillableAuditEnforcement(v *string) *AppDataModelCreate {
+	if v != nil {
+		_c.SetAuditEnforcement(*v)
+	}
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *AppDataModelCreate) SetStatus(v string) *AppDataModelCreate {
 	_c.mutation.SetStatus(v)
@@ -207,6 +291,14 @@ func (_c *AppDataModelCreate) defaults() {
 		v := appdatamodel.DefaultSource
 		_c.mutation.SetSource(v)
 	}
+	if _, ok := _c.mutation.TenantScoped(); !ok {
+		v := appdatamodel.DefaultTenantScoped
+		_c.mutation.SetTenantScoped(v)
+	}
+	if _, ok := _c.mutation.AuditEnforcement(); !ok {
+		v := appdatamodel.DefaultAuditEnforcement
+		_c.mutation.SetAuditEnforcement(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := appdatamodel.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -314,6 +406,30 @@ func (_c *AppDataModelCreate) createSpec() (*AppDataModel, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.DeclaredResourceKey(); ok {
 		_spec.SetField(appdatamodel.FieldDeclaredResourceKey, field.TypeString, value)
 		_node.DeclaredResourceKey = &value
+	}
+	if value, ok := _c.mutation.OwnerPluginType(); ok {
+		_spec.SetField(appdatamodel.FieldOwnerPluginType, field.TypeString, value)
+		_node.OwnerPluginType = &value
+	}
+	if value, ok := _c.mutation.AppID(); ok {
+		_spec.SetField(appdatamodel.FieldAppID, field.TypeString, value)
+		_node.AppID = &value
+	}
+	if value, ok := _c.mutation.TrustBundleID(); ok {
+		_spec.SetField(appdatamodel.FieldTrustBundleID, field.TypeString, value)
+		_node.TrustBundleID = &value
+	}
+	if value, ok := _c.mutation.OwnerModuleKey(); ok {
+		_spec.SetField(appdatamodel.FieldOwnerModuleKey, field.TypeString, value)
+		_node.OwnerModuleKey = &value
+	}
+	if value, ok := _c.mutation.TenantScoped(); ok {
+		_spec.SetField(appdatamodel.FieldTenantScoped, field.TypeBool, value)
+		_node.TenantScoped = value
+	}
+	if value, ok := _c.mutation.AuditEnforcement(); ok {
+		_spec.SetField(appdatamodel.FieldAuditEnforcement, field.TypeString, value)
+		_node.AuditEnforcement = value
 	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(appdatamodel.FieldStatus, field.TypeString, value)

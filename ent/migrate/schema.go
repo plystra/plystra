@@ -216,6 +216,12 @@ var (
 		{Name: "source", Type: field.TypeString, Default: schema.Expr("'app'")},
 		{Name: "owner_plugin_key", Type: field.TypeString, Nullable: true},
 		{Name: "declared_resource_key", Type: field.TypeString, Nullable: true},
+		{Name: "owner_plugin_type", Type: field.TypeString, Nullable: true},
+		{Name: "app_id", Type: field.TypeString, Nullable: true},
+		{Name: "trust_bundle_id", Type: field.TypeString, Nullable: true},
+		{Name: "owner_module_key", Type: field.TypeString, Nullable: true},
+		{Name: "tenant_scoped", Type: field.TypeBool, Default: schema.Expr("true")},
+		{Name: "audit_enforcement", Type: field.TypeString, Default: schema.Expr("'reported_event'")},
 		{Name: "status", Type: field.TypeString, Default: schema.Expr("'active'")},
 		{Name: "schema", Type: field.TypeJSON, Default: schema.Expr("'{}'::jsonb")},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, Default: schema.Expr("'{}'::jsonb")},
@@ -237,7 +243,7 @@ var (
 			{
 				Name:    "appdatamodel_space_id_status",
 				Unique:  false,
-				Columns: []*schema.Column{AppDataModelsColumns[1], AppDataModelsColumns[8]},
+				Columns: []*schema.Column{AppDataModelsColumns[1], AppDataModelsColumns[14]},
 			},
 			{
 				Name:    "appdatamodel_space_id_owner_plugin_key",
@@ -245,9 +251,29 @@ var (
 				Columns: []*schema.Column{AppDataModelsColumns[1], AppDataModelsColumns[6]},
 			},
 			{
+				Name:    "appdatamodel_space_id_app_id",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataModelsColumns[1], AppDataModelsColumns[9]},
+			},
+			{
+				Name:    "appdatamodel_space_id_trust_bundle_id",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataModelsColumns[1], AppDataModelsColumns[10]},
+			},
+			{
 				Name:    "appdatamodel_owner_plugin_key_declared_resource_key",
 				Unique:  false,
 				Columns: []*schema.Column{AppDataModelsColumns[6], AppDataModelsColumns[7]},
+			},
+			{
+				Name:    "appdatamodel_owner_module_key",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataModelsColumns[11]},
+			},
+			{
+				Name:    "appdatamodel_audit_enforcement",
+				Unique:  false,
+				Columns: []*schema.Column{AppDataModelsColumns[13]},
 			},
 			{
 				Name:    "appdatamodel_key",

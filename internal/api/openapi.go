@@ -384,6 +384,12 @@ type openAPIAppDataModel struct {
 	Source              string                            `json:"source"`
 	OwnerPluginKey      string                            `json:"owner_plugin_key,omitempty"`
 	DeclaredResourceKey string                            `json:"declared_resource_key,omitempty"`
+	OwnerPluginType     string                            `json:"owner_plugin_type,omitempty"`
+	AppID               string                            `json:"app_id,omitempty"`
+	TrustBundleID       string                            `json:"trust_bundle_id,omitempty"`
+	OwnerModuleKey      string                            `json:"owner_module_key,omitempty"`
+	TenantScoped        bool                              `json:"tenant_scoped"`
+	AuditEnforcement    string                            `json:"audit_enforcement"`
 	Status              string                            `json:"status"`
 	Schema              map[string]any                    `json:"schema"`
 	Metadata            map[string]any                    `json:"metadata"`

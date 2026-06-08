@@ -4859,6 +4859,12 @@ type AppDataModelMutation struct {
 	source                *string
 	owner_plugin_key      *string
 	declared_resource_key *string
+	owner_plugin_type     *string
+	app_id                *string
+	trust_bundle_id       *string
+	owner_module_key      *string
+	tenant_scoped         *bool
+	audit_enforcement     *string
 	status                *string
 	schema                *map[string]interface{}
 	metadata              *map[string]interface{}
@@ -5266,6 +5272,274 @@ func (m *AppDataModelMutation) ResetDeclaredResourceKey() {
 	delete(m.clearedFields, appdatamodel.FieldDeclaredResourceKey)
 }
 
+// SetOwnerPluginType sets the "owner_plugin_type" field.
+func (m *AppDataModelMutation) SetOwnerPluginType(s string) {
+	m.owner_plugin_type = &s
+}
+
+// OwnerPluginType returns the value of the "owner_plugin_type" field in the mutation.
+func (m *AppDataModelMutation) OwnerPluginType() (r string, exists bool) {
+	v := m.owner_plugin_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOwnerPluginType returns the old "owner_plugin_type" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldOwnerPluginType(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOwnerPluginType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOwnerPluginType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOwnerPluginType: %w", err)
+	}
+	return oldValue.OwnerPluginType, nil
+}
+
+// ClearOwnerPluginType clears the value of the "owner_plugin_type" field.
+func (m *AppDataModelMutation) ClearOwnerPluginType() {
+	m.owner_plugin_type = nil
+	m.clearedFields[appdatamodel.FieldOwnerPluginType] = struct{}{}
+}
+
+// OwnerPluginTypeCleared returns if the "owner_plugin_type" field was cleared in this mutation.
+func (m *AppDataModelMutation) OwnerPluginTypeCleared() bool {
+	_, ok := m.clearedFields[appdatamodel.FieldOwnerPluginType]
+	return ok
+}
+
+// ResetOwnerPluginType resets all changes to the "owner_plugin_type" field.
+func (m *AppDataModelMutation) ResetOwnerPluginType() {
+	m.owner_plugin_type = nil
+	delete(m.clearedFields, appdatamodel.FieldOwnerPluginType)
+}
+
+// SetAppID sets the "app_id" field.
+func (m *AppDataModelMutation) SetAppID(s string) {
+	m.app_id = &s
+}
+
+// AppID returns the value of the "app_id" field in the mutation.
+func (m *AppDataModelMutation) AppID() (r string, exists bool) {
+	v := m.app_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppID returns the old "app_id" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldAppID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppID: %w", err)
+	}
+	return oldValue.AppID, nil
+}
+
+// ClearAppID clears the value of the "app_id" field.
+func (m *AppDataModelMutation) ClearAppID() {
+	m.app_id = nil
+	m.clearedFields[appdatamodel.FieldAppID] = struct{}{}
+}
+
+// AppIDCleared returns if the "app_id" field was cleared in this mutation.
+func (m *AppDataModelMutation) AppIDCleared() bool {
+	_, ok := m.clearedFields[appdatamodel.FieldAppID]
+	return ok
+}
+
+// ResetAppID resets all changes to the "app_id" field.
+func (m *AppDataModelMutation) ResetAppID() {
+	m.app_id = nil
+	delete(m.clearedFields, appdatamodel.FieldAppID)
+}
+
+// SetTrustBundleID sets the "trust_bundle_id" field.
+func (m *AppDataModelMutation) SetTrustBundleID(s string) {
+	m.trust_bundle_id = &s
+}
+
+// TrustBundleID returns the value of the "trust_bundle_id" field in the mutation.
+func (m *AppDataModelMutation) TrustBundleID() (r string, exists bool) {
+	v := m.trust_bundle_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTrustBundleID returns the old "trust_bundle_id" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldTrustBundleID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTrustBundleID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTrustBundleID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTrustBundleID: %w", err)
+	}
+	return oldValue.TrustBundleID, nil
+}
+
+// ClearTrustBundleID clears the value of the "trust_bundle_id" field.
+func (m *AppDataModelMutation) ClearTrustBundleID() {
+	m.trust_bundle_id = nil
+	m.clearedFields[appdatamodel.FieldTrustBundleID] = struct{}{}
+}
+
+// TrustBundleIDCleared returns if the "trust_bundle_id" field was cleared in this mutation.
+func (m *AppDataModelMutation) TrustBundleIDCleared() bool {
+	_, ok := m.clearedFields[appdatamodel.FieldTrustBundleID]
+	return ok
+}
+
+// ResetTrustBundleID resets all changes to the "trust_bundle_id" field.
+func (m *AppDataModelMutation) ResetTrustBundleID() {
+	m.trust_bundle_id = nil
+	delete(m.clearedFields, appdatamodel.FieldTrustBundleID)
+}
+
+// SetOwnerModuleKey sets the "owner_module_key" field.
+func (m *AppDataModelMutation) SetOwnerModuleKey(s string) {
+	m.owner_module_key = &s
+}
+
+// OwnerModuleKey returns the value of the "owner_module_key" field in the mutation.
+func (m *AppDataModelMutation) OwnerModuleKey() (r string, exists bool) {
+	v := m.owner_module_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOwnerModuleKey returns the old "owner_module_key" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldOwnerModuleKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOwnerModuleKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOwnerModuleKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOwnerModuleKey: %w", err)
+	}
+	return oldValue.OwnerModuleKey, nil
+}
+
+// ClearOwnerModuleKey clears the value of the "owner_module_key" field.
+func (m *AppDataModelMutation) ClearOwnerModuleKey() {
+	m.owner_module_key = nil
+	m.clearedFields[appdatamodel.FieldOwnerModuleKey] = struct{}{}
+}
+
+// OwnerModuleKeyCleared returns if the "owner_module_key" field was cleared in this mutation.
+func (m *AppDataModelMutation) OwnerModuleKeyCleared() bool {
+	_, ok := m.clearedFields[appdatamodel.FieldOwnerModuleKey]
+	return ok
+}
+
+// ResetOwnerModuleKey resets all changes to the "owner_module_key" field.
+func (m *AppDataModelMutation) ResetOwnerModuleKey() {
+	m.owner_module_key = nil
+	delete(m.clearedFields, appdatamodel.FieldOwnerModuleKey)
+}
+
+// SetTenantScoped sets the "tenant_scoped" field.
+func (m *AppDataModelMutation) SetTenantScoped(b bool) {
+	m.tenant_scoped = &b
+}
+
+// TenantScoped returns the value of the "tenant_scoped" field in the mutation.
+func (m *AppDataModelMutation) TenantScoped() (r bool, exists bool) {
+	v := m.tenant_scoped
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTenantScoped returns the old "tenant_scoped" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldTenantScoped(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTenantScoped is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTenantScoped requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTenantScoped: %w", err)
+	}
+	return oldValue.TenantScoped, nil
+}
+
+// ResetTenantScoped resets all changes to the "tenant_scoped" field.
+func (m *AppDataModelMutation) ResetTenantScoped() {
+	m.tenant_scoped = nil
+}
+
+// SetAuditEnforcement sets the "audit_enforcement" field.
+func (m *AppDataModelMutation) SetAuditEnforcement(s string) {
+	m.audit_enforcement = &s
+}
+
+// AuditEnforcement returns the value of the "audit_enforcement" field in the mutation.
+func (m *AppDataModelMutation) AuditEnforcement() (r string, exists bool) {
+	v := m.audit_enforcement
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAuditEnforcement returns the old "audit_enforcement" field's value of the AppDataModel entity.
+// If the AppDataModel object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppDataModelMutation) OldAuditEnforcement(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAuditEnforcement is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAuditEnforcement requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAuditEnforcement: %w", err)
+	}
+	return oldValue.AuditEnforcement, nil
+}
+
+// ResetAuditEnforcement resets all changes to the "audit_enforcement" field.
+func (m *AppDataModelMutation) ResetAuditEnforcement() {
+	m.audit_enforcement = nil
+}
+
 // SetStatus sets the "status" field.
 func (m *AppDataModelMutation) SetStatus(s string) {
 	m.status = &s
@@ -5542,7 +5816,7 @@ func (m *AppDataModelMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AppDataModelMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 19)
 	if m.space_id != nil {
 		fields = append(fields, appdatamodel.FieldSpaceID)
 	}
@@ -5563,6 +5837,24 @@ func (m *AppDataModelMutation) Fields() []string {
 	}
 	if m.declared_resource_key != nil {
 		fields = append(fields, appdatamodel.FieldDeclaredResourceKey)
+	}
+	if m.owner_plugin_type != nil {
+		fields = append(fields, appdatamodel.FieldOwnerPluginType)
+	}
+	if m.app_id != nil {
+		fields = append(fields, appdatamodel.FieldAppID)
+	}
+	if m.trust_bundle_id != nil {
+		fields = append(fields, appdatamodel.FieldTrustBundleID)
+	}
+	if m.owner_module_key != nil {
+		fields = append(fields, appdatamodel.FieldOwnerModuleKey)
+	}
+	if m.tenant_scoped != nil {
+		fields = append(fields, appdatamodel.FieldTenantScoped)
+	}
+	if m.audit_enforcement != nil {
+		fields = append(fields, appdatamodel.FieldAuditEnforcement)
 	}
 	if m.status != nil {
 		fields = append(fields, appdatamodel.FieldStatus)
@@ -5604,6 +5896,18 @@ func (m *AppDataModelMutation) Field(name string) (ent.Value, bool) {
 		return m.OwnerPluginKey()
 	case appdatamodel.FieldDeclaredResourceKey:
 		return m.DeclaredResourceKey()
+	case appdatamodel.FieldOwnerPluginType:
+		return m.OwnerPluginType()
+	case appdatamodel.FieldAppID:
+		return m.AppID()
+	case appdatamodel.FieldTrustBundleID:
+		return m.TrustBundleID()
+	case appdatamodel.FieldOwnerModuleKey:
+		return m.OwnerModuleKey()
+	case appdatamodel.FieldTenantScoped:
+		return m.TenantScoped()
+	case appdatamodel.FieldAuditEnforcement:
+		return m.AuditEnforcement()
 	case appdatamodel.FieldStatus:
 		return m.Status()
 	case appdatamodel.FieldSchema:
@@ -5639,6 +5943,18 @@ func (m *AppDataModelMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldOwnerPluginKey(ctx)
 	case appdatamodel.FieldDeclaredResourceKey:
 		return m.OldDeclaredResourceKey(ctx)
+	case appdatamodel.FieldOwnerPluginType:
+		return m.OldOwnerPluginType(ctx)
+	case appdatamodel.FieldAppID:
+		return m.OldAppID(ctx)
+	case appdatamodel.FieldTrustBundleID:
+		return m.OldTrustBundleID(ctx)
+	case appdatamodel.FieldOwnerModuleKey:
+		return m.OldOwnerModuleKey(ctx)
+	case appdatamodel.FieldTenantScoped:
+		return m.OldTenantScoped(ctx)
+	case appdatamodel.FieldAuditEnforcement:
+		return m.OldAuditEnforcement(ctx)
 	case appdatamodel.FieldStatus:
 		return m.OldStatus(ctx)
 	case appdatamodel.FieldSchema:
@@ -5708,6 +6024,48 @@ func (m *AppDataModelMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeclaredResourceKey(v)
+		return nil
+	case appdatamodel.FieldOwnerPluginType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOwnerPluginType(v)
+		return nil
+	case appdatamodel.FieldAppID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppID(v)
+		return nil
+	case appdatamodel.FieldTrustBundleID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTrustBundleID(v)
+		return nil
+	case appdatamodel.FieldOwnerModuleKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOwnerModuleKey(v)
+		return nil
+	case appdatamodel.FieldTenantScoped:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTenantScoped(v)
+		return nil
+	case appdatamodel.FieldAuditEnforcement:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAuditEnforcement(v)
 		return nil
 	case appdatamodel.FieldStatus:
 		v, ok := value.(string)
@@ -5790,6 +6148,18 @@ func (m *AppDataModelMutation) ClearedFields() []string {
 	if m.FieldCleared(appdatamodel.FieldDeclaredResourceKey) {
 		fields = append(fields, appdatamodel.FieldDeclaredResourceKey)
 	}
+	if m.FieldCleared(appdatamodel.FieldOwnerPluginType) {
+		fields = append(fields, appdatamodel.FieldOwnerPluginType)
+	}
+	if m.FieldCleared(appdatamodel.FieldAppID) {
+		fields = append(fields, appdatamodel.FieldAppID)
+	}
+	if m.FieldCleared(appdatamodel.FieldTrustBundleID) {
+		fields = append(fields, appdatamodel.FieldTrustBundleID)
+	}
+	if m.FieldCleared(appdatamodel.FieldOwnerModuleKey) {
+		fields = append(fields, appdatamodel.FieldOwnerModuleKey)
+	}
 	if m.FieldCleared(appdatamodel.FieldMetadata) {
 		fields = append(fields, appdatamodel.FieldMetadata)
 	}
@@ -5818,6 +6188,18 @@ func (m *AppDataModelMutation) ClearField(name string) error {
 		return nil
 	case appdatamodel.FieldDeclaredResourceKey:
 		m.ClearDeclaredResourceKey()
+		return nil
+	case appdatamodel.FieldOwnerPluginType:
+		m.ClearOwnerPluginType()
+		return nil
+	case appdatamodel.FieldAppID:
+		m.ClearAppID()
+		return nil
+	case appdatamodel.FieldTrustBundleID:
+		m.ClearTrustBundleID()
+		return nil
+	case appdatamodel.FieldOwnerModuleKey:
+		m.ClearOwnerModuleKey()
 		return nil
 	case appdatamodel.FieldMetadata:
 		m.ClearMetadata()
@@ -5853,6 +6235,24 @@ func (m *AppDataModelMutation) ResetField(name string) error {
 		return nil
 	case appdatamodel.FieldDeclaredResourceKey:
 		m.ResetDeclaredResourceKey()
+		return nil
+	case appdatamodel.FieldOwnerPluginType:
+		m.ResetOwnerPluginType()
+		return nil
+	case appdatamodel.FieldAppID:
+		m.ResetAppID()
+		return nil
+	case appdatamodel.FieldTrustBundleID:
+		m.ResetTrustBundleID()
+		return nil
+	case appdatamodel.FieldOwnerModuleKey:
+		m.ResetOwnerModuleKey()
+		return nil
+	case appdatamodel.FieldTenantScoped:
+		m.ResetTenantScoped()
+		return nil
+	case appdatamodel.FieldAuditEnforcement:
+		m.ResetAuditEnforcement()
 		return nil
 	case appdatamodel.FieldStatus:
 		m.ResetStatus()

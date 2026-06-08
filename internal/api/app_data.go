@@ -39,6 +39,7 @@ const appDataMutationPolicyServiceAppendOnly = "service_append_only"
 const appDataServiceKeyHeader = "X-Plystra-App-Data-Service-Key"
 const appDataSourceApp = "app"
 const appDataOwnershipSourceManifest = "plugin_manifest"
+const appDataDefaultAuditEnforcement = "reported_event"
 
 var appDataModelKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 var appDataDataFieldPattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]{0,63}$`)
@@ -319,12 +320,18 @@ func (s *Server) createAppDataModel(w http.ResponseWriter, r *http.Request, spac
 		SetDisplayName(strings.TrimSpace(req.DisplayName)).
 		SetNillableDescription(optionalString(derefString(req.Description))).
 		SetSource(source).
+		SetTenantScoped(ownership.TenantScoped).
+		SetAuditEnforcement(firstNonEmpty(ownership.AuditEnforcement, appDataDefaultAuditEnforcement)).
 		SetStatus(firstNonEmpty(derefString(req.Status), "active")).
 		SetSchema(nonNilMap(req.Schema)).
 		SetMetadata(metadata)
 	if ownership.OwnerPluginKey != "" {
 		create.SetOwnerPluginKey(ownership.OwnerPluginKey)
 		create.SetDeclaredResourceKey(ownership.DeclaredResourceKey)
+		create.SetOwnerPluginType(ownership.OwnerPluginType)
+		create.SetNillableAppID(optionalString(ownership.AppID))
+		create.SetNillableTrustBundleID(optionalString(ownership.TrustBundleID))
+		create.SetNillableOwnerModuleKey(optionalString(ownership.OwnerModuleKey))
 	}
 	_, err := create.Save(r.Context())
 	if err != nil {
@@ -400,12 +407,25 @@ func (s *Server) updateAppDataModel(w http.ResponseWriter, r *http.Request, spac
 	update := client.AppDataModel.UpdateOneID(current.ID).
 		SetDisplayName(displayName).
 		SetSource(source).
+		SetTenantScoped(ownership.TenantScoped).
+		SetAuditEnforcement(firstNonEmpty(ownership.AuditEnforcement, appDataDefaultAuditEnforcement)).
 		SetStatus(status).
 		SetSchema(nonNilMap(schemaValue)).
 		SetMetadata(nonNilMap(metadata))
 	if ownership.OwnerPluginKey != "" {
 		update.SetOwnerPluginKey(ownership.OwnerPluginKey)
 		update.SetDeclaredResourceKey(ownership.DeclaredResourceKey)
+		update.SetOwnerPluginType(ownership.OwnerPluginType)
+		update.SetNillableAppID(optionalString(ownership.AppID))
+		update.SetNillableTrustBundleID(optionalString(ownership.TrustBundleID))
+		update.SetNillableOwnerModuleKey(optionalString(ownership.OwnerModuleKey))
+	} else {
+		update.ClearOwnerPluginKey()
+		update.ClearDeclaredResourceKey()
+		update.ClearOwnerPluginType()
+		update.ClearAppID()
+		update.ClearTrustBundleID()
+		update.ClearOwnerModuleKey()
 	}
 	if description == "" {
 		update.ClearDescription()
@@ -1614,11 +1634,7 @@ func (s *Server) ensureAppDataModelResourceRegistration(ctx context.Context, mod
 			SetNillableDescription(optionalString("Application data model: " + model.Key)).
 			SetSource("core.app_data").
 			SetStatus(model.Status).
-			SetMetadata(map[string]any{
-				"app_data_model_id":  model.ID,
-				"app_data_model_key": model.Key,
-				"base_resource_type": appDataRecordBaseResourceType,
-			}).
+			SetMetadata(appDataModelRegistryMetadata(model)).
 			Save(ctx)
 		if err != nil {
 			return err
@@ -1628,11 +1644,7 @@ func (s *Server) ensureAppDataModelResourceRegistration(ctx context.Context, mod
 			SetDisplayName(model.DisplayName).
 			SetSource("core.app_data").
 			SetStatus(model.Status).
-			SetMetadata(map[string]any{
-				"app_data_model_id":  model.ID,
-				"app_data_model_key": model.Key,
-				"base_resource_type": appDataRecordBaseResourceType,
-			})
+			SetMetadata(appDataModelRegistryMetadata(model))
 		update.SetDescription("Application data model: " + model.Key)
 		existing, err = update.Save(ctx)
 		if err != nil {
@@ -1655,7 +1667,7 @@ func (s *Server) ensureAppDataModelResourceRegistration(ctx context.Context, mod
 				SetNillableDescription(optionalString("App data " + action.key + " action for " + model.Key)).
 				SetRiskLevel(action.riskLevel).
 				SetAuditDefault(true).
-				SetMetadata(map[string]any{"app_data_model_key": model.Key}).
+				SetMetadata(appDataModelActionMetadata(model)).
 				Save(ctx); err != nil {
 				return err
 			}
@@ -1665,7 +1677,7 @@ func (s *Server) ensureAppDataModelResourceRegistration(ctx context.Context, mod
 			SetDisplayName(action.displayName).
 			SetRiskLevel(action.riskLevel).
 			SetAuditDefault(true).
-			SetMetadata(map[string]any{"app_data_model_key": model.Key}).
+			SetMetadata(appDataModelActionMetadata(model)).
 			Save(ctx); err != nil {
 			return err
 		}
@@ -1687,11 +1699,7 @@ func (s *Server) ensureAppDataModelResourceRegistration(ctx context.Context, mod
 			SetVisibilityField("visibility").
 			SetMetadataField("metadata").
 			SetStatus("active").
-			SetMetadata(map[string]any{
-				"app_data_model_key": model.Key,
-				"model_field":        "model_key",
-				"data_field":         "data",
-			}).
+			SetMetadata(appDataModelMappingMetadata(model)).
 			Save(ctx)
 		return err
 	}
@@ -1705,11 +1713,7 @@ func (s *Server) ensureAppDataModelResourceRegistration(ctx context.Context, mod
 		SetVisibilityField("visibility").
 		SetMetadataField("metadata").
 		SetStatus("active").
-		SetMetadata(map[string]any{
-			"app_data_model_key": model.Key,
-			"model_field":        "model_key",
-			"data_field":         "data",
-		}).
+		SetMetadata(appDataModelMappingMetadata(model)).
 		Save(ctx)
 	return err
 }
@@ -1730,11 +1734,7 @@ func (s *Server) ensureAppDataModelPermissions(ctx context.Context, model *coree
 		if err != nil && !coreent.IsNotFound(err) {
 			return err
 		}
-		metadata := map[string]any{
-			"app_data_model_id":  model.ID,
-			"app_data_model_key": model.Key,
-			"managed_by":         "core.app_data",
-		}
+		metadata := appDataModelPermissionMetadata(model)
 		description := "App data " + action.key + " permission for " + model.Key + "."
 		if coreent.IsNotFound(err) {
 			if _, err := s.ent.Permission.Create().
@@ -1759,6 +1759,70 @@ func (s *Server) ensureAppDataModelPermissions(ctx context.Context, model *coree
 		}
 	}
 	return nil
+}
+
+func appDataModelRegistryMetadata(model *coreent.AppDataModel) map[string]any {
+	metadata := appDataModelGovernanceColumns(model)
+	metadata["app_data_model_id"] = model.ID
+	metadata["app_data_model_key"] = model.Key
+	metadata["base_resource_type"] = appDataRecordBaseResourceType
+	metadata["managed_by"] = "core.app_data"
+	return metadata
+}
+
+func appDataModelActionMetadata(model *coreent.AppDataModel) map[string]any {
+	metadata := appDataModelGovernanceColumns(model)
+	metadata["app_data_model_id"] = model.ID
+	metadata["app_data_model_key"] = model.Key
+	metadata["managed_by"] = "core.app_data"
+	return metadata
+}
+
+func appDataModelMappingMetadata(model *coreent.AppDataModel) map[string]any {
+	metadata := appDataModelGovernanceColumns(model)
+	metadata["app_data_model_id"] = model.ID
+	metadata["app_data_model_key"] = model.Key
+	metadata["model_field"] = "model_key"
+	metadata["data_field"] = "data"
+	metadata["managed_by"] = "core.app_data"
+	return metadata
+}
+
+func appDataModelPermissionMetadata(model *coreent.AppDataModel) map[string]any {
+	metadata := appDataModelGovernanceColumns(model)
+	metadata["app_data_model_id"] = model.ID
+	metadata["app_data_model_key"] = model.Key
+	metadata["managed_by"] = "core.app_data"
+	return metadata
+}
+
+func appDataModelGovernanceColumns(model *coreent.AppDataModel) map[string]any {
+	metadata := map[string]any{
+		"tenant_scoped":     currentTenantScoped(model),
+		"audit_enforcement": currentAuditEnforcement(model),
+	}
+	if model == nil {
+		return metadata
+	}
+	if owner := strings.TrimSpace(derefString(model.OwnerPluginKey)); owner != "" {
+		metadata["owner_plugin_key"] = owner
+	}
+	if resource := strings.TrimSpace(derefString(model.DeclaredResourceKey)); resource != "" {
+		metadata["declared_resource_key"] = resource
+	}
+	if pluginType := strings.TrimSpace(derefString(model.OwnerPluginType)); pluginType != "" {
+		metadata["owner_plugin_type"] = pluginType
+	}
+	if appID := strings.TrimSpace(derefString(model.AppID)); appID != "" {
+		metadata["app_id"] = appID
+	}
+	if trustBundleID := strings.TrimSpace(derefString(model.TrustBundleID)); trustBundleID != "" {
+		metadata["trust_bundle_id"] = trustBundleID
+	}
+	if moduleKey := strings.TrimSpace(derefString(model.OwnerModuleKey)); moduleKey != "" {
+		metadata["owner_module_key"] = moduleKey
+	}
+	return metadata
 }
 
 type appDataModelAction struct {
@@ -2229,6 +2293,12 @@ func appDataRequestUsesAPIKey(r *http.Request) bool {
 type appDataModelOwnership struct {
 	OwnerPluginKey      string
 	DeclaredResourceKey string
+	OwnerPluginType     string
+	AppID               string
+	TrustBundleID       string
+	OwnerModuleKey      string
+	TenantScoped        bool
+	AuditEnforcement    string
 	Source              string
 }
 
@@ -2422,6 +2492,12 @@ func (s *Server) resolveAppDataModelMutationOwnership(ctx context.Context, r *ht
 	ownership := appDataModelOwnership{
 		OwnerPluginKey:      derefString(currentOwnerPluginKey(current)),
 		DeclaredResourceKey: derefString(currentDeclaredResourceKey(current)),
+		OwnerPluginType:     derefString(currentOwnerPluginType(current)),
+		AppID:               derefString(currentAppID(current)),
+		TrustBundleID:       derefString(currentTrustBundleID(current)),
+		OwnerModuleKey:      derefString(currentOwnerModuleKey(current)),
+		TenantScoped:        currentTenantScoped(current),
+		AuditEnforcement:    currentAuditEnforcement(current),
 		Source:              appDataOwnershipSource(current),
 	}
 	principal, ok := adminPrincipalFrom(r)
@@ -2456,7 +2532,8 @@ func (s *Server) resolveAppDataModelMutationOwnership(ctx context.Context, r *ht
 	if modelKey == "" {
 		return ownership, errors.New("model key is required for plugin-owned app data")
 	}
-	if ok, err := s.pluginManifestDeclaresAppDataModel(ctx, pluginKey, modelKey); err != nil {
+	governance, ok, err := s.pluginAppDataModelGovernance(ctx, pluginKey, modelKey)
+	if err != nil {
 		return ownership, err
 	} else if !ok {
 		return ownership, fmt.Errorf("plugin %s does not declare app data model %s", pluginKey, modelKey)
@@ -2473,11 +2550,7 @@ func (s *Server) resolveAppDataModelMutationOwnership(ctx context.Context, r *ht
 			return ownership, fmt.Errorf("app data model %s is not owned by plugin %s", modelKey, pluginKey)
 		}
 	}
-	return appDataModelOwnership{
-		OwnerPluginKey:      pluginKey,
-		DeclaredResourceKey: modelKey,
-		Source:              appDataOwnershipSourceManifest,
-	}, nil
+	return governance, nil
 }
 
 func (s *Server) pluginServiceOwnsAppDataModel(ctx context.Context, pluginKey string, model *coreent.AppDataModel) (bool, error) {
@@ -2485,7 +2558,7 @@ func (s *Server) pluginServiceOwnsAppDataModel(ctx context.Context, pluginKey st
 	if pluginKey == "" || model == nil {
 		return false, nil
 	}
-	if ok, err := s.pluginManifestDeclaresAppDataModel(ctx, pluginKey, model.Key); err != nil || !ok {
+	if _, ok, err := s.pluginAppDataModelGovernance(ctx, pluginKey, model.Key); err != nil || !ok {
 		return ok, err
 	}
 	owner := strings.TrimSpace(derefString(model.OwnerPluginKey))
@@ -2506,35 +2579,104 @@ func appDataModelOwnedByPlugin(model *coreent.AppDataModel) bool {
 }
 
 func (s *Server) pluginManifestDeclaresAppDataModel(ctx context.Context, pluginKey, modelKey string) (bool, error) {
-	manifest, active, err := s.activePluginManifestByKey(ctx, pluginKey)
+	_, ok, err := s.pluginAppDataModelGovernance(ctx, pluginKey, modelKey)
+	return ok, err
+}
+
+func (s *Server) pluginAppDataModelGovernance(ctx context.Context, pluginKey, modelKey string) (appDataModelOwnership, bool, error) {
+	row, manifest, active, err := s.activePluginManifestByKey(ctx, pluginKey)
 	if err != nil {
 		if coreent.IsNotFound(err) {
-			return false, nil
+			return appDataModelOwnership{}, false, nil
 		}
-		return false, err
+		return appDataModelOwnership{}, false, err
 	}
 	if !active {
-		return false, nil
+		return appDataModelOwnership{}, false, nil
 	}
 	modelKey = strings.ToLower(strings.TrimSpace(modelKey))
 	for _, resource := range manifest.Resources {
 		if strings.ToLower(strings.TrimSpace(resource.Key)) == modelKey {
-			return true, nil
+			auditEnforcement := appDataAuditEnforcementForManifest(manifest)
+			if auditEnforcement == "" {
+				return appDataModelOwnership{}, false, nil
+			}
+			return appDataModelOwnership{
+				OwnerPluginKey:      strings.TrimSpace(pluginKey),
+				DeclaredResourceKey: modelKey,
+				OwnerPluginType:     firstNonEmpty(row.Type, manifest.Type, "plugin"),
+				AppID:               firstNonEmpty(derefString(row.AppID), manifest.AppID),
+				TrustBundleID:       firstNonEmpty(derefString(row.TrustBundleID), manifest.TrustBundleID),
+				OwnerModuleKey:      ownerModuleKeyForManifest(row, manifest),
+				TenantScoped:        true,
+				AuditEnforcement:    auditEnforcement,
+				Source:              appDataOwnershipSourceManifest,
+			}, true, nil
 		}
 	}
-	return false, nil
+	return appDataModelOwnership{}, false, nil
 }
 
-func (s *Server) activePluginManifestByKey(ctx context.Context, pluginKey string) (plugins.Manifest, bool, error) {
+func ownerModuleKeyForManifest(row *coreent.Plugin, manifest plugins.Manifest) string {
+	pluginType := strings.TrimSpace(firstNonEmpty(row.Type, manifest.Type, "plugin"))
+	if pluginType == "app_module" {
+		return strings.TrimSpace(firstNonEmpty(row.Key, manifest.ID))
+	}
+	return ""
+}
+
+func appDataAuditEnforcementForManifest(manifest plugins.Manifest) string {
+	enforcement := ""
+	for _, capability := range append(manifest.Capabilities, manifest.LocalCapabilities...) {
+		if !capabilityAllowsCoreDataAPI(capability) {
+			continue
+		}
+		enforcement = strongerAuditEnforcement(enforcement, strings.TrimSpace(capability.Audit.Enforcement))
+	}
+	return enforcement
+}
+
+func capabilityAllowsCoreDataAPI(capability plugins.CapabilityDefinition) bool {
+	for _, plane := range capability.DataPlane.Allowed {
+		if strings.TrimSpace(plane) == "core_data_api" {
+			return true
+		}
+	}
+	return false
+}
+
+func strongerAuditEnforcement(left, right string) string {
+	if auditEnforcementRank(right) > auditEnforcementRank(left) {
+		return right
+	}
+	return left
+}
+
+func auditEnforcementRank(value string) int {
+	switch strings.TrimSpace(value) {
+	case "grant_only":
+		return 1
+	case "reported_event":
+		return 2
+	case "observed_mutation":
+		return 3
+	case "controlled_action":
+		return 4
+	default:
+		return 0
+	}
+}
+
+func (s *Server) activePluginManifestByKey(ctx context.Context, pluginKey string) (*coreent.Plugin, plugins.Manifest, bool, error) {
 	if s.ent == nil {
-		return plugins.Manifest{}, false, errors.New("ent client is not configured")
+		return nil, plugins.Manifest{}, false, errors.New("ent client is not configured")
 	}
 	row, err := s.ent.Plugin.Query().Where(entplugin.Key(pluginKey)).Only(ctx)
 	if err != nil {
-		return plugins.Manifest{}, false, err
+		return nil, plugins.Manifest{}, false, err
 	}
 	manifest := pluginManifestFromMap(row.Manifest)
-	return manifest, pluginStatusAllowsAppDataOwnership(row.Status), nil
+	return row, manifest, pluginStatusAllowsAppDataOwnership(row.Status), nil
 }
 
 func pluginStatusAllowsAppDataOwnership(status string) bool {
@@ -2548,14 +2690,26 @@ func pluginStatusAllowsAppDataOwnership(status string) bool {
 
 func appDataModelGovernanceMetadata(metadata map[string]any, ownership appDataModelOwnership) map[string]any {
 	out := nonNilMap(metadata)
-	delete(out, "owner_plugin_key")
-	delete(out, "declared_resource_key")
-	delete(out, "ownership_source")
+	for _, key := range appDataGovernanceMetadataKeys() {
+		delete(out, key)
+	}
 	if ownership.OwnerPluginKey == "" {
 		return out
 	}
 	out["owner_plugin_key"] = ownership.OwnerPluginKey
 	out["declared_resource_key"] = ownership.DeclaredResourceKey
+	out["owner_plugin_type"] = ownership.OwnerPluginType
+	if ownership.AppID != "" {
+		out["app_id"] = ownership.AppID
+	}
+	if ownership.TrustBundleID != "" {
+		out["trust_bundle_id"] = ownership.TrustBundleID
+	}
+	if ownership.OwnerModuleKey != "" {
+		out["owner_module_key"] = ownership.OwnerModuleKey
+	}
+	out["tenant_scoped"] = ownership.TenantScoped
+	out["audit_enforcement"] = ownership.AuditEnforcement
 	out["ownership_source"] = ownership.Source
 	return out
 }
@@ -2568,9 +2722,26 @@ func reqDeclaresPluginOwnership(req *appDataModelMutationRequest) bool {
 		return true
 	}
 	metadata := nonNilMap(req.Metadata)
-	return strings.TrimSpace(stringFromMap(metadata, "owner_plugin_key")) != "" ||
-		strings.TrimSpace(stringFromMap(metadata, "declared_resource_key")) != "" ||
-		strings.TrimSpace(stringFromMap(metadata, "ownership_source")) != ""
+	for _, key := range appDataGovernanceMetadataKeys() {
+		if value, ok := metadata[key]; ok && strings.TrimSpace(fmt.Sprint(value)) != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func appDataGovernanceMetadataKeys() []string {
+	return []string{
+		"owner_plugin_key",
+		"declared_resource_key",
+		"owner_plugin_type",
+		"app_id",
+		"trust_bundle_id",
+		"owner_module_key",
+		"tenant_scoped",
+		"audit_enforcement",
+		"ownership_source",
+	}
 }
 
 func appDataOwnershipSource(model *coreent.AppDataModel) string {
@@ -2592,6 +2763,48 @@ func currentDeclaredResourceKey(model *coreent.AppDataModel) *string {
 		return nil
 	}
 	return model.DeclaredResourceKey
+}
+
+func currentOwnerPluginType(model *coreent.AppDataModel) *string {
+	if model == nil {
+		return nil
+	}
+	return model.OwnerPluginType
+}
+
+func currentAppID(model *coreent.AppDataModel) *string {
+	if model == nil {
+		return nil
+	}
+	return model.AppID
+}
+
+func currentTrustBundleID(model *coreent.AppDataModel) *string {
+	if model == nil {
+		return nil
+	}
+	return model.TrustBundleID
+}
+
+func currentOwnerModuleKey(model *coreent.AppDataModel) *string {
+	if model == nil {
+		return nil
+	}
+	return model.OwnerModuleKey
+}
+
+func currentTenantScoped(model *coreent.AppDataModel) bool {
+	if model == nil {
+		return true
+	}
+	return model.TenantScoped
+}
+
+func currentAuditEnforcement(model *coreent.AppDataModel) string {
+	if model == nil {
+		return appDataDefaultAuditEnforcement
+	}
+	return firstNonEmpty(model.AuditEnforcement, appDataDefaultAuditEnforcement)
 }
 
 func appDataModelKeyForError(model *coreent.AppDataModel) string {
@@ -2782,6 +2995,12 @@ func appDataModelMap(row *coreent.AppDataModel) map[string]any {
 		"source":                row.Source,
 		"owner_plugin_key":      derefString(row.OwnerPluginKey),
 		"declared_resource_key": derefString(row.DeclaredResourceKey),
+		"owner_plugin_type":     derefString(row.OwnerPluginType),
+		"app_id":                derefString(row.AppID),
+		"trust_bundle_id":       derefString(row.TrustBundleID),
+		"owner_module_key":      derefString(row.OwnerModuleKey),
+		"tenant_scoped":         row.TenantScoped,
+		"audit_enforcement":     row.AuditEnforcement,
 		"status":                row.Status,
 		"schema":                nonNilMap(row.Schema),
 		"metadata":              nonNilMap(row.Metadata),
