@@ -28,6 +28,7 @@ var (
 		{Name: "idempotency_key", Type: field.TypeString},
 		{Name: "status", Type: field.TypeString, Default: schema.Expr("'running'")},
 		{Name: "started_at", Type: field.TypeTime},
+		{Name: "timeout_at", Type: field.TypeTime},
 		{Name: "completed_at", Type: field.TypeTime, Nullable: true},
 		{Name: "resource", Type: field.TypeJSON, Default: schema.Expr("'{}'::jsonb")},
 		{Name: "input_summary", Type: field.TypeJSON, Nullable: true},
@@ -68,6 +69,11 @@ var (
 				Name:    "actionexecution_status_started_at",
 				Unique:  false,
 				Columns: []*schema.Column{ActionExecutionsColumns[15], ActionExecutionsColumns[16]},
+			},
+			{
+				Name:    "actionexecution_status_timeout_at",
+				Unique:  false,
+				Columns: []*schema.Column{ActionExecutionsColumns[15], ActionExecutionsColumns[17]},
 			},
 			{
 				Name:    "actionexecution_correlation_id",

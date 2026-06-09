@@ -29,6 +29,7 @@ func (ActionExecution) Fields() []ent.Field {
 		field.String("idempotency_key").NotEmpty(),
 		statusField("running"),
 		field.Time("started_at"),
+		field.Time("timeout_at"),
 		field.Time("completed_at").Optional().Nillable(),
 		jsonObjectField("resource"),
 		field.JSON("input_summary", map[string]any{}).Optional(),
@@ -48,6 +49,7 @@ func (ActionExecution) Indexes() []ent.Index {
 		index.Fields("space_id", "resource_type", "resource_id"),
 		index.Fields("space_id", "capability", "operation", "status"),
 		index.Fields("status", "started_at"),
+		index.Fields("status", "timeout_at"),
 		index.Fields("correlation_id"),
 	}
 }

@@ -7,15 +7,22 @@ func TestCatalogIncludesAuthReadySaaSWithEmailCapability(t *testing.T) {
 	if !ok {
 		t.Fatalf("auth-ready-saas template is missing")
 	}
-	if len(tpl.RequiredCapabilities) != 1 {
-		t.Fatalf("RequiredCapabilities length = %d, want 1", len(tpl.RequiredCapabilities))
+	if len(tpl.RequiredCapabilities) != 2 {
+		t.Fatalf("RequiredCapabilities length = %d, want 2", len(tpl.RequiredCapabilities))
 	}
-	req := tpl.RequiredCapabilities[0]
-	if req.ID != "email.transactional" || req.MinLevel != "standard" {
-		t.Fatalf("unexpected capability requirement: %#v", req)
+	for _, want := range []string{"auth.identity", "email.transactional"} {
+		found := false
+		for _, req := range tpl.RequiredCapabilities {
+			if req.ID == want && req.MinLevel == "standard" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("missing standard capability requirement %q: %#v", want, tpl.RequiredCapabilities)
+		}
 	}
-	if len(tpl.RequiredPlugins) != 1 || tpl.RequiredPlugins[0] != "plystra.auth_complete" {
-		t.Fatalf("unexpected required plugins: %#v", tpl.RequiredPlugins)
+	if len(tpl.RequiredPlugins) != 0 {
+		t.Fatalf("templates must be capability-first, got required plugins: %#v", tpl.RequiredPlugins)
 	}
 }
 
@@ -24,8 +31,8 @@ func TestCatalogIncludesBackendOSAlphaCRMTemplate(t *testing.T) {
 	if !ok {
 		t.Fatalf("saas-crm-alpha template is missing")
 	}
-	if len(tpl.RequiredPlugins) != 1 || tpl.RequiredPlugins[0] != "plystra.saas_crm" {
-		t.Fatalf("unexpected required plugins: %#v", tpl.RequiredPlugins)
+	if len(tpl.RequiredPlugins) != 0 {
+		t.Fatalf("templates must be capability-first, got required plugins: %#v", tpl.RequiredPlugins)
 	}
 	if len(tpl.RequiredCapabilities) != 3 {
 		t.Fatalf("RequiredCapabilities length = %d, want 3", len(tpl.RequiredCapabilities))

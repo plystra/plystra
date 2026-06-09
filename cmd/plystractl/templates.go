@@ -105,7 +105,7 @@ func createTemplateApp(tpl templates.Manifest, opts templateCreateOptions) (map[
 		"template":            tpl,
 		"preview":             preview,
 		"deployment_profile":  tpl.DeploymentProfile,
-		"required_plugins":    tpl.RequiredPlugins,
+		"required_plugins":    []string{},
 		"required_capability": tpl.RequiredCapabilities,
 	}
 	rawManifest, err := json.MarshalIndent(manifest, "", "  ")
@@ -160,7 +160,6 @@ func renderInstallExplanation(appName string, tpl templates.Manifest) string {
 	fmt.Fprintf(&b, "## What This Template Declares\n\n")
 	fmt.Fprintf(&b, "- Template: `%s` %s\n", tpl.ID, tpl.Version)
 	fmt.Fprintf(&b, "- Required Core: `%s`\n", tpl.RequiresCore)
-	fmt.Fprintf(&b, "- Required plugins: %s\n", joinOrNone(tpl.RequiredPlugins))
 	fmt.Fprintf(&b, "- Required capabilities: %s\n", capabilitySummary(tpl.RequiredCapabilities))
 	fmt.Fprintf(&b, "- Deployment profile: `%s`\n\n", tpl.DeploymentProfile.ID)
 	fmt.Fprintf(&b, "## Generated Defaults\n\n")
@@ -230,16 +229,6 @@ func renderTemplateEnv(appName string, tpl templates.Manifest) string {
 		"METRICS_ENABLED=false",
 		"METRICS_TOKEN=",
 	}
-	if containsString(tpl.RequiredPlugins, "plystra.auth_complete") {
-		lines = append(lines,
-			"",
-			"# Complete Auth plugin process secrets.",
-			"PLYSTRA_AUTH_COMPLETE_IMAGE=plystra-auth-complete:local",
-			"AUTH_PLUGIN_PORT=8790",
-			"AUTH_PLUGIN_LISTEN_ADDR=0.0.0.0:8790",
-			"PLYSTRA_EMAIL_CAPABILITY_TOKEN=replace-me",
-		)
-	}
 	return strings.Join(lines, "\n") + "\n"
 }
 
@@ -264,19 +253,6 @@ func renderTemplateCompose(tpl templates.Manifest) string {
 	b.WriteString("    ports:\n      - \"${SERVER_PORT:-8080}:8080\"\n")
 	b.WriteString("    depends_on:\n      postgres:\n        condition: service_healthy\n")
 	b.WriteString("    healthcheck:\n      test: [\"CMD-SHELL\", \"wget -qO- http://127.0.0.1:8080/api/v1/health >/dev/null || exit 1\"]\n      interval: 10s\n      timeout: 3s\n      retries: 6\n")
-	if containsString(tpl.RequiredPlugins, "plystra.auth_complete") {
-		b.WriteString("  auth-complete:\n")
-		b.WriteString("    image: ${PLYSTRA_AUTH_COMPLETE_IMAGE}\n")
-		b.WriteString("    environment:\n")
-		b.WriteString("      AUTH_PLUGIN_LISTEN_ADDR: ${AUTH_PLUGIN_LISTEN_ADDR:-0.0.0.0:8790}\n")
-		b.WriteString("      DATABASE_URL: ${DOCKER_DATABASE_URL}\n")
-		b.WriteString("      SERVER_MODE: ${SERVER_MODE}\n")
-		b.WriteString("      PLYSTRA_SESSION_SECRET: ${PLYSTRA_SESSION_SECRET}\n")
-		b.WriteString("      PLYSTRA_EMAIL_CAPABILITY_TOKEN: ${PLYSTRA_EMAIL_CAPABILITY_TOKEN}\n")
-		b.WriteString("    ports:\n      - \"${AUTH_PLUGIN_PORT:-8790}:8790\"\n")
-		b.WriteString("    depends_on:\n      postgres:\n        condition: service_healthy\n")
-		b.WriteString("    healthcheck:\n      test: [\"CMD-SHELL\", \"wget -qO- http://127.0.0.1:8790/health >/dev/null || exit 1\"]\n      interval: 10s\n      timeout: 3s\n      retries: 6\n")
-	}
 	b.WriteString("  postgres:\n")
 	b.WriteString("    image: postgres:16-alpine\n")
 	b.WriteString("    environment:\n")
@@ -340,22 +316,6 @@ func capabilitySummary(values []templates.CapabilityRequirement) string {
 		parts = append(parts, value.ID)
 	}
 	return strings.Join(parts, ", ")
-}
-
-func joinOrNone(values []string) string {
-	if len(values) == 0 {
-		return "none"
-	}
-	return strings.Join(values, ", ")
-}
-
-func containsString(values []string, target string) bool {
-	for _, value := range values {
-		if value == target {
-			return true
-		}
-	}
-	return false
 }
 
 func safeOutputDirName(value string) string {

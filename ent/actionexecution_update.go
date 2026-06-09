@@ -276,6 +276,20 @@ func (_u *ActionExecutionUpdate) SetNillableStartedAt(v *time.Time) *ActionExecu
 	return _u
 }
 
+// SetTimeoutAt sets the "timeout_at" field.
+func (_u *ActionExecutionUpdate) SetTimeoutAt(v time.Time) *ActionExecutionUpdate {
+	_u.mutation.SetTimeoutAt(v)
+	return _u
+}
+
+// SetNillableTimeoutAt sets the "timeout_at" field if the given value is not nil.
+func (_u *ActionExecutionUpdate) SetNillableTimeoutAt(v *time.Time) *ActionExecutionUpdate {
+	if v != nil {
+		_u.SetTimeoutAt(*v)
+	}
+	return _u
+}
+
 // SetCompletedAt sets the "completed_at" field.
 func (_u *ActionExecutionUpdate) SetCompletedAt(v time.Time) *ActionExecutionUpdate {
 	_u.mutation.SetCompletedAt(v)
@@ -551,6 +565,9 @@ func (_u *ActionExecutionUpdate) sqlSave(ctx context.Context) (_node int, err er
 	}
 	if value, ok := _u.mutation.StartedAt(); ok {
 		_spec.SetField(actionexecution.FieldStartedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.TimeoutAt(); ok {
+		_spec.SetField(actionexecution.FieldTimeoutAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.CompletedAt(); ok {
 		_spec.SetField(actionexecution.FieldCompletedAt, field.TypeTime, value)
@@ -862,6 +879,20 @@ func (_u *ActionExecutionUpdateOne) SetNillableStartedAt(v *time.Time) *ActionEx
 	return _u
 }
 
+// SetTimeoutAt sets the "timeout_at" field.
+func (_u *ActionExecutionUpdateOne) SetTimeoutAt(v time.Time) *ActionExecutionUpdateOne {
+	_u.mutation.SetTimeoutAt(v)
+	return _u
+}
+
+// SetNillableTimeoutAt sets the "timeout_at" field if the given value is not nil.
+func (_u *ActionExecutionUpdateOne) SetNillableTimeoutAt(v *time.Time) *ActionExecutionUpdateOne {
+	if v != nil {
+		_u.SetTimeoutAt(*v)
+	}
+	return _u
+}
+
 // SetCompletedAt sets the "completed_at" field.
 func (_u *ActionExecutionUpdateOne) SetCompletedAt(v time.Time) *ActionExecutionUpdateOne {
 	_u.mutation.SetCompletedAt(v)
@@ -1167,6 +1198,9 @@ func (_u *ActionExecutionUpdateOne) sqlSave(ctx context.Context) (_node *ActionE
 	}
 	if value, ok := _u.mutation.StartedAt(); ok {
 		_spec.SetField(actionexecution.FieldStartedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.TimeoutAt(); ok {
+		_spec.SetField(actionexecution.FieldTimeoutAt, field.TypeTime, value)
 	}
 	if value, ok := _u.mutation.CompletedAt(); ok {
 		_spec.SetField(actionexecution.FieldCompletedAt, field.TypeTime, value)

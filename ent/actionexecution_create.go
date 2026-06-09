@@ -156,6 +156,12 @@ func (_c *ActionExecutionCreate) SetStartedAt(v time.Time) *ActionExecutionCreat
 	return _c
 }
 
+// SetTimeoutAt sets the "timeout_at" field.
+func (_c *ActionExecutionCreate) SetTimeoutAt(v time.Time) *ActionExecutionCreate {
+	_c.mutation.SetTimeoutAt(v)
+	return _c
+}
+
 // SetCompletedAt sets the "completed_at" field.
 func (_c *ActionExecutionCreate) SetCompletedAt(v time.Time) *ActionExecutionCreate {
 	_c.mutation.SetCompletedAt(v)
@@ -390,6 +396,9 @@ func (_c *ActionExecutionCreate) check() error {
 	if _, ok := _c.mutation.StartedAt(); !ok {
 		return &ValidationError{Name: "started_at", err: errors.New(`ent: missing required field "ActionExecution.started_at"`)}
 	}
+	if _, ok := _c.mutation.TimeoutAt(); !ok {
+		return &ValidationError{Name: "timeout_at", err: errors.New(`ent: missing required field "ActionExecution.timeout_at"`)}
+	}
 	if v, ok := _c.mutation.ID(); ok {
 		if err := actionexecution.IDValidator(v); err != nil {
 			return &ValidationError{Name: "id", err: fmt.Errorf(`ent: validator failed for field "ActionExecution.id": %w`, err)}
@@ -493,6 +502,10 @@ func (_c *ActionExecutionCreate) createSpec() (*ActionExecution, *sqlgraph.Creat
 	if value, ok := _c.mutation.StartedAt(); ok {
 		_spec.SetField(actionexecution.FieldStartedAt, field.TypeTime, value)
 		_node.StartedAt = value
+	}
+	if value, ok := _c.mutation.TimeoutAt(); ok {
+		_spec.SetField(actionexecution.FieldTimeoutAt, field.TypeTime, value)
+		_node.TimeoutAt = value
 	}
 	if value, ok := _c.mutation.CompletedAt(); ok {
 		_spec.SetField(actionexecution.FieldCompletedAt, field.TypeTime, value)

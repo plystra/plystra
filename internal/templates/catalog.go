@@ -75,14 +75,14 @@ func alphaDeploymentProfile() DeploymentProfile {
 		HealthChecks: []string{
 			"GET /api/v1/health",
 			"GET /api/v1/ready",
-			"plugin /health endpoints when plugin containers are enabled",
+			"capability provider /health endpoints when provider containers are enabled",
 		},
 		StructuredLogs: true,
 		Backup: []string{
 			"pg_dump custom-format PostgreSQL dump",
 			"backup manifest from plystractl backup manifest",
 			"runtime environment and secret-manager export",
-			"plugin-owned tables in the same database",
+			"governed provider schemas in the same database",
 		},
 		Restore: []string{
 			"restore PostgreSQL dump into an empty database",
@@ -118,11 +118,10 @@ func Catalog() []Manifest {
 			Description:          "Internal operations backend template with API key governance and webhook metadata requirements.",
 			Version:              "0.0.1",
 			RequiresCore:         ">=0.0.1 <0.1.0",
-			RequiredPlugins:      []string{"plystra.api_keys", "plystra.webhooks"},
-			RequiredCapabilities: []CapabilityRequirement{{ID: "api_key.credential", MinLevel: "standard", Version: ">=0.0.1 <0.1.0"}},
+			RequiredCapabilities: []CapabilityRequirement{{ID: "api_key.credential", MinLevel: "standard", Version: ">=0.0.1 <0.1.0"}, {ID: "webhook.delivery", MinLevel: "standard", Version: ">=0.0.1 <0.1.0"}},
 			DeploymentProfile:    alphaProfile,
 			Limitations: []string{
-				"plugin runtime is limited to official metadata and sidecar lifecycle in alpha",
+				"provider runtime is limited to official metadata and sidecar lifecycle in alpha",
 				"generated defaults must be reviewed before production use",
 			},
 			Spaces: []Space{{Key: "default", Name: "Default Workspace"}},
@@ -137,15 +136,17 @@ func Catalog() []Manifest {
 			},
 		},
 		{
-			ID:                "community-lite",
-			Name:              "Community Lite",
-			Description:       "Small community backend template with moderation-oriented groups, roles, and permissions.",
-			Version:           "0.0.1",
-			RequiresCore:      ">=0.0.1 <0.1.0",
-			RequiredPlugins:   []string{"plystra.moderation"},
+			ID:           "community-lite",
+			Name:         "Community Lite",
+			Description:  "Small community backend template with moderation-oriented groups, roles, and permissions.",
+			Version:      "0.0.1",
+			RequiresCore: ">=0.0.1 <0.1.0",
+			RequiredCapabilities: []CapabilityRequirement{
+				{ID: "moderation.report", MinLevel: "standard", Version: ">=0.0.1 <0.1.0"},
+			},
 			DeploymentProfile: alphaProfile,
 			Limitations: []string{
-				"moderation plugin must be installed and operated separately",
+				"moderation capability provider must be installed and operated separately",
 				"does not include a hosted frontend or marketplace workflow",
 			},
 			Spaces: []Space{{Key: "community", Name: "Community"}},
@@ -161,15 +162,14 @@ func Catalog() []Manifest {
 		{
 			ID:                   "auth-ready-saas",
 			Name:                 "Auth Ready SaaS",
-			Description:          "Small SaaS backend template that pairs Plystra Core with the Complete Auth plugin and transactional email capability.",
+			Description:          "Small SaaS backend template that pairs Plystra Core with auth identity and transactional email capabilities.",
 			Version:              "0.0.1",
 			RequiresCore:         ">=0.0.1 <0.1.0",
-			RequiredPlugins:      []string{"plystra.auth_complete"},
-			RequiredCapabilities: []CapabilityRequirement{{ID: "email.transactional", MinLevel: "standard", Version: ">=0.0.1 <0.1.0"}},
+			RequiredCapabilities: []CapabilityRequirement{{ID: "auth.identity", MinLevel: "standard", Version: ">=0.0.1 <0.1.0"}, {ID: "email.transactional", MinLevel: "standard", Version: ">=0.0.1 <0.1.0"}},
 			DeploymentProfile:    alphaProfile,
 			Limitations: []string{
 				"production email delivery requires an independent email capability provider",
-				"public registration remains disabled until enabled through plugin database settings",
+				"public registration remains disabled until enabled through auth provider database settings",
 				"cloud hosting and marketplace behavior are outside Backend OS Alpha",
 			},
 			Spaces: []Space{{Key: "default", Name: "Default SaaS Workspace"}},
@@ -189,13 +189,12 @@ func Catalog() []Manifest {
 			Description:          "Backend OS Alpha reference application with plugin-owned CRM business data, Plystra-governed identity, authorization, resource bindings, audit, backup, and health checks.",
 			Version:              "0.0.1",
 			RequiresCore:         ">=0.0.1 <0.1.0",
-			RequiredPlugins:      []string{"plystra.saas_crm"},
 			RequiredCapabilities: []CapabilityRequirement{{ID: "crm.customer", MinLevel: "standard", Version: ">=0.0.1 <0.1.0"}, {ID: "crm.pipeline", MinLevel: "standard", Version: ">=0.0.1 <0.1.0"}, {ID: "project.task", MinLevel: "standard", Version: ">=0.0.1 <0.1.0"}},
 			DeploymentProfile:    alphaProfile,
 			Limitations: []string{
-				"CRM business data is stored only in the official CRM plugin-owned PostgreSQL tables",
+				"CRM business data is stored only in governed CRM provider PostgreSQL schemas",
 				"Core resources are Resource Bindings for authorization context and inspection, not a business data store",
-				"plugin sidecar lifecycle is Docker Compose based in Backend OS Alpha",
+				"provider sidecar lifecycle is Docker Compose based in Backend OS Alpha",
 			},
 			Spaces: []Space{{Key: "default", Name: "Plystra Demo SaaS"}},
 			Groups: []Group{
@@ -255,11 +254,8 @@ func InstallExplanation(tpl Manifest, missingPlugins []string, missingCapabiliti
 		"Apply and verify versioned migrations before exposing protected APIs.",
 		"Bootstrap the first instance super admin explicitly; migrations never create one automatically.",
 	}
-	if len(tpl.RequiredPlugins) > 0 {
-		steps = append(steps, "Install and operate required official plugin sidecars before enabling template-dependent flows.")
-	}
 	if len(tpl.RequiredCapabilities) > 0 {
-		steps = append(steps, "Resolve required capability providers and keep provider secrets outside generated files.")
+		steps = append(steps, "Resolve required capability providers through Core provider bindings and keep provider secrets outside generated files.")
 	}
 	if len(missingPlugins) > 0 || len(missingCapabilities) > 0 {
 		steps = append(steps, "Resolve missing plugins or capabilities before treating the template as production-ready.")

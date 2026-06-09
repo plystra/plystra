@@ -144,6 +144,11 @@ func StartedAt(v time.Time) predicate.ActionExecution {
 	return predicate.ActionExecution(sql.FieldEQ(FieldStartedAt, v))
 }
 
+// TimeoutAt applies equality check predicate on the "timeout_at" field. It's identical to TimeoutAtEQ.
+func TimeoutAt(v time.Time) predicate.ActionExecution {
+	return predicate.ActionExecution(sql.FieldEQ(FieldTimeoutAt, v))
+}
+
 // CompletedAt applies equality check predicate on the "completed_at" field. It's identical to CompletedAtEQ.
 func CompletedAt(v time.Time) predicate.ActionExecution {
 	return predicate.ActionExecution(sql.FieldEQ(FieldCompletedAt, v))
@@ -1222,6 +1227,46 @@ func StartedAtLT(v time.Time) predicate.ActionExecution {
 // StartedAtLTE applies the LTE predicate on the "started_at" field.
 func StartedAtLTE(v time.Time) predicate.ActionExecution {
 	return predicate.ActionExecution(sql.FieldLTE(FieldStartedAt, v))
+}
+
+// TimeoutAtEQ applies the EQ predicate on the "timeout_at" field.
+func TimeoutAtEQ(v time.Time) predicate.ActionExecution {
+	return predicate.ActionExecution(sql.FieldEQ(FieldTimeoutAt, v))
+}
+
+// TimeoutAtNEQ applies the NEQ predicate on the "timeout_at" field.
+func TimeoutAtNEQ(v time.Time) predicate.ActionExecution {
+	return predicate.ActionExecution(sql.FieldNEQ(FieldTimeoutAt, v))
+}
+
+// TimeoutAtIn applies the In predicate on the "timeout_at" field.
+func TimeoutAtIn(vs ...time.Time) predicate.ActionExecution {
+	return predicate.ActionExecution(sql.FieldIn(FieldTimeoutAt, vs...))
+}
+
+// TimeoutAtNotIn applies the NotIn predicate on the "timeout_at" field.
+func TimeoutAtNotIn(vs ...time.Time) predicate.ActionExecution {
+	return predicate.ActionExecution(sql.FieldNotIn(FieldTimeoutAt, vs...))
+}
+
+// TimeoutAtGT applies the GT predicate on the "timeout_at" field.
+func TimeoutAtGT(v time.Time) predicate.ActionExecution {
+	return predicate.ActionExecution(sql.FieldGT(FieldTimeoutAt, v))
+}
+
+// TimeoutAtGTE applies the GTE predicate on the "timeout_at" field.
+func TimeoutAtGTE(v time.Time) predicate.ActionExecution {
+	return predicate.ActionExecution(sql.FieldGTE(FieldTimeoutAt, v))
+}
+
+// TimeoutAtLT applies the LT predicate on the "timeout_at" field.
+func TimeoutAtLT(v time.Time) predicate.ActionExecution {
+	return predicate.ActionExecution(sql.FieldLT(FieldTimeoutAt, v))
+}
+
+// TimeoutAtLTE applies the LTE predicate on the "timeout_at" field.
+func TimeoutAtLTE(v time.Time) predicate.ActionExecution {
+	return predicate.ActionExecution(sql.FieldLTE(FieldTimeoutAt, v))
 }
 
 // CompletedAtEQ applies the EQ predicate on the "completed_at" field.

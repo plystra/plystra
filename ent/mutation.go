@@ -115,6 +115,7 @@ type ActionExecutionMutation struct {
 	idempotency_key          *string
 	status                   *string
 	started_at               *time.Time
+	timeout_at               *time.Time
 	completed_at             *time.Time
 	resource                 *map[string]interface{}
 	input_summary            *map[string]interface{}
@@ -862,6 +863,42 @@ func (m *ActionExecutionMutation) ResetStartedAt() {
 	m.started_at = nil
 }
 
+// SetTimeoutAt sets the "timeout_at" field.
+func (m *ActionExecutionMutation) SetTimeoutAt(t time.Time) {
+	m.timeout_at = &t
+}
+
+// TimeoutAt returns the value of the "timeout_at" field in the mutation.
+func (m *ActionExecutionMutation) TimeoutAt() (r time.Time, exists bool) {
+	v := m.timeout_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTimeoutAt returns the old "timeout_at" field's value of the ActionExecution entity.
+// If the ActionExecution object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ActionExecutionMutation) OldTimeoutAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTimeoutAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTimeoutAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTimeoutAt: %w", err)
+	}
+	return oldValue.TimeoutAt, nil
+}
+
+// ResetTimeoutAt resets all changes to the "timeout_at" field.
+func (m *ActionExecutionMutation) ResetTimeoutAt() {
+	m.timeout_at = nil
+}
+
 // SetCompletedAt sets the "completed_at" field.
 func (m *ActionExecutionMutation) SetCompletedAt(t time.Time) {
 	m.completed_at = &t
@@ -1298,7 +1335,7 @@ func (m *ActionExecutionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ActionExecutionMutation) Fields() []string {
-	fields := make([]string, 0, 25)
+	fields := make([]string, 0, 26)
 	if m.space_id != nil {
 		fields = append(fields, actionexecution.FieldSpaceID)
 	}
@@ -1346,6 +1383,9 @@ func (m *ActionExecutionMutation) Fields() []string {
 	}
 	if m.started_at != nil {
 		fields = append(fields, actionexecution.FieldStartedAt)
+	}
+	if m.timeout_at != nil {
+		fields = append(fields, actionexecution.FieldTimeoutAt)
 	}
 	if m.completed_at != nil {
 		fields = append(fields, actionexecution.FieldCompletedAt)
@@ -1414,6 +1454,8 @@ func (m *ActionExecutionMutation) Field(name string) (ent.Value, bool) {
 		return m.Status()
 	case actionexecution.FieldStartedAt:
 		return m.StartedAt()
+	case actionexecution.FieldTimeoutAt:
+		return m.TimeoutAt()
 	case actionexecution.FieldCompletedAt:
 		return m.CompletedAt()
 	case actionexecution.FieldResource:
@@ -1473,6 +1515,8 @@ func (m *ActionExecutionMutation) OldField(ctx context.Context, name string) (en
 		return m.OldStatus(ctx)
 	case actionexecution.FieldStartedAt:
 		return m.OldStartedAt(ctx)
+	case actionexecution.FieldTimeoutAt:
+		return m.OldTimeoutAt(ctx)
 	case actionexecution.FieldCompletedAt:
 		return m.OldCompletedAt(ctx)
 	case actionexecution.FieldResource:
@@ -1611,6 +1655,13 @@ func (m *ActionExecutionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetStartedAt(v)
+		return nil
+	case actionexecution.FieldTimeoutAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTimeoutAt(v)
 		return nil
 	case actionexecution.FieldCompletedAt:
 		v, ok := value.(time.Time)
@@ -1834,6 +1885,9 @@ func (m *ActionExecutionMutation) ResetField(name string) error {
 		return nil
 	case actionexecution.FieldStartedAt:
 		m.ResetStartedAt()
+		return nil
+	case actionexecution.FieldTimeoutAt:
+		m.ResetTimeoutAt()
 		return nil
 	case actionexecution.FieldCompletedAt:
 		m.ResetCompletedAt()

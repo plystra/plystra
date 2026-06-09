@@ -171,10 +171,11 @@ func discoverProviderOwnedTables(ctx context.Context, pool *pgxpool.Pool) ([]str
 SELECT table_schema || '.' || table_name
 FROM information_schema.tables
 WHERE table_type = 'BASE TABLE'
-  AND (
-    (table_schema = current_schema() AND table_name LIKE 'plugin\_%' ESCAPE '\')
-    OR table_schema LIKE 'plg\_%' ESCAPE '\'
-    OR table_schema LIKE 'app\_%' ESCAPE '\'
+  AND table_schema IN (
+    SELECT DISTINCT schema_name
+    FROM provider_installations
+    WHERE schema_name <> ''
+      AND status IN ('installed', 'active')
   )
 ORDER BY table_schema, table_name`)
 	if err != nil {
@@ -201,16 +202,15 @@ func providerBackupTableAllowed(table string) bool {
 		return false
 	}
 	if schemaName == "public" {
-		if !strings.HasPrefix(tableName, "plugin_") {
-			return false
-		}
-		return !corePluginSystemTables[tableName]
+		return false
 	}
 	return strings.HasPrefix(schemaName, "plg_") || strings.HasPrefix(schemaName, "app_")
 }
 
 func pluginBackupTableAllowed(table string) bool {
-	return providerBackupTableAllowed("public." + table)
+	return tableNamePattern.MatchString(table) &&
+		strings.HasPrefix(table, "plugin_") &&
+		!corePluginSystemTables[table]
 }
 
 func countRequiredTable(ctx context.Context, pool *pgxpool.Pool, table string) (int64, error) {

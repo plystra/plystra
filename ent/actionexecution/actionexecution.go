@@ -45,6 +45,8 @@ const (
 	FieldStatus = "status"
 	// FieldStartedAt holds the string denoting the started_at field in the database.
 	FieldStartedAt = "started_at"
+	// FieldTimeoutAt holds the string denoting the timeout_at field in the database.
+	FieldTimeoutAt = "timeout_at"
 	// FieldCompletedAt holds the string denoting the completed_at field in the database.
 	FieldCompletedAt = "completed_at"
 	// FieldResource holds the string denoting the resource field in the database.
@@ -86,6 +88,7 @@ var Columns = []string{
 	FieldIdempotencyKey,
 	FieldStatus,
 	FieldStartedAt,
+	FieldTimeoutAt,
 	FieldCompletedAt,
 	FieldResource,
 	FieldInputSummary,
@@ -226,6 +229,11 @@ func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 // ByStartedAt orders the results by the started_at field.
 func ByStartedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStartedAt, opts...).ToFunc()
+}
+
+// ByTimeoutAt orders the results by the timeout_at field.
+func ByTimeoutAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTimeoutAt, opts...).ToFunc()
 }
 
 // ByCompletedAt orders the results by the completed_at field.

@@ -15,6 +15,7 @@ import (
 )
 
 const actionExecutionIdempotencyRetention = 24 * time.Hour
+const defaultActionExecutionTimeout = 10 * time.Second
 
 type actionExecutionRequest struct {
 	SpaceID        string                   `json:"space_id"`
@@ -172,10 +173,16 @@ func (s *Server) createActionExecution(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now().UTC()
+	timeoutAt := actionExecutionTimeoutAt(now, operation)
 	correlationID := firstNonEmpty(req.CorrelationID, newEntityID("cor"))
 	metadata := nonNilMap(req.Metadata)
 	metadata["authorization"] = capabilityGrantDecisionSummary(decision)
 	metadata["idempotency_retention_hours"] = int(actionExecutionIdempotencyRetention / time.Hour)
+	metadata["result_unknown_reconciliation"] = map[string]any{
+		"required":   true,
+		"timeout_at": timeoutAt.Format(time.RFC3339),
+		"timeout_ms": int(timeoutAt.Sub(now) / time.Millisecond),
+	}
 	row, err := client.ActionExecution.Create().
 		SetID(newEntityID("act")).
 		SetSpaceID(req.SpaceID).
@@ -194,6 +201,7 @@ func (s *Server) createActionExecution(w http.ResponseWriter, r *http.Request) {
 		SetIdempotencyKey(req.IdempotencyKey).
 		SetStatus("running").
 		SetStartedAt(now).
+		SetTimeoutAt(timeoutAt).
 		SetResource(nonNilMap(req.Resource)).
 		SetInputSummary(nonNilMap(req.InputSummary)).
 		SetResultRef(map[string]any{}).
@@ -458,6 +466,17 @@ func validateActionExecutionContract(capability plugins.CapabilityDefinition, op
 	return nil
 }
 
+func actionExecutionTimeoutAt(startedAt time.Time, operation plugins.CapabilityOperationDefinition) time.Time {
+	timeout := defaultActionExecutionTimeout
+	if operation.Invocation.TimeoutMS > 0 {
+		timeout = time.Duration(operation.Invocation.TimeoutMS) * time.Millisecond
+	}
+	if timeout <= 0 {
+		timeout = defaultActionExecutionTimeout
+	}
+	return startedAt.UTC().Add(timeout)
+}
+
 func (s *Server) authorizeActionExecutionPrincipal(r *http.Request, req actionExecutionRequest, authorizationContext capabilityGrantAuthorizationContext) (*authz.Decision, error) {
 	return s.authorizeCapabilityGrantPrincipal(r, capabilityGrantRequest{
 		SpaceID: req.SpaceID,
@@ -566,6 +585,7 @@ func actionExecutionMap(row *coreent.ActionExecution) map[string]any {
 		"idempotency_retention_seconds": int(actionExecutionIdempotencyRetention.Seconds()),
 		"status":                        row.Status,
 		"started_at":                    formatTime(row.StartedAt),
+		"timeout_at":                    formatTime(row.TimeoutAt),
 		"completed_at":                  optionalTime(row.CompletedAt),
 		"resource":                      nonNilMap(row.Resource),
 		"input_summary":                 nonNilMap(row.InputSummary),

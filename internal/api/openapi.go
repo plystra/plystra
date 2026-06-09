@@ -785,6 +785,7 @@ type openAPIActionExecution struct {
 	IdempotencyRetentionSeconds int            `json:"idempotency_retention_seconds"`
 	Status                      string         `json:"status" example:"running"`
 	StartedAt                   string         `json:"started_at" format:"date-time"`
+	TimeoutAt                   string         `json:"timeout_at" format:"date-time"`
 	CompletedAt                 *time.Time     `json:"completed_at,omitempty"`
 	Resource                    map[string]any `json:"resource"`
 	InputSummary                map[string]any `json:"input_summary"`

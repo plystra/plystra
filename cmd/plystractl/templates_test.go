@@ -54,8 +54,6 @@ func TestCreateTemplateAppGeneratesInspectableAlphaScaffold(t *testing.T) {
 		"POSTGRES_PASSWORD=replace-with-strong-postgres-password",
 		"PLYSTRA_SESSION_SECRET=replace-me",
 		"PLYSTRA_API_KEY_SECRET=replace-me-too",
-		"PLYSTRA_EMAIL_CAPABILITY_TOKEN=replace-me",
-		"PLYSTRA_AUTH_COMPLETE_IMAGE=plystra-auth-complete:local",
 	} {
 		if !strings.Contains(env, want) {
 			t.Fatalf(".env.example missing %q", want)
@@ -65,22 +63,22 @@ func TestCreateTemplateAppGeneratesInspectableAlphaScaffold(t *testing.T) {
 	for _, want := range []string{
 		"image: ${PLYSTRA_CORE_IMAGE}",
 		"DATABASE_URL: ${DOCKER_DATABASE_URL}",
-		"auth-complete:",
 		"image: postgres:16-alpine",
 		"http://127.0.0.1:8080/api/v1/health",
-		"http://127.0.0.1:8790/health",
 	} {
 		if !strings.Contains(compose, want) {
 			t.Fatalf("docker-compose.yml missing %q", want)
 		}
+	}
+	if strings.Contains(compose, "auth-complete:") {
+		t.Fatal("template compose must not hard-code a concrete auth provider")
 	}
 	if strings.Contains(compose, "${POSTGRES_PORT:-5432}:5432") {
 		t.Fatal("docker-compose.yml should not publish PostgreSQL to the host by default")
 	}
 	explanation := readGeneratedFile(t, filepath.Join(target, filepath.FromSlash("plystra/install-explanation.md")))
 	for _, want := range []string{
-		"Required plugins: plystra.auth_complete",
-		"Required capabilities: email.transactional",
+		"Required capabilities: auth.identity, email.transactional",
 		"migrations never create one automatically",
 		"Review generated README, deployment profile, environment example, and install explanation before starting services",
 		"production email delivery requires an independent email capability provider",
@@ -94,8 +92,6 @@ func TestCreateTemplateAppGeneratesInspectableAlphaScaffold(t *testing.T) {
 func TestBackupManifestStaticTableNamesAreSafe(t *testing.T) {
 	for _, table := range []string{
 		"users",
-		"plugin_example_records",
-		"plugin_acme_events",
 	} {
 		if got := safeTableIdentifier(table); got != table {
 			t.Fatalf("safeTableIdentifier(%q) = %q", table, got)
@@ -144,6 +140,7 @@ func TestProviderBackupTableAllowed(t *testing.T) {
 	}
 	for _, table := range []string{
 		"public.plugins",
+		"public.plugin_example_records",
 		"core.users",
 		"plg_bad.records;drop",
 		"bad-schema.records",

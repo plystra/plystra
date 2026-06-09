@@ -665,6 +665,21 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("provider runtime cannot omit parent grant for child capability calls", func(t *testing.T) {
+		body := capabilityGrantIssueBody(fixture, "invoice.provider_runtime_missing_parent.v1")
+		body["executor"] = map[string]any{"plugin_id": fixture.ProviderPluginID}
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-grants", fixture.SpaceID), fixture.ProviderAPIKey, body)
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("provider-runtime missing parent status = %d, want 403, body=%s", rec.Code, rec.Body.String())
+		}
+		payload := decodeCapabilityGrantEnvelope(t, rec)
+		errorPayload := requireObjectField(t, payload, "error")
+		if errorPayload["code"] != "CAPABILITY_CALL_GRAPH_DENIED" {
+			t.Fatalf("error code = %#v, want CAPABILITY_CALL_GRAPH_DENIED", errorPayload["code"])
+		}
+		assertNoGrantForIdempotencyKey(t, ctx, store.Client(), fixture.SpaceID, fixture.ProviderPluginID, "invoice.provider_runtime_missing_parent.v1")
+	})
+
 	t.Run("allows same app module caller for local capability", func(t *testing.T) {
 		body := capabilityGrantIssueBody(fixture, "local.same_app.v1")
 		body["capability"] = fixture.LocalCapabilityID
@@ -747,6 +762,10 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		actionExecutionID := requireStringField(t, data, "action_execution_id")
 		if data["status"] != "running" {
 			t.Fatalf("action status = %#v, want running", data["status"])
+		}
+		timeoutAt := requireStringField(t, data, "timeout_at")
+		if _, err := time.Parse(time.RFC3339, timeoutAt); err != nil {
+			t.Fatalf("timeout_at is not RFC3339: %q", timeoutAt)
 		}
 		if data["provider_plugin_id"] != fixture.ProviderPluginID {
 			t.Fatalf("provider_plugin_id = %#v, want %q", data["provider_plugin_id"], fixture.ProviderPluginID)
@@ -844,6 +863,55 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		rows, ok := payload["data"].([]any)
 		if !ok || len(rows) == 0 {
 			t.Fatalf("list actions returned no rows: %#v", payload["data"])
+		}
+	})
+
+	t.Run("reconciles timed out action execution as result unknown", func(t *testing.T) {
+		body := actionExecutionBeginBody(fixture, "payment.pay_timeout.charge.v1")
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/action-executions", fixture.SpaceID), fixture.APIKey, body)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("begin timed action status = %d, want 201, body=%s", rec.Code, rec.Body.String())
+		}
+		actionExecutionID := requireStringField(t, decodeCapabilityGrantData(t, rec), "action_execution_id")
+		past := time.Now().UTC().Add(-time.Minute)
+		if err := store.Client().ActionExecution.UpdateOneID(actionExecutionID).
+			SetTimeoutAt(past).
+			Exec(ctx); err != nil {
+			t.Fatalf("age action execution timeout: %v", err)
+		}
+		result, err := server.ReconcileActionExecutions(ctx, time.Now().UTC(), 10)
+		if err != nil {
+			t.Fatalf("reconcile actions: %v", err)
+		}
+		if result.Marked != 1 {
+			t.Fatalf("marked = %d, want 1; result=%#v", result.Marked, result)
+		}
+		row, err := store.Client().ActionExecution.Query().Where(entactionexecution.ID(actionExecutionID)).Only(ctx)
+		if err != nil {
+			t.Fatalf("load reconciled action: %v", err)
+		}
+		if row.Status != "result_unknown" || row.CompletedAt == nil || derefString(row.ErrorCode) != "ACTION_EXECUTION_TIMEOUT" {
+			t.Fatalf("reconciled action mismatch: status=%q completed_at=%v error_code=%q", row.Status, row.CompletedAt, derefString(row.ErrorCode))
+		}
+		reconciliation := requireObjectFromAny(t, row.Metadata["result_unknown_reconciliation"], "result_unknown_reconciliation metadata")
+		if reconciliation["reconciled_by"] != "core_action_execution_reconciler" || reconciliation["status"] != "result_unknown" {
+			t.Fatalf("result_unknown reconciliation metadata mismatch: %#v", reconciliation)
+		}
+		exists, err := store.Client().AuditLog.Query().
+			Where(entauditlog.Action("action_execution.result_unknown"), entauditlog.ResourceID(actionExecutionID)).
+			Exist(ctx)
+		if err != nil {
+			t.Fatalf("query result_unknown audit: %v", err)
+		}
+		if !exists {
+			t.Fatalf("result_unknown audit was not written for action execution %s", actionExecutionID)
+		}
+		replay, err := server.ReconcileActionExecutions(ctx, time.Now().UTC(), 10)
+		if err != nil {
+			t.Fatalf("reconcile actions replay: %v", err)
+		}
+		if replay.Marked != 0 {
+			t.Fatalf("replay marked = %d, want 0; result=%#v", replay.Marked, replay)
 		}
 	})
 

@@ -624,6 +624,9 @@ components:
                 status:
                     example: running
                     type: string
+                timeout_at:
+                    format: date-time
+                    type: string
                 updated_at:
                     format: date-time
                     type: string

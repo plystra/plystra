@@ -1048,6 +1048,9 @@ func (s *Server) validateCapabilityCallGraph(r *http.Request, req capabilityGran
 		}
 	}
 	if req.ParentGrantID == "" {
+		if principal, ok := adminPrincipalFrom(r); ok && principal.CredentialType == "api_key" && apiKeyProviderRuntimeID(principal.APIKey) != "" {
+			return errors.New("provider-runtime capability calls require parent_grant_id for Core-tracked lineage")
+		}
 		return nil
 	}
 	parent, active, err := s.parentGrantActive(r, req.ParentGrantID, req.SpaceID)

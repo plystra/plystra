@@ -50,6 +50,8 @@ type ActionExecution struct {
 	Status string `json:"status,omitempty"`
 	// StartedAt holds the value of the "started_at" field.
 	StartedAt time.Time `json:"started_at,omitempty"`
+	// TimeoutAt holds the value of the "timeout_at" field.
+	TimeoutAt time.Time `json:"timeout_at,omitempty"`
 	// CompletedAt holds the value of the "completed_at" field.
 	CompletedAt *time.Time `json:"completed_at,omitempty"`
 	// Resource holds the value of the "resource" field.
@@ -80,7 +82,7 @@ func (*ActionExecution) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case actionexecution.FieldID, actionexecution.FieldSpaceID, actionexecution.FieldCapability, actionexecution.FieldOperation, actionexecution.FieldResourceType, actionexecution.FieldResourceID, actionexecution.FieldResourceAction, actionexecution.FieldPrincipalUserID, actionexecution.FieldPrincipalMemberID, actionexecution.FieldPrincipalUserMemberID, actionexecution.FieldExecutorPluginID, actionexecution.FieldProviderPluginID, actionexecution.FieldDecisionID, actionexecution.FieldCorrelationID, actionexecution.FieldIdempotencyKey, actionexecution.FieldStatus, actionexecution.FieldErrorCode, actionexecution.FieldErrorMessage:
 			values[i] = new(sql.NullString)
-		case actionexecution.FieldStartedAt, actionexecution.FieldCompletedAt, actionexecution.FieldCreatedAt, actionexecution.FieldUpdatedAt:
+		case actionexecution.FieldStartedAt, actionexecution.FieldTimeoutAt, actionexecution.FieldCompletedAt, actionexecution.FieldCreatedAt, actionexecution.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -202,6 +204,12 @@ func (_m *ActionExecution) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field started_at", values[i])
 			} else if value.Valid {
 				_m.StartedAt = value.Time
+			}
+		case actionexecution.FieldTimeoutAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field timeout_at", values[i])
+			} else if value.Valid {
+				_m.TimeoutAt = value.Time
 			}
 		case actionexecution.FieldCompletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -359,6 +367,9 @@ func (_m *ActionExecution) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("started_at=")
 	builder.WriteString(_m.StartedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("timeout_at=")
+	builder.WriteString(_m.TimeoutAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	if v := _m.CompletedAt; v != nil {
 		builder.WriteString("completed_at=")

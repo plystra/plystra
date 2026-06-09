@@ -93,11 +93,11 @@ func init() {
 	// actionexecution.DefaultStatus holds the default value on creation for the status field.
 	actionexecution.DefaultStatus = actionexecutionDescStatus.Default.(string)
 	// actionexecutionDescCreatedAt is the schema descriptor for created_at field.
-	actionexecutionDescCreatedAt := actionexecutionFields[24].Descriptor()
+	actionexecutionDescCreatedAt := actionexecutionFields[25].Descriptor()
 	// actionexecution.DefaultCreatedAt holds the default value on creation for the created_at field.
 	actionexecution.DefaultCreatedAt = actionexecutionDescCreatedAt.Default.(func() time.Time)
 	// actionexecutionDescUpdatedAt is the schema descriptor for updated_at field.
-	actionexecutionDescUpdatedAt := actionexecutionFields[25].Descriptor()
+	actionexecutionDescUpdatedAt := actionexecutionFields[26].Descriptor()
 	// actionexecution.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	actionexecution.DefaultUpdatedAt = actionexecutionDescUpdatedAt.Default.(func() time.Time)
 	// actionexecution.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
