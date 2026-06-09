@@ -145,7 +145,6 @@ func createTemplateApp(tpl templates.Manifest, opts templateCreateOptions) (map[
 		"next_steps": []string{
 			"review plystra/install-explanation.md",
 			"copy .env.example to .env and set strong secrets",
-			"run docker compose --env-file .env up -d postgres",
 			"run docker compose --env-file .env run --rm plystra-core plystractl migrate up",
 			"run docker compose --env-file .env run --rm plystra-core plystractl migrate verify",
 			"run docker compose --env-file .env up -d",
@@ -184,7 +183,6 @@ func renderTemplateREADME(appName string, tpl templates.Manifest) string {
 	b.WriteString("## Start\n\n")
 	b.WriteString("```powershell\n")
 	b.WriteString("copy .env.example .env\n")
-	b.WriteString("docker compose --env-file .env up -d postgres\n")
 	b.WriteString("docker compose --env-file .env run --rm plystra-core plystractl migrate up\n")
 	b.WriteString("docker compose --env-file .env run --rm plystra-core plystractl migrate verify\n")
 	b.WriteString("docker compose --env-file .env run --rm plystra-core plystractl doctor\n")
@@ -206,12 +204,7 @@ func renderTemplateEnv(appName string, tpl templates.Manifest) string {
 		"SERVER_PORT=8080",
 		"SERVER_MODE=production",
 		"SERVER_PUBLIC_URL=https://plystra.example.com",
-		"POSTGRES_DB=plystra",
-		"POSTGRES_USER=plystra",
-		"POSTGRES_PASSWORD=replace-with-strong-postgres-password",
-		"POSTGRES_PORT=5432",
-		"DATABASE_URL=postgres://plystra:replace-with-strong-postgres-password@localhost:5432/plystra?sslmode=require",
-		"DOCKER_DATABASE_URL=postgres://plystra:replace-with-strong-postgres-password@postgres:5432/plystra?sslmode=disable",
+		"DATABASE_URL=postgres://plystra:replace-with-managed-database-password@db.example.com:5432/plystra?sslmode=require",
 		"LOG_FORMAT=json",
 		"AUDIT_WRITE_MODE=always",
 		"TRACE_VERSION=1.0",
@@ -249,17 +242,9 @@ func renderTemplateCompose(tpl templates.Manifest) string {
 	} {
 		fmt.Fprintf(&b, "      %s: ${%s}\n", key, key)
 	}
-	b.WriteString("      DATABASE_URL: ${DOCKER_DATABASE_URL}\n")
+	b.WriteString("      DATABASE_URL: ${DATABASE_URL}\n")
 	b.WriteString("    ports:\n      - \"${SERVER_PORT:-8080}:8080\"\n")
-	b.WriteString("    depends_on:\n      postgres:\n        condition: service_healthy\n")
 	b.WriteString("    healthcheck:\n      test: [\"CMD-SHELL\", \"wget -qO- http://127.0.0.1:8080/api/v1/health >/dev/null || exit 1\"]\n      interval: 10s\n      timeout: 3s\n      retries: 6\n")
-	b.WriteString("  postgres:\n")
-	b.WriteString("    image: postgres:16-alpine\n")
-	b.WriteString("    environment:\n")
-	b.WriteString("      POSTGRES_DB: ${POSTGRES_DB}\n      POSTGRES_USER: ${POSTGRES_USER}\n      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}\n")
-	b.WriteString("    volumes:\n      - plystra-postgres-data:/var/lib/postgresql/data\n")
-	b.WriteString("    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}\"]\n      interval: 5s\n      timeout: 5s\n      retries: 10\n")
-	b.WriteString("volumes:\n  plystra-postgres-data:\n")
 	return b.String()
 }
 

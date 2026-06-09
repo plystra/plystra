@@ -51,7 +51,7 @@ func TestCreateTemplateAppGeneratesInspectableAlphaScaffold(t *testing.T) {
 	env := readGeneratedFile(t, filepath.Join(target, ".env.example"))
 	for _, want := range []string{
 		"SERVER_MODE=production",
-		"POSTGRES_PASSWORD=replace-with-strong-postgres-password",
+		"DATABASE_URL=postgres://plystra:replace-with-managed-database-password@db.example.com:5432/plystra?sslmode=require",
 		"PLYSTRA_SESSION_SECRET=replace-me",
 		"PLYSTRA_API_KEY_SECRET=replace-me-too",
 	} {
@@ -62,13 +62,15 @@ func TestCreateTemplateAppGeneratesInspectableAlphaScaffold(t *testing.T) {
 	compose := readGeneratedFile(t, filepath.Join(target, "docker-compose.yml"))
 	for _, want := range []string{
 		"image: ${PLYSTRA_CORE_IMAGE}",
-		"DATABASE_URL: ${DOCKER_DATABASE_URL}",
-		"image: postgres:16-alpine",
+		"DATABASE_URL: ${DATABASE_URL}",
 		"http://127.0.0.1:8080/api/v1/health",
 	} {
 		if !strings.Contains(compose, want) {
 			t.Fatalf("docker-compose.yml missing %q", want)
 		}
+	}
+	if strings.Contains(compose, "image: postgres:16-alpine") {
+		t.Fatal("production template compose must not include PostgreSQL")
 	}
 	if strings.Contains(compose, "auth-complete:") {
 		t.Fatal("template compose must not hard-code a concrete auth provider")

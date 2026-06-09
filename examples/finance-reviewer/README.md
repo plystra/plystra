@@ -1,19 +1,21 @@
 # Finance Reviewer Example
 
-This example is the canonical v0.1-pre regression scenario.
+This example is a development-only regression scenario. Core production
+migrations do not create these users, roles, resources, or permissions.
 
 Run it from the repository root:
 
 ```bash
-docker compose up -d
+docker compose -f docker-compose.dev.yml up -d postgres
 make migrate
-make demo
+docker compose exec -T postgres psql -U plystra -d plystra < examples/finance-reviewer/seed.sql
+go run ./cmd/explain-demo
 ```
 
 Without `make`:
 
 ```bash
-docker compose exec -T postgres psql -U plystra -d plystra < migrations/001_finance_demo.sql
+docker compose exec -T postgres psql -U plystra -d plystra < examples/finance-reviewer/seed.sql
 go run ./cmd/explain-demo
 ```
 

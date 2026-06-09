@@ -3,20 +3,20 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: plystra-core
+    container_name: plystra-core-dev
     environment:
-      SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
+      SERVER_HOST: 0.0.0.0
       SERVER_PORT: ${SERVER_PORT:-8080}
-      SERVER_MODE: ${SERVER_MODE:-production}
-      SERVER_PUBLIC_URL: ${SERVER_PUBLIC_URL:?SERVER_PUBLIC_URL is required}
-      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL for an external PostgreSQL instance is required}
+      SERVER_MODE: development
+      SERVER_PUBLIC_URL: http://localhost:${SERVER_PORT:-8080}
+      DATABASE_URL: postgres://plystra:plystra@postgres:5432/plystra?sslmode=disable
       LOG_FORMAT: ${LOG_FORMAT:-json}
       AUDIT_WRITE_MODE: ${AUDIT_WRITE_MODE:-always}
       TRACE_VERSION: ${TRACE_VERSION:-1.0}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?CORS_ALLOWED_ORIGINS is required}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173,http://localhost:8080}
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
-      PLYSTRA_SESSION_SECRET: ${PLYSTRA_SESSION_SECRET:?PLYSTRA_SESSION_SECRET is required}
-      PLYSTRA_API_KEY_SECRET: ${PLYSTRA_API_KEY_SECRET:?PLYSTRA_API_KEY_SECRET is required}
+      PLYSTRA_SESSION_SECRET: ${PLYSTRA_SESSION_SECRET:-change-me-session-secret-at-least-32-characters}
+      PLYSTRA_API_KEY_SECRET: ${PLYSTRA_API_KEY_SECRET:-change-me-api-key-secret-at-least-32-characters}
       PLYSTRA_AUTH_REGISTRATION_ENABLED: ${PLYSTRA_AUTH_REGISTRATION_ENABLED:-false}
       PLYSTRA_AUTH_REGISTRATION_TOKEN: ${PLYSTRA_AUTH_REGISTRATION_TOKEN:-}
       PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED: ${PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED:-false}
@@ -32,8 +32,32 @@ services:
     restart: unless-stopped
     ports:
       - "${SERVER_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/api/v1/health >/dev/null || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 6
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: plystra-postgres-dev
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-plystra}
+      POSTGRES_USER: ${POSTGRES_USER:-plystra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-plystra}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U plystra -d plystra"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - plystra-postgres-dev-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  plystra-postgres-dev-data:

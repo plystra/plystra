@@ -25,7 +25,7 @@ func main() {
 	pgStore, err := entstore.Open(ctx, databaseURL)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "connect ent store: %v\n", err)
-		fmt.Fprintln(os.Stderr, "hint: run docker compose up -d, then apply migrations/001_finance_demo.sql")
+		fmt.Fprintln(os.Stderr, "hint: run migrations, then apply examples/finance-reviewer/seed.sql")
 		os.Exit(1)
 	}
 	defer func() { _ = pgStore.Close() }()

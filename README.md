@@ -23,13 +23,13 @@ Core provides:
 Requirements:
 
 - Go 1.25.11+ (required for current Go standard-library security fixes)
-- Docker or a local PostgreSQL 16+ instance
+- PostgreSQL 16+ for local development or an external PostgreSQL 16+ instance for production
 
 Start PostgreSQL and run the local release gate:
 
 ```powershell
 cp .env.example .env
-docker compose up -d postgres
+docker compose -f docker-compose.dev.yml up -d postgres
 go run entgo.io/ent/cmd/ent generate ./ent/schema
 go run ./cmd/plystractl migrate up
 go run ./cmd/plystractl migrate verify
@@ -48,17 +48,18 @@ The API listens on `http://localhost:8080` by default.
 
 ## Minimal API Example
 
-Production migrations never create an instance super admin automatically. For the local demo flow, run `make seed-demo` before logging in as Alice.
+Production migrations never create an instance super admin automatically. Create or select the intended User through your controlled bootstrap flow, then grant instance administration explicitly:
 
 ```powershell
-$login = Invoke-RestMethod `
-  -Method Post `
-  -Uri http://localhost:8080/api/v1/auth/login `
-  -ContentType "application/json" `
-  -Body '{"email":"alice@example.com","password":"plystra-demo"}'
+go run ./cmd/plystractl admin bootstrap-super-admin `
+  --user-id usr_admin_01 `
+  --grant-id ag_initial_instance_super_admin `
+  --if-exists ok
+```
 
-$token = $login.data.access_token
+After the user signs in, inspect the active administration boundary:
 
+```powershell
 Invoke-RestMethod `
   -Headers @{ Authorization = "Bearer $token" } `
   -Uri http://localhost:8080/api/v1/admin/me
@@ -76,26 +77,26 @@ For first integrations, call `/api/v1/authz/check` from your backend with truste
 ```json
 {
   "actor": {
-    "user_id": "user_external_alice",
-    "member_id": "member_finance_reviewer",
-    "binding_id": "binding_external_alice_finance",
-    "space_id": "space_acme"
+    "user_id": "user_external_01",
+    "member_id": "member_operations_reviewer",
+    "binding_id": "binding_external_user_01",
+    "space_id": "space_main"
   },
   "resource": {
-    "type": "invoice",
-    "external_id": "invoice_001",
-    "space_id": "space_acme",
-    "group_path": "finance.apac"
+    "type": "document",
+    "external_id": "document_001",
+    "space_id": "space_main",
+    "group_path": "operations.eu"
   },
   "grants": [{
-    "role_key": "finance_approver",
-    "resource": "invoice",
-    "action": "approve",
+    "role_key": "operations_reviewer",
+    "resource": "document",
+    "action": "review",
     "scope": "group_tree",
-    "space_id": "space_acme",
-    "scope_anchor_group_path": "finance"
+    "space_id": "space_main",
+    "scope_anchor_group_path": "operations"
   }],
-  "action": "approve"
+  "action": "review"
 }
 ```
 
@@ -152,6 +153,8 @@ go generate ./ent
 go test ./...
 go run ./cmd/plystractl migrate verify
 go run ./cmd/plystractl ent check
+go run ./cmd/plystra-openapi -out openapi
+go run ./cmd/plystractl migrate hash
 go run ./cmd/plystractl doctor
 ```
 
@@ -173,7 +176,7 @@ go run ./cmd/plystractl upgrade verify
 
 `templates create` writes an inspectable application directory with `README.md`, `.env.example`, `docker-compose.yml`, `plystra/template-installation.json`, and `plystra/install-explanation.md`. The generated scaffold never writes real secrets and never creates the first instance super admin automatically.
 
-`/api/v1/ready` reports Core readiness, migration state, system capabilities, and plugin status counts. Production alpha still requires external PostgreSQL and versioned migrations; cloud hosting and marketplace behavior are outside this phase. The provider data-plane foundation uses `provider_request_contexts` plus `plystra.set_verified_context(token)` / `plystra.current_space_id()` PostgreSQL helpers so future Provider/App Module schemas can enforce tenant isolation with RLS from a Core-issued opaque context instead of trusting a naked provider-supplied `space_id`. The migration enables PostgreSQL `pgcrypto` for token hashing.
+`/api/v1/ready` reports Core readiness, migration state, system capabilities, and plugin status counts. Production alpha runs Core as a Docker container against an external PostgreSQL instance; `docker-compose.dev.yml` is the local development exception. Cloud hosting and marketplace behavior are outside this phase. The provider data-plane foundation uses `provider_request_contexts` plus `plystra.set_verified_context(token)` / `plystra.current_space_id()` PostgreSQL helpers so future Provider/App Module schemas can enforce tenant isolation with RLS from a Core-issued opaque context instead of trusting a naked provider-supplied `space_id`. The migration enables PostgreSQL `pgcrypto` for token hashing.
 
 Plugin manifests are governed contracts, not route-only metadata. Core validates declared resources, permissions, audit event types, routes, jobs, events, health checks, required secrets, external network access, settings, and capability profiles before storing a plugin manifest. Capability levels follow the product specification: `declared` for discovery-only profiles, `standard` for implemented contracts, and `certified` for providers that pass a conformance suite. Capability audit enforcement gates the allowed data plane: direct provider database access is limited to grant-only/reported-event paths, observed mutation requires a mutation journal or Action Gateway, and Core Data API must be explicitly declared for providers that store records through Core App Data.
 

@@ -21,13 +21,3 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_access_token_hash ON sessions(access_token_hash);
 CREATE INDEX IF NOT EXISTS idx_sessions_refresh_token_hash ON sessions(refresh_token_hash);
-
-UPDATE users
-SET password_hash = 'pbkdf2_sha256$120000$plystra_alice_salt$1d9f64c0d0dec791cf427c5849331ff669f6cec43e9ef5a90e7795cd76d41c28',
-	updated_at = now()
-WHERE id = 'user_alice' AND password_hash IS NULL;
-
-UPDATE users
-SET password_hash = 'pbkdf2_sha256$120000$plystra_bob_salt$84136c607b8cfb02a3e98eac9b215e476a40dc72a159accd4166c69f0241c30c',
-	updated_at = now()
-WHERE id = 'user_bob' AND password_hash IS NULL;

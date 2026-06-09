@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"ariga.io/atlas/sql/migrate"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/plystra/core/internal/dbconn"
 )
@@ -37,13 +38,17 @@ var acceptedLegacyMigrationChecksums = map[string][]string{
 		"RnLln++6SQ3SnC9S6vOBTWmk6KvMyPFSHneYczxtUbY=",
 		"h1:RnLln++6SQ3SnC9S6vOBTWmk6KvMyPFSHneYczxtUbY=",
 	},
-	"016_demo_passwords_argon2id.sql": {
-		"mBFsQTiT/q+79lzC4o8gMglUioV9S4LfvyQDHfOrFfk=",
-		"h1:mBFsQTiT/q+79lzC4o8gMglUioV9S4LfvyQDHfOrFfk=",
-	},
 }
 
 func runMigrate(ctx context.Context, command string) error {
+	if command == "hash" {
+		if err := hashMigrations("migrations"); err != nil {
+			return err
+		}
+		fmt.Println("migration hashes updated")
+		return nil
+	}
+
 	migrations, err := loadMigrations("migrations")
 	if err != nil {
 		return err
@@ -113,6 +118,18 @@ func runMigrate(ctx context.Context, command string) error {
 	}
 
 	return nil
+}
+
+func hashMigrations(dir string) error {
+	localDir, err := migrate.NewLocalDir(dir)
+	if err != nil {
+		return err
+	}
+	sum, err := localDir.Checksum()
+	if err != nil {
+		return err
+	}
+	return migrate.WriteSumFile(localDir, sum)
 }
 
 type migrationRecord struct {

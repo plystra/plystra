@@ -1,0 +1,2 @@
+-- Reserved for the former example super-admin cleanup migration.
+-- Production migrations never create an instance super admin automatically.

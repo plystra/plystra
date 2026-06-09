@@ -1,0 +1,2 @@
+-- Reserved for the former local example password migration.
+-- Production migrations never create or repair example users.

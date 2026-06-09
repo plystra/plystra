@@ -1,0 +1,2 @@
+-- Reserved for the Backend OS Alpha generic Core baseline.
+-- The production migration chain creates no example business fixtures.

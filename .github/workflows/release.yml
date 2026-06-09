@@ -55,6 +55,18 @@ jobs:
           git diff --exit-code -- ent
           test -z "$(git status --porcelain ent)"
 
+      - name: Check generated OpenAPI
+        run: |
+          go run ./cmd/plystra-openapi -out openapi
+          git diff --exit-code -- openapi
+          test -z "$(git status --porcelain openapi)"
+
+      - name: Check Atlas migration hashes
+        run: |
+          go run ./cmd/plystractl migrate hash
+          git diff --exit-code -- migrations/atlas.sum
+          test -z "$(git status --porcelain migrations/atlas.sum)"
+
       - name: Unit tests
         run: go test ./...
 

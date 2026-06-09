@@ -98,7 +98,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: plystractl migrate <status|plan|up|verify>")
+	fmt.Fprintln(os.Stderr, "usage: plystractl migrate <status|plan|up|verify|hash>")
 	fmt.Fprintln(os.Stderr, "       plystractl ent <status|plan|check|apply>")
 	fmt.Fprintln(os.Stderr, "       plystractl templates <list|describe> [template_id]")
 	fmt.Fprintln(os.Stderr, "       plystractl templates create --template <template_id> --out <dir> [--name <app_name>]")
