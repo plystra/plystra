@@ -132,7 +132,7 @@ func TestProviderBackupTableAllowed(t *testing.T) {
 	for _, table := range []string{
 		"plg_invoice.invoices",
 		"plg_storage.objects",
-		"app_forge.tasks",
+		"app_acme.tasks",
 	} {
 		if !providerBackupTableAllowed(table) {
 			t.Fatalf("providerBackupTableAllowed(%q) = false", table)

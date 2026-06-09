@@ -53,14 +53,14 @@ func TestProviderDatabaseIdentifiers(t *testing.T) {
 		t.Fatalf("plugin roles = %q %q", migratorRole, runtimeRole)
 	}
 
-	appSchema, appMigrator, appRuntime := providerDatabaseIdentifiers("app.forge.operations", "app_module", "forge")
-	if appSchema != "app_forge" {
+	appSchema, appMigrator, appRuntime := providerDatabaseIdentifiers("app.acme.operations", "app_module", "acme")
+	if appSchema != "app_acme" {
 		t.Fatalf("app module schema = %q", appSchema)
 	}
-	if !strings.Contains(appMigrator, "app_forge_app_forge_operations") || !strings.HasSuffix(appMigrator, "_migrator_owner") {
+	if !strings.Contains(appMigrator, "app_acme_app_acme_operations") || !strings.HasSuffix(appMigrator, "_migrator_owner") {
 		t.Fatalf("app module migrator role = %q", appMigrator)
 	}
-	if !strings.Contains(appRuntime, "app_forge_app_forge_operations") || !strings.HasSuffix(appRuntime, "_runtime") {
+	if !strings.Contains(appRuntime, "app_acme_app_acme_operations") || !strings.HasSuffix(appRuntime, "_runtime") {
 		t.Fatalf("app module runtime role = %q", appRuntime)
 	}
 }
