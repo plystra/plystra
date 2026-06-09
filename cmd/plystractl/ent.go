@@ -9,10 +9,9 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/schema"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/plystra/core/ent"
+	"github.com/plystra/core/internal/dbconn"
 )
 
 func runEnt(ctx context.Context, command string) error {
@@ -92,11 +91,10 @@ func entMigrationPlan(ctx context.Context, client *ent.Client) (string, error) {
 }
 
 func openEntClient(ctx context.Context) (*ent.Client, *sql.DB, error) {
-	cfg, err := pgx.ParseConfig(databaseURL())
+	db, err := dbconn.OpenDB(databaseURL())
 	if err != nil {
 		return nil, nil, err
 	}
-	db := stdlib.OpenDB(*cfg)
 	if err := db.PingContext(ctx); err != nil {
 		_ = db.Close()
 		return nil, nil, err

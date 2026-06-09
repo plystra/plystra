@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/plystra/core/internal/dbconn"
 )
 
 func runBackup(ctx context.Context, command string, args []string) error {
@@ -86,7 +87,7 @@ func runRestore(ctx context.Context, command string, args []string) error {
 }
 
 func backupManifest(ctx context.Context) (map[string]any, error) {
-	pool, err := pgxpool.New(ctx, databaseURL())
+	pool, err := dbconn.NewPool(ctx, databaseURL())
 	if err != nil {
 		return nil, err
 	}

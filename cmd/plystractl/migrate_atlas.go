@@ -11,7 +11,7 @@ import (
 	"ariga.io/atlas/sql/postgres"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/plystra/core/internal/dbconn"
 )
 
 const migrateOperatorVersion = "plystractl/0.0.1"
@@ -33,11 +33,10 @@ func atlasMigrationHashes(path string) (map[string]string, error) {
 }
 
 func runMigrateUpWithAtlas(ctx context.Context, pool *pgxpool.Pool) error {
-	cfg, err := pgx.ParseConfig(databaseURL())
+	sqlDB, err := dbconn.OpenDB(databaseURL())
 	if err != nil {
 		return err
 	}
-	sqlDB := stdlib.OpenDB(*cfg)
 	defer sqlDB.Close()
 	if err := sqlDB.PingContext(ctx); err != nil {
 		return err

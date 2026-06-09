@@ -6,12 +6,11 @@ import (
 
 	entdialect "entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/stdlib"
 
 	coreent "github.com/plystra/core/ent"
 	_ "github.com/plystra/core/ent/runtime"
 	"github.com/plystra/core/internal/authz"
+	"github.com/plystra/core/internal/dbconn"
 	"github.com/plystra/core/internal/resources"
 )
 
@@ -24,11 +23,10 @@ type Store struct {
 }
 
 func Open(ctx context.Context, databaseURL string) (*Store, error) {
-	cfg, err := pgx.ParseConfig(databaseURL)
+	db, err := dbconn.OpenDB(databaseURL)
 	if err != nil {
 		return nil, err
 	}
-	db := stdlib.OpenDB(*cfg)
 	if err := db.PingContext(ctx); err != nil {
 		_ = db.Close()
 		return nil, err

@@ -190,7 +190,12 @@ func (s *Server) handleSpaceAppData(w http.ResponseWriter, r *http.Request, spac
 			if !s.requireAppDataModelServiceAccess(w, r, model, "read") {
 				return
 			}
-			writeData(w, r, http.StatusOK, appDataModelMap(model))
+			row, err := s.appDataModelMap(r.Context(), model)
+			if err != nil {
+				writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data model permissions.", err.Error())
+				return
+			}
+			writeData(w, r, http.StatusOK, row)
 		case http.MethodPatch:
 			s.updateAppDataModel(w, r, spaceID, modelKey)
 		default:
@@ -244,9 +249,9 @@ func (s *Server) handleAppDataResourceLookup(w http.ResponseWriter, r *http.Requ
 	actor := appDataActorFromRequest(r, authz.ActorContext{SpaceID: record.SpaceID})
 	var decision any
 	if s.appDataModelServiceAuthorized(r, "read", model) {
-		decision = appDataServiceDecision(r, actor, "read", record)
+		decision = appDataServiceDecisionForModel(r, actor, model, "read", record)
 	} else {
-		checked, ok := s.authorizeAppDataRecord(w, r, actor, "read", record)
+		checked, ok := s.authorizeAppDataModelRecord(w, r, actor, model, "read", record)
 		if !ok {
 			return
 		}
@@ -282,7 +287,12 @@ func (s *Server) listAppDataModels(w http.ResponseWriter, r *http.Request, space
 		if !allowed {
 			continue
 		}
-		rows = append(rows, appDataModelMap(model))
+		row, err := s.appDataModelMap(r.Context(), model)
+		if err != nil {
+			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data model permissions.", err.Error())
+			return
+		}
+		rows = append(rows, row)
 	}
 	writeList(w, r, http.StatusOK, rows, limitFrom(r, 50))
 }
@@ -352,7 +362,12 @@ func (s *Server) createAppDataModel(w http.ResponseWriter, r *http.Request, spac
 		return
 	}
 	s.recordMutationAudit(r.Context(), r, req.Actor, spaceID, "app_data.model.created", "app_data_model", model.ID, appDataAuditDetails("model_create", model.Key, "", req.Schema, req.Metadata))
-	writeData(w, r, http.StatusCreated, appDataModelMap(model))
+	row, err := s.appDataModelMap(r.Context(), model)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data model permissions.", err.Error())
+		return
+	}
+	writeData(w, r, http.StatusCreated, row)
 }
 
 func (s *Server) updateAppDataModel(w http.ResponseWriter, r *http.Request, spaceID, modelKey string) {
@@ -450,7 +465,12 @@ func (s *Server) updateAppDataModel(w http.ResponseWriter, r *http.Request, spac
 		return
 	}
 	s.recordMutationAudit(r.Context(), r, req.Actor, spaceID, "app_data.model.updated", "app_data_model", model.ID, appDataAuditDetails("model_update", model.Key, "", schemaValue, metadata))
-	writeData(w, r, http.StatusOK, appDataModelMap(model))
+	row, err := s.appDataModelMap(r.Context(), model)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data model permissions.", err.Error())
+		return
+	}
+	writeData(w, r, http.StatusOK, row)
 }
 
 func (s *Server) handleAppDataRecords(w http.ResponseWriter, r *http.Request, spaceID, modelKey string, parts []string) {
@@ -579,9 +599,9 @@ func (s *Server) listAppDataRecords(w http.ResponseWriter, r *http.Request, mode
 			lastScanned = record
 			var decision any
 			if serviceAuthorized {
-				decision = appDataServiceDecision(r, actor, "read", record)
+				decision = appDataServiceDecisionForModel(r, actor, model, "read", record)
 			} else {
-				checked, allowed, ok := s.checkAppDataRecordAuthorization(w, r, actor, "read", record)
+				checked, allowed, ok := s.checkAppDataModelRecordAuthorization(w, r, actor, model, "read", record)
 				if !ok {
 					return
 				}
@@ -787,7 +807,7 @@ func (s *Server) applyAppDataBatchCreate(ctx context.Context, r *http.Request, c
 	if err := s.validateResourceRefs(ctx, model.SpaceID, groupID, ownerMemberID); err != nil {
 		return nil, newAppDataBatchError(index, op, http.StatusBadRequest, "VALIDATION_FAILED", "Record references are invalid.", err.Error())
 	}
-	resourceType := appDataModelResourceType(model.Key)
+	resourceType := appDataModelAuthorizationResourceType(model)
 	visibility := firstNonEmpty(derefString(req.Visibility), "private")
 	status := firstNonEmpty(derefString(req.Status), "active")
 	target, err := s.proposedResourceTarget(ctx, resourceType, req.ID, model.SpaceID, groupID, ownerMemberID, derefString(req.DisplayName), visibility, status, req.Metadata)
@@ -844,7 +864,7 @@ func (s *Server) applyAppDataBatchUpdate(ctx context.Context, r *http.Request, c
 	if err != nil {
 		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data record.", err.Error())
 	}
-	proposed, err := s.appDataRecordTarget(ctx, current)
+	proposed, err := s.appDataRecordTargetForModel(ctx, model, current)
 	if err != nil {
 		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to build app data authorization target.", err.Error())
 	}
@@ -874,7 +894,7 @@ func (s *Server) applyAppDataBatchUpdate(ctx context.Context, r *http.Request, c
 	if req.Metadata != nil {
 		proposed.Resource.Metadata = req.Metadata
 	}
-	resourceType := appDataModelResourceType(model.Key)
+	resourceType := appDataModelAuthorizationResourceType(model)
 	var decision any
 	if serviceAuthorized {
 		decision = appDataServiceDecisionForTarget(r, actor, "update", current.ID, proposed)
@@ -924,12 +944,12 @@ func (s *Server) applyAppDataBatchStatus(ctx context.Context, r *http.Request, c
 	if err != nil {
 		return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data record.", err.Error())
 	}
-	resourceType := appDataModelResourceType(model.Key)
+	resourceType := appDataModelAuthorizationResourceType(model)
 	var decision any
 	if serviceAuthorized {
-		decision = appDataServiceDecision(r, actor, action, record)
+		decision = appDataServiceDecisionForModel(r, actor, model, action, record)
 	} else {
-		target, err := s.appDataRecordTarget(ctx, record)
+		target, err := s.appDataRecordTargetForModel(ctx, model, record)
 		if err != nil {
 			return nil, newAppDataBatchError(index, op, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to build app data authorization target.", err.Error())
 		}
@@ -1202,7 +1222,7 @@ func (s *Server) createAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Record references are invalid.", err.Error())
 		return
 	}
-	resourceType := appDataModelResourceType(model.Key)
+	resourceType := appDataModelAuthorizationResourceType(model)
 	target, err := s.proposedResourceTarget(r.Context(), resourceType, req.ID, model.SpaceID, groupID, ownerMemberID, derefString(req.DisplayName), firstNonEmpty(derefString(req.Visibility), "private"), firstNonEmpty(derefString(req.Status), "active"), req.Metadata)
 	if err != nil {
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "Failed to build proposed target.", err.Error())
@@ -1291,9 +1311,9 @@ func (s *Server) getAppDataRecord(w http.ResponseWriter, r *http.Request, model 
 	actor := appDataActorFromRequest(r, authz.ActorContext{SpaceID: model.SpaceID})
 	var decision any
 	if s.appDataModelServiceAuthorized(r, "read", model) {
-		decision = appDataServiceDecision(r, actor, "read", record)
+		decision = appDataServiceDecisionForModel(r, actor, model, "read", record)
 	} else {
-		checked, ok := s.authorizeAppDataRecord(w, r, actor, "read", record)
+		checked, ok := s.authorizeAppDataModelRecord(w, r, actor, model, "read", record)
 		if !ok {
 			return
 		}
@@ -1335,7 +1355,7 @@ func (s *Server) updateAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 	if actor.SpaceID == "" {
 		actor.SpaceID = model.SpaceID
 	}
-	proposed, err := s.appDataRecordTarget(r.Context(), current)
+	proposed, err := s.appDataRecordTargetForModel(r.Context(), model, current)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to build app data authorization target.", err.Error())
 		return
@@ -1368,7 +1388,7 @@ func (s *Server) updateAppDataRecord(w http.ResponseWriter, r *http.Request, mod
 	if req.Metadata != nil {
 		proposed.Resource.Metadata = req.Metadata
 	}
-	resourceType := appDataModelResourceType(model.Key)
+	resourceType := appDataModelAuthorizationResourceType(model)
 	var decision any
 	if serviceAuthorized {
 		decision = appDataServiceDecisionForTarget(r, actor, "update", current.ID, proposed)
@@ -1475,9 +1495,9 @@ func (s *Server) updateAppDataRecordStatus(w http.ResponseWriter, r *http.Reques
 	}
 	var decision any
 	if serviceAuthorized {
-		decision = appDataServiceDecision(r, actor, authAction, record)
+		decision = appDataServiceDecisionForModel(r, actor, model, authAction, record)
 	} else {
-		checked, ok := s.authorizeAppDataRecord(w, r, actor, authAction, record)
+		checked, ok := s.authorizeAppDataModelRecord(w, r, actor, model, authAction, record)
 		if !ok {
 			return
 		}
@@ -1516,7 +1536,7 @@ func (s *Server) updateAppDataRecordStatus(w http.ResponseWriter, r *http.Reques
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to write app data revision.", err.Error())
 		return
 	}
-	if err := s.recordMutationAuditWithClient(r.Context(), txClient, r, actor, model.SpaceID, "app_data.record."+action+"d", appDataModelResourceType(model.Key), updated.ID, appDataAuditDetails("record_"+action, model.Key, updated.ID, updated.Data, updated.Metadata)); err != nil {
+	if err := s.recordMutationAuditWithClient(r.Context(), txClient, r, actor, model.SpaceID, "app_data.record."+action+"d", appDataModelAuthorizationResourceType(model), updated.ID, appDataAuditDetails("record_"+action, model.Key, updated.ID, updated.Data, updated.Metadata)); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to write app data audit log.", err.Error())
 		return
 	}
@@ -1550,7 +1570,7 @@ func (s *Server) listAppDataRecordRevisions(w http.ResponseWriter, r *http.Reque
 	}
 	actor := appDataActorFromRequest(r, authz.ActorContext{SpaceID: model.SpaceID})
 	if !s.appDataModelServiceAuthorized(r, "read", model) {
-		if _, ok := s.authorizeAppDataRecord(w, r, actor, "read", record); !ok {
+		if _, ok := s.authorizeAppDataModelRecord(w, r, actor, model, "read", record); !ok {
 			return
 		}
 	}
@@ -1620,13 +1640,16 @@ func (s *Server) ensureAppDataModelResourceRegistration(ctx context.Context, mod
 	if s.ent == nil {
 		return errors.New("ent client is not configured")
 	}
-	resourceType := appDataModelResourceType(model.Key)
+	resourceType := appDataModelAuthorizationResourceType(model)
 	rtID := "rt_" + resourceType
 	existing, err := s.ent.ResourceType.Query().Where(entresourcetype.Key(resourceType)).Only(ctx)
 	if err != nil && !coreent.IsNotFound(err) {
 		return err
 	}
 	if coreent.IsNotFound(err) {
+		if appDataModelOwnedByPlugin(model) {
+			return fmt.Errorf("plugin-owned app data resource %q must be declared by the plugin manifest before model storage can be attached", resourceType)
+		}
 		existing, err = s.ent.ResourceType.Create().
 			SetID(rtID).
 			SetKey(resourceType).
@@ -1639,7 +1662,7 @@ func (s *Server) ensureAppDataModelResourceRegistration(ctx context.Context, mod
 		if err != nil {
 			return err
 		}
-	} else {
+	} else if !appDataModelOwnedByPlugin(model) {
 		update := s.ent.ResourceType.UpdateOneID(existing.ID).
 			SetDisplayName(model.DisplayName).
 			SetSource("core.app_data").
@@ -1651,35 +1674,37 @@ func (s *Server) ensureAppDataModelResourceRegistration(ctx context.Context, mod
 			return err
 		}
 	}
-	for _, action := range appDataModelActions(model.DisplayName) {
-		row, err := s.ent.ResourceAction.Query().
-			Where(entresourceaction.ResourceTypeID(existing.ID), entresourceaction.Key(action.key)).
-			Only(ctx)
-		if err != nil && !coreent.IsNotFound(err) {
-			return err
-		}
-		if coreent.IsNotFound(err) {
-			if _, err := s.ent.ResourceAction.Create().
-				SetID(newEntityID("ra_" + resourceType + "_" + action.key)).
-				SetResourceTypeID(existing.ID).
-				SetKey(action.key).
+	if !appDataModelOwnedByPlugin(model) {
+		for _, action := range appDataModelActions(model.DisplayName) {
+			row, err := s.ent.ResourceAction.Query().
+				Where(entresourceaction.ResourceTypeID(existing.ID), entresourceaction.Key(action.key)).
+				Only(ctx)
+			if err != nil && !coreent.IsNotFound(err) {
+				return err
+			}
+			if coreent.IsNotFound(err) {
+				if _, err := s.ent.ResourceAction.Create().
+					SetID(newEntityID("ra_" + resourceType + "_" + action.key)).
+					SetResourceTypeID(existing.ID).
+					SetKey(action.key).
+					SetDisplayName(action.displayName).
+					SetNillableDescription(optionalString("App data " + action.key + " action for " + model.Key)).
+					SetRiskLevel(action.riskLevel).
+					SetAuditDefault(true).
+					SetMetadata(appDataModelActionMetadata(model)).
+					Save(ctx); err != nil {
+					return err
+				}
+				continue
+			}
+			if _, err := s.ent.ResourceAction.UpdateOneID(row.ID).
 				SetDisplayName(action.displayName).
-				SetNillableDescription(optionalString("App data " + action.key + " action for " + model.Key)).
 				SetRiskLevel(action.riskLevel).
 				SetAuditDefault(true).
 				SetMetadata(appDataModelActionMetadata(model)).
 				Save(ctx); err != nil {
 				return err
 			}
-			continue
-		}
-		if _, err := s.ent.ResourceAction.UpdateOneID(row.ID).
-			SetDisplayName(action.displayName).
-			SetRiskLevel(action.riskLevel).
-			SetAuditDefault(true).
-			SetMetadata(appDataModelActionMetadata(model)).
-			Save(ctx); err != nil {
-			return err
 		}
 	}
 	mapping, err := s.ent.ResourceMapping.Query().Where(entresourcemapping.ResourceTypeID(existing.ID)).Only(ctx)
@@ -1722,7 +1747,23 @@ func (s *Server) ensureAppDataModelPermissions(ctx context.Context, model *coree
 	if s.ent == nil {
 		return errors.New("ent client is not configured")
 	}
-	resourceType := appDataModelResourceType(model.Key)
+	resourceType := appDataModelAuthorizationResourceType(model)
+	if appDataModelOwnedByPlugin(model) {
+		count, err := s.ent.Permission.Query().
+			Where(
+				entpermission.Resource(resourceType),
+				entpermission.Status("active"),
+				entpermission.DeletedAtIsNil(),
+			).
+			Count(ctx)
+		if err != nil {
+			return err
+		}
+		if count == 0 {
+			return fmt.Errorf("plugin-owned app data resource %q must declare active permissions in the plugin manifest", resourceType)
+		}
+		return nil
+	}
 	for _, action := range appDataModelActions(model.DisplayName) {
 		row, err := s.ent.Permission.Query().
 			Where(
@@ -1889,18 +1930,36 @@ func (s *Server) authorizeAppDataRecord(w http.ResponseWriter, r *http.Request, 
 	return decision, true
 }
 
+func (s *Server) authorizeAppDataModelRecord(w http.ResponseWriter, r *http.Request, actor authz.ActorContext, model *coreent.AppDataModel, action string, record *coreent.AppDataRecord) (*authz.Decision, bool) {
+	decision, allowed, ok := s.checkAppDataModelRecordAuthorization(w, r, actor, model, action, record)
+	if !ok {
+		return nil, false
+	}
+	if !allowed {
+		writeError(w, r, http.StatusForbidden, "AUTHORIZATION_DENIED", "The action is not allowed.", decision)
+		return decision, false
+	}
+	return decision, true
+}
+
 func (s *Server) checkAppDataRecordAuthorization(w http.ResponseWriter, r *http.Request, actor authz.ActorContext, action string, record *coreent.AppDataRecord) (*authz.Decision, bool, bool) {
+	return s.checkAppDataModelRecordAuthorization(w, r, actor, nil, action, record)
+}
+
+func (s *Server) checkAppDataModelRecordAuthorization(w http.ResponseWriter, r *http.Request, actor authz.ActorContext, model *coreent.AppDataModel, action string, record *coreent.AppDataRecord) (*authz.Decision, bool, bool) {
 	target, err := s.appDataRecordTarget(r.Context(), record)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to build app data authorization target.", err.Error())
 		return nil, false, false
 	}
+	resourceType := appDataModelAuthorizationResourceTypeForRecord(model, record)
+	target.Resource.Type = resourceType
 	if actor.SpaceID == "" {
 		actor.SpaceID = record.SpaceID
 	}
 	decision, err := authz.Check(r.Context(), s.authzStore, authz.CheckInput{
 		Actor:        actor,
-		ResourceType: appDataModelResourceType(record.ModelKey),
+		ResourceType: resourceType,
 		ResourceID:   record.ID,
 		Action:       action,
 		Target:       &target,
@@ -2815,10 +2874,14 @@ func appDataModelKeyForError(model *coreent.AppDataModel) string {
 }
 
 func appDataServiceDecision(r *http.Request, actor authz.ActorContext, action string, record *coreent.AppDataRecord) map[string]any {
+	return appDataServiceDecisionForModel(r, actor, nil, action, record)
+}
+
+func appDataServiceDecisionForModel(r *http.Request, actor authz.ActorContext, model *coreent.AppDataModel, action string, record *coreent.AppDataRecord) map[string]any {
 	return appDataServiceDecisionForTarget(r, actor, action, record.ID, authz.TargetSnapshot{
 		Resource: authz.ResourceSnapshot{
 			ID:            record.ID,
-			Type:          appDataModelResourceType(record.ModelKey),
+			Type:          appDataModelAuthorizationResourceTypeForRecord(model, record),
 			SpaceID:       record.SpaceID,
 			GroupID:       derefString(record.GroupID),
 			OwnerMemberID: derefString(record.OwnerMemberID),
@@ -2852,6 +2915,26 @@ func appDataServiceDecisionForTarget(r *http.Request, actor authz.ActorContext, 
 
 func appDataModelResourceType(modelKey string) string {
 	return "data_" + strings.ToLower(strings.TrimSpace(modelKey))
+}
+
+func appDataModelAuthorizationResourceType(model *coreent.AppDataModel) string {
+	if model != nil {
+		if resource := strings.ToLower(strings.TrimSpace(derefString(model.DeclaredResourceKey))); resource != "" {
+			return resource
+		}
+		return appDataModelResourceType(model.Key)
+	}
+	return appDataModelResourceType("")
+}
+
+func appDataModelAuthorizationResourceTypeForRecord(model *coreent.AppDataModel, record *coreent.AppDataRecord) string {
+	if model != nil {
+		return appDataModelAuthorizationResourceType(model)
+	}
+	if record == nil {
+		return appDataModelResourceType("")
+	}
+	return appDataModelResourceType(record.ModelKey)
 }
 
 func appDataActorFromRequest(r *http.Request, fallback authz.ActorContext) authz.ActorContext {
@@ -2985,7 +3068,11 @@ func validAppDataVisibility(value string) bool {
 	}
 }
 
-func appDataModelMap(row *coreent.AppDataModel) map[string]any {
+func (s *Server) appDataModelMap(ctx context.Context, row *coreent.AppDataModel) (map[string]any, error) {
+	permissions, err := s.appDataModelPermissionSummaries(ctx, row)
+	if err != nil {
+		return nil, err
+	}
 	return map[string]any{
 		"id":                    row.ID,
 		"space_id":              row.SpaceID,
@@ -3004,26 +3091,39 @@ func appDataModelMap(row *coreent.AppDataModel) map[string]any {
 		"status":                row.Status,
 		"schema":                nonNilMap(row.Schema),
 		"metadata":              nonNilMap(row.Metadata),
-		"permissions":           appDataModelPermissionSummaries(row),
+		"permissions":           permissions,
 		"created_at":            formatTime(row.CreatedAt),
 		"updated_at":            formatTime(row.UpdatedAt),
 		"deleted_at":            optionalTime(row.DeletedAt),
-	}
+	}, nil
 }
 
-func appDataModelPermissionSummaries(row *coreent.AppDataModel) []map[string]any {
-	permissions := make([]map[string]any, 0, 5)
-	resourceType := appDataModelResourceType(row.Key)
-	for _, action := range appDataModelActions(row.DisplayName) {
+func (s *Server) appDataModelPermissionSummaries(ctx context.Context, row *coreent.AppDataModel) ([]map[string]any, error) {
+	if s.ent == nil {
+		return nil, errors.New("ent client is not configured")
+	}
+	resourceType := appDataModelAuthorizationResourceType(row)
+	rows, err := s.ent.Permission.Query().
+		Where(
+			entpermission.Resource(resourceType),
+			entpermission.DeletedAtIsNil(),
+		).
+		Order(entpermission.ByAction(), entpermission.ByScope()).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	permissions := make([]map[string]any, 0, len(rows))
+	for _, permission := range rows {
 		permissions = append(permissions, map[string]any{
-			"id":       appDataModelPermissionID(resourceType, action.key),
-			"resource": resourceType,
-			"action":   action.key,
-			"scope":    string(authz.ScopeSpace),
-			"status":   permissionStatusForModel(row.Status),
+			"id":       permission.ID,
+			"resource": permission.Resource,
+			"action":   permission.Action,
+			"scope":    permission.Scope,
+			"status":   permission.Status,
 		})
 	}
-	return permissions
+	return permissions, nil
 }
 
 func appDataModelPermissionID(resourceType, action string) string {

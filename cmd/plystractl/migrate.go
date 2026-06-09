@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/plystra/core/internal/dbconn"
 )
 
 type migrationFile struct {
@@ -48,7 +49,7 @@ func runMigrate(ctx context.Context, command string) error {
 		return err
 	}
 
-	pool, err := pgxpool.New(ctx, databaseURL())
+	pool, err := dbconn.NewPool(ctx, databaseURL())
 	if err != nil {
 		return err
 	}

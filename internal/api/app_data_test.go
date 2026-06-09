@@ -155,6 +155,28 @@ func TestAppDataModelOwnedByPluginUsesTrustedOwnershipFields(t *testing.T) {
 	}
 }
 
+func TestAppDataModelAuthorizationResourceTypeUsesTrustedDeclaredResourceKey(t *testing.T) {
+	declaredResourceKey := "forge_payment"
+	model := &coreent.AppDataModel{
+		Key:                 "payment",
+		DeclaredResourceKey: &declaredResourceKey,
+		Metadata:            map[string]any{"declared_resource_key": "caller_controlled"},
+	}
+	if got := appDataModelAuthorizationResourceType(model); got != "forge_payment" {
+		t.Fatalf("authorization resource type = %q, want trusted declared resource key", got)
+	}
+}
+
+func TestAppDataModelAuthorizationResourceTypeIgnoresMetadataAlias(t *testing.T) {
+	model := &coreent.AppDataModel{
+		Key:      "customer",
+		Metadata: map[string]any{"declared_resource_key": "forge_payment"},
+	}
+	if got := appDataModelAuthorizationResourceType(model); got != "data_customer" {
+		t.Fatalf("authorization resource type = %q, want ordinary app data resource", got)
+	}
+}
+
 func TestPluginStatusAllowsAppDataOwnership(t *testing.T) {
 	for _, status := range []string{"validated", "installed", "migrated", "enabled"} {
 		if !pluginStatusAllowsAppDataOwnership(status) {

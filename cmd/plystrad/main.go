@@ -10,9 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
 	"github.com/plystra/core/internal/api"
+	"github.com/plystra/core/internal/dbconn"
 	"github.com/plystra/core/internal/kernel"
 	"github.com/plystra/core/internal/store/entstore"
 	"github.com/plystra/core/internal/system"
@@ -32,7 +31,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "invalid configuration: %v\n", err)
 		os.Exit(1)
 	}
-	pool, err := pgxpool.New(ctx, databaseURL())
+	pool, err := dbconn.NewPool(ctx, databaseURL())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "configure database: %v\n", err)
 		os.Exit(1)

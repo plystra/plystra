@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/plystra/core/internal/dbconn"
 )
 
 func runDoctor(ctx context.Context) error {
@@ -21,7 +21,7 @@ func runDoctor(ctx context.Context) error {
 	}
 	fmt.Println("configuration: ok")
 
-	pool, err := pgxpool.New(ctx, databaseURL())
+	pool, err := dbconn.NewPool(ctx, databaseURL())
 	if err != nil {
 		return err
 	}

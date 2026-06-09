@@ -203,10 +203,14 @@ func (s *Server) loadAppDataRecordTarget(ctx context.Context, modelKey, recordID
 }
 
 func (s *Server) appDataRecordTarget(ctx context.Context, row *coreent.AppDataRecord) (authz.TargetSnapshot, error) {
+	return s.appDataRecordTargetForModel(ctx, nil, row)
+}
+
+func (s *Server) appDataRecordTargetForModel(ctx context.Context, model *coreent.AppDataModel, row *coreent.AppDataRecord) (authz.TargetSnapshot, error) {
 	target := authz.TargetSnapshot{
 		Resource: authz.ResourceSnapshot{
 			ID:            row.ID,
-			Type:          appDataModelResourceType(row.ModelKey),
+			Type:          appDataModelAuthorizationResourceTypeForRecord(model, row),
 			SpaceID:       row.SpaceID,
 			GroupID:       derefString(row.GroupID),
 			OwnerMemberID: derefString(row.OwnerMemberID),
