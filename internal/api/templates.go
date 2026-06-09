@@ -190,8 +190,8 @@ func (s *Server) applyTemplateDefaults(ctx context.Context, tpl templates.Manife
 		"role_permissions": []string{},
 	}
 	targetSpaceID := req.SpaceID
-	if targetSpaceID == "" && len(tpl.Spaces) > 0 {
-		targetSpaceID = "space_" + safeIdentifier(tpl.ID+"_"+tpl.Spaces[0].Key)
+	if targetSpaceID == "" {
+		return nil, fmt.Errorf("space_id is required; template install applies defaults only to an existing Space. create_space must use provisioning/action gateway")
 	}
 	if s.ent == nil {
 		return nil, errors.New("ent client is not configured")
@@ -205,27 +205,6 @@ func (s *Server) applyTemplateDefaults(ctx context.Context, tpl templates.Manife
 			return nil, fmt.Errorf("space %s was not found", req.SpaceID)
 		}
 		applied["spaces"] = append(applied["spaces"].([]string), req.SpaceID)
-	} else {
-		for _, space := range tpl.Spaces {
-			spaceID := "space_" + safeIdentifier(tpl.ID+"_"+space.Key)
-			name := firstNonEmpty(space.Name, titleFromKey(space.Key))
-			existing, err := s.ent.Space.Query().Where(entspace.ID(spaceID)).Only(ctx)
-			if coreent.IsNotFound(err) {
-				_, err = s.ent.Space.Create().SetID(spaceID).SetName(name).SetStatus("active").Save(ctx)
-			} else if err == nil {
-				err = s.ent.Space.UpdateOneID(existing.ID).SetName(name).SetStatus("active").Exec(ctx)
-			}
-			if err != nil {
-				return nil, err
-			}
-			applied["spaces"] = append(applied["spaces"].([]string), spaceID)
-			if targetSpaceID == "" {
-				targetSpaceID = spaceID
-			}
-		}
-	}
-	if targetSpaceID == "" {
-		return nil, fmt.Errorf("space_id is required for templates that do not create a Space")
 	}
 	for _, group := range tpl.Groups {
 		groupID := "group_" + safeIdentifier(targetSpaceID+"_"+group.Key)
