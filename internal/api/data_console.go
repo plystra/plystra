@@ -73,10 +73,16 @@ func (s *Server) handleDataRows(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			return
 		}
-		q := client.Resource.Query().Where(entresource.ResourceType(resourceType), entresource.DeletedAtIsNil())
-		if spaceID := r.URL.Query().Get("space_id"); spaceID != "" {
-			q = q.Where(entresource.SpaceID(spaceID))
+		spaceID := strings.TrimSpace(r.URL.Query().Get("space_id"))
+		if spaceID == "" {
+			writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "space_id is required for Data Console row listing.", nil)
+			return
 		}
+		if !s.requireActiveSpace(w, r, spaceID) {
+			return
+		}
+		q := client.Resource.Query().Where(entresource.ResourceType(resourceType), entresource.DeletedAtIsNil())
+		q = q.Where(entresource.SpaceID(spaceID))
 		resources, err := q.Order(entresource.ByID()).All(r.Context())
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to list data rows.", err.Error())
@@ -102,6 +108,9 @@ func (s *Server) handleDataRows(w http.ResponseWriter, r *http.Request) {
 		}
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load data row.", err.Error())
+			return
+		}
+		if !s.requireActiveSpace(w, r, stringFromMap(row, "space_id")) {
 			return
 		}
 		writeData(w, r, http.StatusOK, row)
@@ -145,6 +154,9 @@ func (s *Server) handleDataRowCreate(w http.ResponseWriter, r *http.Request, res
 	}
 	if req.SpaceID == "" {
 		writeError(w, r, http.StatusBadRequest, "VALIDATION_FAILED", "space_id is required.", nil)
+		return
+	}
+	if !s.requireActiveSpace(w, r, req.SpaceID) {
 		return
 	}
 	actor := req.Actor
@@ -224,6 +236,9 @@ func (s *Server) handleDataRowUpdate(w http.ResponseWriter, r *http.Request, res
 	}
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load data row.", err.Error())
+		return
+	}
+	if !s.requireActiveSpace(w, r, current.Resource.SpaceID) {
 		return
 	}
 	actor := req.Actor
@@ -317,6 +332,9 @@ func (s *Server) handleDataRowDelete(w http.ResponseWriter, r *http.Request, res
 	}
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load data row.", err.Error())
+		return
+	}
+	if !s.requireActiveSpace(w, r, current.Resource.SpaceID) {
 		return
 	}
 	actor := req.Actor

@@ -27,6 +27,9 @@ type resourceMutationRequest struct {
 }
 
 func (s *Server) handleSpaceResources(w http.ResponseWriter, r *http.Request, spaceID string, parts []string) {
+	if !s.requireActiveSpace(w, r, spaceID) {
+		return
+	}
 	if len(parts) == 0 {
 		switch r.Method {
 		case http.MethodPost:

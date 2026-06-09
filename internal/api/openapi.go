@@ -38,6 +38,7 @@ const (
 	openAPIPublic openAPISecurity = iota
 	openAPISession
 	openAPIAdmin
+	openAPIProviderRuntime
 	openAPIMetrics
 )
 
@@ -976,6 +977,8 @@ func openAPISecurityNames(security openAPISecurity) []string {
 		return []string{"BearerAuth"}
 	case openAPIAdmin:
 		return []string{"BearerAuth", "ApiKeyAuth"}
+	case openAPIProviderRuntime:
+		return []string{"ApiKeyAuth"}
 	case openAPIMetrics:
 		return []string{"MetricsTokenAuth", "BearerAuth", "ApiKeyAuth"}
 	default:
@@ -1063,8 +1066,8 @@ func openAPIRoutes() []openAPIRoute {
 		{Method: http.MethodPost, Path: "/api/v1/capability-grants/{capability_grant_id}/revoke", Tag: "Capability Grants", ID: "revokeCapabilityGrant", Summary: "Revoke a capability grant", Description: "Immediately revokes a mediated capability grant so provider runtimes fail closed on their next introspection before execution.", Params: new(struct {
 			CapabilityGrantID string `path:"capability_grant_id" json:"capability_grant_id"`
 		}), Body: new(openAPICapabilityGrantRevokeRequest), Response: new(openAPIEnvelope[openAPICapabilityGrant]), Security: openAPIAdmin},
-		{Method: http.MethodPost, Path: "/api/v1/grants/introspect", Tag: "Capability Grants", ID: "introspectCapabilityGrant", Summary: "Introspect a mediated capability grant", Description: "Provider runtimes call this before executing a revocable mediated grant. The response contains authorization metadata only; business payloads never pass through Core.", Body: new(grantIntrospectionRequest), Response: new(openAPIEnvelope[openAPIGrantIntrospectionResponse]), Security: openAPIAdmin},
-		{Method: http.MethodPost, Path: "/api/v1/capability-outcomes", Tag: "Capability Grants", ID: "recordCapabilityOutcome", Summary: "Record a capability grant outcome receipt", Description: "Provider runtimes report idempotent execution outcomes so Core can reconcile mediated grants without being in the synchronous business-response path.", Body: new(capabilityOutcomeRequest), Response: new(openAPIEnvelope[openAPICapabilityGrant]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/grants/introspect", Tag: "Capability Grants", ID: "introspectCapabilityGrant", Summary: "Introspect a mediated capability grant", Description: "Provider runtimes call this with a provider-bound API key before executing a revocable mediated grant. The response contains authorization metadata only; business payloads never pass through Core.", Body: new(grantIntrospectionRequest), Response: new(openAPIEnvelope[openAPIGrantIntrospectionResponse]), Security: openAPIProviderRuntime},
+		{Method: http.MethodPost, Path: "/api/v1/capability-outcomes", Tag: "Capability Grants", ID: "recordCapabilityOutcome", Summary: "Record a capability grant outcome receipt", Description: "Provider runtimes report idempotent execution outcomes with a provider-bound API key so Core can reconcile mediated grants without being in the synchronous business-response path.", Body: new(capabilityOutcomeRequest), Response: new(openAPIEnvelope[openAPICapabilityGrant]), Security: openAPIProviderRuntime},
 		{Method: http.MethodGet, Path: "/api/v1/capability-provider-bindings", Tag: "Capability Grants", ID: "listCapabilityProviderBindings", Summary: "List capability provider bindings", Description: "Lists Core-governed Space-scoped provider bindings used by the capability resolver.", Params: new(struct {
 			SpaceID    string `query:"space_id"`
 			Capability string `query:"capability"`
@@ -1081,7 +1084,7 @@ func openAPIRoutes() []openAPIRoute {
 		{Method: http.MethodDelete, Path: "/api/v1/capability-provider-bindings/{binding_id}", Tag: "Capability Grants", ID: "disableCapabilityProviderBinding", Summary: "Disable a capability provider binding", Params: new(struct {
 			BindingID string `path:"binding_id"`
 		}), Response: new(openAPIEnvelope[openAPICapabilityProviderBinding]), Security: openAPIAdmin},
-		{Method: http.MethodPost, Path: "/api/v1/provider-request-contexts", Tag: "Capability Grants", ID: "issueProviderRequestContext", Summary: "Issue a provider database request context", Description: "Provider runtimes use this provider-bound API to obtain a short-lived opaque token. Inside a provider database transaction, the runtime calls plystra.set_verified_context(token); RLS policies then read plystra.current_space_id() and related verified GUC helpers. Core stores only a token hash and returns the plaintext token once.", Body: new(providerRequestContextRequest), Response: new(openAPIEnvelope[openAPIProviderRequestContext]), Status: http.StatusCreated, Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/provider-request-contexts", Tag: "Capability Grants", ID: "issueProviderRequestContext", Summary: "Issue a provider database request context", Description: "Provider runtimes use this provider-bound API key path to obtain a short-lived opaque token bound to an active grant or Action Gateway execution. Inside a provider database transaction, the runtime calls plystra.set_verified_context(token); RLS policies then read plystra.current_space_id() and related verified GUC helpers. Core stores only a token hash and returns the plaintext token once.", Body: new(providerRequestContextRequest), Response: new(openAPIEnvelope[openAPIProviderRequestContext]), Status: http.StatusCreated, Security: openAPIProviderRuntime},
 		{Method: http.MethodGet, Path: "/api/v1/provider-installations", Tag: "Provider Governance", ID: "listProviderInstallations", Summary: "List provider installations", Description: "Lists Core-owned installation records for Provider runtimes that declared a direct database data plane. These records define schema and role governance; they do not expose credentials.", Params: new(struct {
 			ProviderPluginID string `query:"provider_plugin_id"`
 			Status           string `query:"status"`
@@ -1117,9 +1120,9 @@ func openAPIRoutes() []openAPIRoute {
 		{Method: http.MethodGet, Path: "/api/v1/action-executions/{action_execution_id}", Tag: "Action Gateway", ID: "getActionExecution", Summary: "Get an Action Gateway execution", Params: new(struct {
 			ActionExecutionID string `path:"action_execution_id"`
 		}), Response: new(openAPIEnvelope[openAPIActionExecution]), Security: openAPIAdmin},
-		{Method: http.MethodPost, Path: "/api/v1/action-executions/{action_execution_id}/complete", Tag: "Action Gateway", ID: "completeActionExecution", Summary: "Complete a controlled Action Gateway execution", Description: "Provider runtimes idempotently report terminal Action Gateway results, including result_unknown for reconciliation.", Params: new(struct {
+		{Method: http.MethodPost, Path: "/api/v1/action-executions/{action_execution_id}/complete", Tag: "Action Gateway", ID: "completeActionExecution", Summary: "Complete a controlled Action Gateway execution", Description: "Provider runtimes idempotently report terminal Action Gateway results with a provider-bound API key, including result_unknown for reconciliation.", Params: new(struct {
 			ActionExecutionID string `path:"action_execution_id"`
-		}), Body: new(actionExecutionCompleteRequest), Response: new(openAPIEnvelope[openAPIActionExecution]), Security: openAPIAdmin},
+		}), Body: new(actionExecutionCompleteRequest), Response: new(openAPIEnvelope[openAPIActionExecution]), Security: openAPIProviderRuntime},
 
 		{Method: http.MethodGet, Path: "/api/v1/users", Tag: "Users", ID: "listUsers", Summary: "List users", Params: new(openAPILimitQuery), Response: new(openAPIListEnvelope[openAPIUser]), Security: openAPIAdmin},
 		{Method: http.MethodPost, Path: "/api/v1/users", Tag: "Users", ID: "createUser", Summary: "Create a user", Body: new(userMutationRequest), Response: new(openAPIEnvelope[openAPIUser]), Status: http.StatusCreated, Security: openAPIAdmin},
@@ -1137,17 +1140,23 @@ func openAPIRoutes() []openAPIRoute {
 		}), Body: new(userMutationRequest), Response: new(openAPIEnvelope[openAPIUser]), Security: openAPIAdmin},
 
 		{Method: http.MethodGet, Path: "/api/v1/spaces", Tag: "Spaces", ID: "listSpaces", Summary: "List spaces", Params: new(openAPILimitQuery), Response: new(openAPIListEnvelope[openAPISpace]), Security: openAPIAdmin},
-		{Method: http.MethodPost, Path: "/api/v1/spaces", Tag: "Spaces", ID: "createSpace", Summary: "Create a space", Body: new(spaceMutationRequest), Response: new(openAPIEnvelope[openAPISpace]), Status: http.StatusCreated, Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/spaces", Tag: "Spaces", ID: "createSpace", Summary: "Create a provisioning space", Description: "Creates only a fail-closed provisioning Space record. Normal tenant activation must be completed by the space.provisioning System Capability / Action Gateway flow before ordinary data-plane or capability operations may use the Space.", Body: new(spaceMutationRequest), Response: new(openAPIEnvelope[openAPISpace]), Status: http.StatusCreated, Security: openAPIAdmin},
 		{Method: http.MethodGet, Path: "/api/v1/spaces/{space_id}", Tag: "Spaces", ID: "getSpace", Summary: "Get a space", Params: new(struct {
 			SpaceID string `path:"space_id"`
 		}), Response: new(openAPIEnvelope[openAPISpace]), Security: openAPIAdmin},
-		{Method: http.MethodPatch, Path: "/api/v1/spaces/{space_id}", Tag: "Spaces", ID: "updateSpace", Summary: "Update a space", Params: new(struct {
+		{Method: http.MethodPatch, Path: "/api/v1/spaces/{space_id}", Tag: "Spaces", ID: "updateSpace", Summary: "Update a space", Description: "Updates Space metadata and non-activation lifecycle states. The direct Space API cannot move provisioning, failed, suspended, or archived Spaces to active; activation is owned by space.provisioning.", Params: new(struct {
 			SpaceID string `path:"space_id"`
 		}), Body: new(spaceMutationRequest), Response: new(openAPIEnvelope[openAPISpace]), Security: openAPIAdmin},
-		{Method: http.MethodPost, Path: "/api/v1/spaces/{space_id}/disable", Tag: "Spaces", ID: "disableSpace", Summary: "Disable a space", Params: new(struct {
+		{Method: http.MethodPost, Path: "/api/v1/spaces/{space_id}/disable", Tag: "Spaces", ID: "disableSpace", Summary: "Suspend a space", Description: "Suspends an active Space through the direct management API. Suspended Spaces fail closed for normal authorization checks because active Space status is required.", Params: new(struct {
 			SpaceID string `path:"space_id"`
 		}), Body: new(spaceMutationRequest), Response: new(openAPIEnvelope[openAPISpace]), Security: openAPIAdmin},
-		{Method: http.MethodPost, Path: "/api/v1/spaces/{space_id}/restore", Tag: "Spaces", ID: "restoreSpace", Summary: "Restore a space", Params: new(struct {
+		{Method: http.MethodPost, Path: "/api/v1/spaces/{space_id}/restore", Tag: "Spaces", ID: "restoreSpace", Summary: "Restore a suspended space", Description: "Restores only a suspended Space. Provisioning or failed Spaces must resume through space.provisioning rather than being directly marked active.", Params: new(struct {
+			SpaceID string `path:"space_id"`
+		}), Body: new(spaceMutationRequest), Response: new(openAPIEnvelope[openAPISpace]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/spaces/{space_id}/provisioning/activate", Tag: "Spaces", ID: "activateSpaceProvisioning", Summary: "Complete Space provisioning", Description: "Alpha System Capability endpoint for manually completing the space.provisioning workflow. It is the only direct Core management path that can move provisioning or failed Spaces to active; normal Space PATCH cannot activate a tenant.", Params: new(struct {
+			SpaceID string `path:"space_id"`
+		}), Body: new(spaceMutationRequest), Response: new(openAPIEnvelope[openAPISpace]), Security: openAPIAdmin},
+		{Method: http.MethodPost, Path: "/api/v1/spaces/{space_id}/provisioning/fail", Tag: "Spaces", ID: "failSpaceProvisioning", Summary: "Mark Space provisioning failed", Description: "Marks a provisioning Space failed so it stays fail-closed and can later be repaired or manually activated by the space.provisioning workflow.", Params: new(struct {
 			SpaceID string `path:"space_id"`
 		}), Body: new(spaceMutationRequest), Response: new(openAPIEnvelope[openAPISpace]), Security: openAPIAdmin},
 
@@ -1416,9 +1425,9 @@ func openAPIRoutes() []openAPIRoute {
 		}), Response: new(openAPIEnvelope[openAPIAppDataRecordResponse]), Security: openAPISession},
 
 		{Method: http.MethodGet, Path: "/api/v1/data/tables", Tag: "Data Console", ID: "listDataTables", Summary: "List data-console tables", Params: new(openAPILimitQuery), Response: new(openAPIListEnvelope[openAPIResourceMapping]), Security: openAPIAdmin},
-		{Method: http.MethodGet, Path: "/api/v1/data/rows/{resource_type}", Tag: "Data Console", ID: "listDataRows", Summary: "List data rows for a resource type", Params: new(struct {
+		{Method: http.MethodGet, Path: "/api/v1/data/rows/{resource_type}", Tag: "Data Console", ID: "listDataRows", Summary: "List data rows for a resource type", Description: "Requires space_id and rejects non-active Spaces so the Data Console cannot bypass the Space lifecycle boundary.", Params: new(struct {
 			ResourceType string `path:"resource_type"`
-			SpaceID      string `query:"space_id"`
+			SpaceID      string `query:"space_id" required:"true"`
 			Limit        int    `query:"limit" minimum:"1" maximum:"200"`
 		}), Response: new(openAPIListEnvelope[openAPIResource]), Security: openAPIAdmin},
 		{Method: http.MethodPost, Path: "/api/v1/data/rows/{resource_type}", Tag: "Data Console", ID: "createDataRow", Summary: "Create a data row", Params: new(struct {

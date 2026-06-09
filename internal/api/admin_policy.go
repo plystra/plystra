@@ -171,7 +171,7 @@ func adminRequirementFor(method, path, querySpaceID string) adminRequirement {
 		return adminRequirement{PermissionKey: "resources:" + readOrManage, EntityKind: "resource", EntityID: resourceID}
 	}
 	if strings.HasPrefix(path, "/api/v1/data/") {
-		return adminRequirement{PermissionKey: "data:" + readOrManage}
+		return adminRequirement{PermissionKey: "data:" + readOrManage, SpaceID: querySpaceID}
 	}
 	if strings.HasPrefix(path, "/api/v1/plugins") || strings.HasPrefix(path, "/api/v1/app-modules") {
 		return adminRequirement{PermissionKey: "plugins:" + readOrManage}
@@ -186,6 +186,9 @@ func spaceRouteRequirement(method string, parts []string, readOrManage string) a
 	spaceID := parts[3]
 	if len(parts) == 4 {
 		return adminRequirement{PermissionKey: "spaces:" + readOrManage, SpaceID: spaceID}
+	}
+	if len(parts) == 6 && parts[4] == "provisioning" {
+		return adminRequirement{PermissionKey: "spaces:manage", SpaceID: spaceID}
 	}
 	if len(parts) == 5 && (parts[4] == "disable" || parts[4] == "restore") {
 		return adminRequirement{PermissionKey: "spaces:manage", SpaceID: spaceID}

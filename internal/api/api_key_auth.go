@@ -38,6 +38,22 @@ func (s *Server) adminCredentialAllowed(ctx context.Context, r *http.Request, re
 	return s.adminSessionAllowed(ctx, session, requirement)
 }
 
+func (s *Server) providerRuntimeCredential(ctx context.Context, r *http.Request) (adminPrincipal, error) {
+	token := apiKeyTokenFromRequest(r)
+	if token == "" {
+		return adminPrincipal{}, pgx.ErrNoRows
+	}
+	key, err := s.apiKeyFromToken(ctx, token)
+	if err != nil {
+		return adminPrincipal{}, err
+	}
+	if apiKeyProviderRuntimeID(key) == "" {
+		return adminPrincipal{CredentialType: "api_key", APIKey: key}, nil
+	}
+	_ = s.ent.ApiKey.UpdateOneID(key.ID).SetLastUsedAt(time.Now().UTC()).Exec(ctx)
+	return adminPrincipal{CredentialType: "api_key", APIKey: key}, nil
+}
+
 func (s *Server) apiKeyFromToken(ctx context.Context, token string) (*coreent.ApiKey, error) {
 	if s.ent == nil {
 		return nil, errAdminEntNotConfigured

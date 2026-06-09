@@ -131,6 +131,9 @@ type appDataRecordBatchOperation struct {
 }
 
 func (s *Server) handleSpaceAppData(w http.ResponseWriter, r *http.Request, spaceID string, parts []string) {
+	if !s.requireActiveSpace(w, r, spaceID) {
+		return
+	}
 	if len(parts) == 0 {
 		if r.Method != http.MethodGet {
 			writeMethodNotAllowed(w, r)
@@ -233,6 +236,9 @@ func (s *Server) handleAppDataResourceLookup(w http.ResponseWriter, r *http.Requ
 	}
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to load app data record.", err.Error())
+		return
+	}
+	if !s.requireActiveSpace(w, r, record.SpaceID) {
 		return
 	}
 	model, err := s.loadAppDataModelByKey(r.Context(), record.SpaceID, record.ModelKey)

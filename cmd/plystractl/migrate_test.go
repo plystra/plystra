@@ -1,7 +1,9 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"ariga.io/atlas/sql/migrate"
@@ -47,6 +49,24 @@ func TestAtlasMigrationDirectoryIsValid(t *testing.T) {
 	for _, file := range files {
 		if _, err := file.Stmts(); err != nil {
 			t.Fatalf("%s Stmts() error = %v", file.Name(), err)
+		}
+	}
+}
+
+func TestAppDataMigrationsDoNotCreateResourceRegistryTrigger(t *testing.T) {
+	matches, err := filepath.Glob(filepath.Join("..", "..", "migrations", "*app_data*.sql"))
+	if err != nil {
+		t.Fatalf("Glob() error = %v", err)
+	}
+	for _, path := range matches {
+		body, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("ReadFile(%s) error = %v", path, err)
+		}
+		sql := strings.ToLower(string(body))
+		if strings.Contains(sql, "create trigger trg_register_app_data_model_resource") ||
+			strings.Contains(sql, "create or replace function plystra_register_app_data_model_resource") {
+			t.Fatalf("%s creates app-data resource registry trigger/function; registration must stay in Core application logic", path)
 		}
 	}
 }

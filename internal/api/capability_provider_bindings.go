@@ -331,10 +331,14 @@ func (s *Server) validateCapabilityProviderBindingMutation(r *http.Request, req 
 	if err := validateGovernedMetadata("metadata", nonNilMap(req.Metadata)); err != nil {
 		return err
 	}
-	if _, err := s.ent.Space.Query().Where(entspace.ID(req.SpaceID), entspace.DeletedAtIsNil()).Only(r.Context()); coreent.IsNotFound(err) {
+	space, err := s.ent.Space.Query().Where(entspace.ID(req.SpaceID), entspace.DeletedAtIsNil()).Only(r.Context())
+	if coreent.IsNotFound(err) {
 		return fmt.Errorf("space %q was not found", req.SpaceID)
 	} else if err != nil {
 		return err
+	}
+	if req.Status == "active" && strings.TrimSpace(space.Status) != "active" {
+		return fmt.Errorf("space %q is not active; provider bindings are fail-closed until space.provisioning activates it", req.SpaceID)
 	}
 	provider, err := s.governedPluginManifestByKey(r.Context(), req.ProviderPluginID)
 	if coreent.IsNotFound(err) {

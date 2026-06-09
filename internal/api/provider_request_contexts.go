@@ -75,7 +75,7 @@ func (s *Server) handleProviderRequestContexts(w http.ResponseWriter, r *http.Re
 		writeError(w, r, http.StatusForbidden, "PROVIDER_RUNTIME_INACTIVE", "Provider runtime is not enabled.", map[string]any{"provider_plugin_id": providerID})
 		return
 	}
-	if ok := s.requireCapabilityGrantPermission(w, r, "capabilities:manage", req.SpaceID); !ok {
+	if !s.requireActiveSpace(w, r, req.SpaceID) {
 		return
 	}
 	binding, err := s.validateProviderRequestContextBinding(r, req, providerID)

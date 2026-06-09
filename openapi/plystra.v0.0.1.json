@@ -309,7 +309,7 @@
           "Action Gateway"
         ],
         "summary": "Complete a controlled Action Gateway execution",
-        "description": "Provider runtimes idempotently report terminal Action Gateway results, including result_unknown for reconciliation.",
+        "description": "Provider runtimes idempotently report terminal Action Gateway results with a provider-bound API key, including result_unknown for reconciliation.",
         "operationId": "completeActionExecution",
         "parameters": [
           {
@@ -354,9 +354,6 @@
           }
         },
         "security": [
-          {
-            "BearerAuth": []
-          },
           {
             "ApiKeyAuth": []
           }
@@ -2142,7 +2139,7 @@
           "Capability Grants"
         ],
         "summary": "Record a capability grant outcome receipt",
-        "description": "Provider runtimes report idempotent execution outcomes so Core can reconcile mediated grants without being in the synchronous business-response path.",
+        "description": "Provider runtimes report idempotent execution outcomes with a provider-bound API key so Core can reconcile mediated grants without being in the synchronous business-response path.",
         "operationId": "recordCapabilityOutcome",
         "requestBody": {
           "content": {
@@ -2177,9 +2174,6 @@
           }
         },
         "security": [
-          {
-            "BearerAuth": []
-          },
           {
             "ApiKeyAuth": []
           }
@@ -2504,11 +2498,13 @@
           "Data Console"
         ],
         "summary": "List data rows for a resource type",
+        "description": "Requires space_id and rejects non-active Spaces so the Data Console cannot bypass the Space lifecycle boundary.",
         "operationId": "listDataRows",
         "parameters": [
           {
             "name": "space_id",
             "in": "query",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2855,7 +2851,7 @@
           "Capability Grants"
         ],
         "summary": "Introspect a mediated capability grant",
-        "description": "Provider runtimes call this before executing a revocable mediated grant. The response contains authorization metadata only; business payloads never pass through Core.",
+        "description": "Provider runtimes call this with a provider-bound API key before executing a revocable mediated grant. The response contains authorization metadata only; business payloads never pass through Core.",
         "operationId": "introspectCapabilityGrant",
         "requestBody": {
           "content": {
@@ -2890,9 +2886,6 @@
           }
         },
         "security": [
-          {
-            "BearerAuth": []
-          },
           {
             "ApiKeyAuth": []
           }
@@ -4304,7 +4297,7 @@
           "Capability Grants"
         ],
         "summary": "Issue a provider database request context",
-        "description": "Provider runtimes use this provider-bound API to obtain a short-lived opaque token. Inside a provider database transaction, the runtime calls plystra.set_verified_context(token); RLS policies then read plystra.current_space_id() and related verified GUC helpers. Core stores only a token hash and returns the plaintext token once.",
+        "description": "Provider runtimes use this provider-bound API key path to obtain a short-lived opaque token bound to an active grant or Action Gateway execution. Inside a provider database transaction, the runtime calls plystra.set_verified_context(token); RLS policies then read plystra.current_space_id() and related verified GUC helpers. Core stores only a token hash and returns the plaintext token once.",
         "operationId": "issueProviderRequestContext",
         "requestBody": {
           "content": {
@@ -4339,9 +4332,6 @@
           }
         },
         "security": [
-          {
-            "BearerAuth": []
-          },
           {
             "ApiKeyAuth": []
           }
@@ -5210,7 +5200,8 @@
         "tags": [
           "Spaces"
         ],
-        "summary": "Create a space",
+        "summary": "Create a provisioning space",
+        "description": "Creates only a fail-closed provisioning Space record. Normal tenant activation must be completed by the space.provisioning System Capability / Action Gateway flow before ordinary data-plane or capability operations may use the Space.",
         "operationId": "createSpace",
         "requestBody": {
           "content": {
@@ -5307,6 +5298,7 @@
           "Spaces"
         ],
         "summary": "Update a space",
+        "description": "Updates Space metadata and non-activation lifecycle states. The direct Space API cannot move provisioning, failed, suspended, or archived Spaces to active; activation is owned by space.provisioning.",
         "operationId": "updateSpace",
         "parameters": [
           {
@@ -6358,7 +6350,8 @@
         "tags": [
           "Spaces"
         ],
-        "summary": "Disable a space",
+        "summary": "Suspend a space",
+        "description": "Suspends an active Space through the direct management API. Suspended Spaces fail closed for normal authorization checks because active Space status is required.",
         "operationId": "disableSpace",
         "parameters": [
           {
@@ -7329,6 +7322,126 @@
         ]
       }
     },
+    "/api/v1/spaces/{space_id}/provisioning/activate": {
+      "post": {
+        "tags": [
+          "Spaces"
+        ],
+        "summary": "Complete Space provisioning",
+        "description": "Alpha System Capability endpoint for manually completing the space.provisioning workflow. It is the only direct Core management path that can move provisioning or failed Spaces to active; normal Space PATCH cannot activate a tenant.",
+        "operationId": "activateSpaceProvisioning",
+        "parameters": [
+          {
+            "name": "space_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiSpaceMutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/spaces/{space_id}/provisioning/fail": {
+      "post": {
+        "tags": [
+          "Spaces"
+        ],
+        "summary": "Mark Space provisioning failed",
+        "description": "Marks a provisioning Space failed so it stays fail-closed and can later be repaired or manually activated by the space.provisioning workflow.",
+        "operationId": "failSpaceProvisioning",
+        "parameters": [
+          {
+            "name": "space_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiSpaceMutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "default": {
+            "description": "Error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiOpenAPIEnvelopeGithubComPlystraCoreInternalApiOpenAPISpace"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
+      }
+    },
     "/api/v1/spaces/{space_id}/resources": {
       "get": {
         "tags": [
@@ -7645,7 +7758,8 @@
         "tags": [
           "Spaces"
         ],
-        "summary": "Restore a space",
+        "summary": "Restore a suspended space",
+        "description": "Restores only a suspended Space. Provisioning or failed Spaces must resume through space.provisioning rather than being directly marked active.",
         "operationId": "restoreSpace",
         "parameters": [
           {

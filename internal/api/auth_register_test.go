@@ -84,6 +84,57 @@ func TestAuthRegisterBootstrapsFirstSuperAdminWithToken(t *testing.T) {
 	}
 }
 
+func TestSpaceProvisioningEndpointActivatesFailClosedSpace(t *testing.T) {
+	t.Setenv("PLYSTRA_BOOTSTRAP_REGISTRATION_ENABLED", "true")
+	t.Setenv("PLYSTRA_BOOTSTRAP_REGISTRATION_TOKEN", "bootstrap-registration-token-at-least-32-characters")
+	server, handler := newRegisterTestServer(t)
+	if available, err := server.bootstrapRegistrationAvailable(context.Background()); err != nil {
+		t.Fatalf("check bootstrap availability: %v", err)
+	} else if !available {
+		t.Skip("shared integration database already has an active instance super admin")
+	}
+	rec := registerJSONRequest(handler, map[string]any{
+		"email":               uniqueRegisterEmail(t, "provisioning-admin"),
+		"password":            "long-enough-password",
+		"space_name":          "register-test provisioning admin",
+		"member_display_name": "register-test provisioning admin",
+		"registration_token":  "bootstrap-registration-token-at-least-32-characters",
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("bootstrap status = %d, want 201, body=%s", rec.Code, rec.Body.String())
+	}
+	token, _ := decodeRegisterPayload(t, rec)["data"].(map[string]any)["access_token"].(string)
+	if token == "" {
+		t.Fatalf("bootstrap access token missing: %s", rec.Body.String())
+	}
+	spaceID := "space_register_provisioning_" + fmt.Sprintf("%d", time.Now().UTC().UnixNano())
+	create := registerAuthedRequest(handler, http.MethodPost, "/api/v1/spaces", token, map[string]any{
+		"id":   spaceID,
+		"name": "register-test provisioning target",
+	})
+	if create.Code != http.StatusCreated {
+		t.Fatalf("create provisioning space status = %d, want 201, body=%s", create.Code, create.Body.String())
+	}
+	created := decodeRegisterPayload(t, create)["data"].(map[string]any)
+	if created["status"] != "provisioning" {
+		t.Fatalf("created space status = %#v, want provisioning", created["status"])
+	}
+	direct := registerAuthedRequest(handler, http.MethodPatch, "/api/v1/spaces/"+spaceID, token, map[string]any{"status": "active"})
+	if direct.Code != http.StatusConflict {
+		t.Fatalf("direct activation status = %d, want 409, body=%s", direct.Code, direct.Body.String())
+	}
+	activate := registerAuthedRequest(handler, http.MethodPost, "/api/v1/spaces/"+spaceID+"/provisioning/activate", token, map[string]any{
+		"metadata": map[string]any{"reason": "integration_test"},
+	})
+	if activate.Code != http.StatusOK {
+		t.Fatalf("provisioning activate status = %d, want 200, body=%s", activate.Code, activate.Body.String())
+	}
+	activated := decodeRegisterPayload(t, activate)["data"].(map[string]any)
+	if activated["status"] != "active" {
+		t.Fatalf("activated space status = %#v, want active", activated["status"])
+	}
+}
+
 func TestAuthRegisterRequiresBootstrapBeforeOrdinaryRegistration(t *testing.T) {
 	t.Setenv("PLYSTRA_AUTH_REGISTRATION_ENABLED", "true")
 	t.Setenv("PLYSTRA_AUTH_REGISTRATION_TOKEN", "ordinary-registration-token-at-least-32-chars")

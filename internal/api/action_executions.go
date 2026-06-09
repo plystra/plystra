@@ -90,6 +90,9 @@ func (s *Server) createActionExecution(w http.ResponseWriter, r *http.Request) {
 	if ok := s.requireCapabilityGrantPermission(w, r, "capabilities:invoke", req.SpaceID); !ok {
 		return
 	}
+	if !s.requireActiveSpace(w, r, req.SpaceID) {
+		return
+	}
 	capability, operation, err := s.validateActionExecutionProvider(r, req.Provider.PluginID, req.Capability, req.Operation)
 	if err != nil {
 		status := http.StatusBadRequest
@@ -247,9 +250,6 @@ func (s *Server) completeActionExecution(w http.ResponseWriter, r *http.Request,
 		return
 	}
 	if ok := s.requireProviderRuntimePrincipal(w, r, row.ProviderPluginID); !ok {
-		return
-	}
-	if ok := s.requireCapabilityGrantPermission(w, r, "capabilities:manage", row.SpaceID); !ok {
 		return
 	}
 	if actionExecutionTerminal(row.Status) {

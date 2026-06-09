@@ -192,6 +192,22 @@ func (s *Server) handleCapabilityGrants(w http.ResponseWriter, r *http.Request) 
 	if ok := s.requireCapabilityGrantPermission(w, r, "capabilities:invoke", req.SpaceID); !ok {
 		return
 	}
+	if !s.requireActiveSpace(w, r, req.SpaceID) {
+		return
+	}
+	if providerRuntimeID := providerRuntimePrincipalID(r); providerRuntimeID != "" {
+		if req.Executor.PluginID != providerRuntimeID {
+			writeError(w, r, http.StatusForbidden, "CAPABILITY_PROVIDER_IDENTITY_REQUIRED", "Provider runtime capability calls must use the bound provider runtime as executor.", map[string]any{
+				"executor_plugin_id": req.Executor.PluginID,
+				"api_key_provider":   providerRuntimeID,
+			})
+			return
+		}
+		if req.ParentGrantID == "" {
+			writeError(w, r, http.StatusForbidden, "CAPABILITY_CALL_GRAPH_DENIED", "Capability call graph policy denied the grant.", "provider-runtime capability calls require parent_grant_id for Core-tracked lineage")
+			return
+		}
+	}
 	provider, err := s.resolveCapabilityProvider(r, req.SpaceID, req.Capability, req.Operation)
 	if errors.Is(err, errCapabilityProviderNotFound) {
 		writeError(w, r, http.StatusNotFound, "CAPABILITY_PROVIDER_NOT_FOUND", "No enabled provider is installed for this capability operation.", nil)
@@ -428,9 +444,6 @@ func (s *Server) handleGrantIntrospect(w http.ResponseWriter, r *http.Request) {
 	if ok := s.requireProviderRuntimePrincipal(w, r, req.TargetProviderID); !ok {
 		return
 	}
-	if ok := s.requireCapabilityGrantPermission(w, r, "capabilities:manage", row.SpaceID); !ok {
-		return
-	}
 	active, reason := capabilityGrantActive(row, req.TargetProviderID, req.Capability, req.Operation, time.Now().UTC())
 	if active {
 		active, reason, err = s.capabilityPrincipalActive(r.Context(), capabilityGrantPrincipal{
@@ -525,9 +538,6 @@ func (s *Server) handleCapabilityOutcomes(w http.ResponseWriter, r *http.Request
 		return
 	}
 	if ok := s.requireProviderRuntimePrincipal(w, r, row.TargetProviderID); !ok {
-		return
-	}
-	if ok := s.requireCapabilityGrantPermission(w, r, "capabilities:manage", row.SpaceID); !ok {
 		return
 	}
 	metadata := nonNilMap(row.Metadata)
@@ -799,10 +809,16 @@ func (s *Server) resolveCapabilityProvider(r *http.Request, spaceID, capabilityI
 		if !ok {
 			continue
 		}
-		if operation.Invocation.Mode == "brokered_action_gateway" {
-			return capabilityProviderBinding{}, fmt.Errorf("capability %s operation %s requires Action Gateway, not mediated grant issuance", capabilityID, operationName)
+		if operation.Invocation.Mode != "revocable_mediated_grant" {
+			if operation.Invocation.Mode == "" {
+				return capabilityProviderBinding{}, errCapabilityProviderNotFound
+			}
+			return capabilityProviderBinding{}, fmt.Errorf("capability %s operation %s uses invocation mode %s; /api/v1/capability-grants only issues revocable_mediated_grant grants", capabilityID, operationName, operation.Invocation.Mode)
 		}
-		if operation.Invocation.Mode != "revocable_mediated_grant" && operation.Invocation.Mode != "ephemeral_signed_grant" && operation.Invocation.Mode != "query" {
+		if operation.Invocation.Introspection != "required" || operation.Invocation.OutcomeReceipt != "required" || operation.Invocation.Idempotency != "required" {
+			return capabilityProviderBinding{}, fmt.Errorf("capability %s operation %s must require introspection, outcome_receipt, and idempotency for mediated grant issuance", capabilityID, operationName)
+		}
+		if capability.Audit.Enforcement == "controlled_action" {
 			return capabilityProviderBinding{}, errCapabilityProviderNotFound
 		}
 		provider := capabilityProviderBinding{
@@ -975,6 +991,13 @@ func (s *Server) capabilityPrincipalActive(ctx context.Context, principal capabi
 	if strings.TrimSpace(principal.UserID) == "" || strings.TrimSpace(principal.MemberID) == "" || strings.TrimSpace(principal.UserMemberID) == "" {
 		return false, "principal_identity_incomplete", nil
 	}
+	active, err := s.spaceActive(ctx, spaceID)
+	if err != nil {
+		return false, "", err
+	}
+	if !active {
+		return false, "space_not_active", nil
+	}
 	bindings, err := s.availableActorBindingsFiltered(ctx, principal.UserID, principal.MemberID, principal.UserMemberID)
 	if err != nil {
 		return false, "", err
@@ -1059,6 +1082,9 @@ func (s *Server) validateCapabilityCallGraph(r *http.Request, req capabilityGran
 	}
 	if !active {
 		return errors.New("parent grant is not active for this Space")
+	}
+	if parent != nil && parent.TargetProviderID != req.Executor.PluginID {
+		return fmt.Errorf("parent grant target provider %s does not match executor %s", parent.TargetProviderID, req.Executor.PluginID)
 	}
 	if parent != nil && parent.TargetProviderID == provider.ProviderID && !provider.CallGraph.Reentrant {
 		return fmt.Errorf("reentrant call to provider %s is not allowed", provider.ProviderID)
@@ -1219,6 +1245,14 @@ func (s *Server) requireProviderRuntimePrincipal(w http.ResponseWriter, r *http.
 		return false
 	}
 	return true
+}
+
+func providerRuntimePrincipalID(r *http.Request) string {
+	principal, ok := adminPrincipalFrom(r)
+	if !ok || principal.CredentialType != "api_key" {
+		return ""
+	}
+	return apiKeyProviderRuntimeID(principal.APIKey)
 }
 
 func apiKeyProviderRuntimeID(key *coreent.ApiKey) string {

@@ -70,7 +70,9 @@ type capabilityGrantFixture struct {
 	PrincipalUserMemberID     string
 	GroupID                   string
 	ResourceTypeID            string
+	ResourceTypeKey           string
 	ResourceActionID          string
+	ResourceActionKey         string
 	ResourceMappingID         string
 	PermissionID              string
 	RoleID                    string
@@ -87,6 +89,7 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 
 	t.Setenv("PLYSTRA_API_KEY_SECRET", "capability-grant-api-key-secret-at-least-32-characters")
 	t.Setenv("PLYSTRA_CAPABILITY_GRANT_SECRET", "capability-grant-token-secret-at-least-32-characters")
+	t.Setenv("DATA_CONSOLE_ENABLED", "true")
 
 	ctx := context.Background()
 	store, err := entstore.Open(ctx, databaseURL)
@@ -96,7 +99,6 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 	defer store.Close()
 
 	fixture := createCapabilityGrantFixture(t, ctx, store.Client())
-	defer cleanupCapabilityGrantFixture(context.Background(), t, store.Client(), fixture)
 
 	server := NewServer(nil, store, "1.0.0-test")
 	handler := server.Routes()
@@ -964,6 +966,60 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("inactive space fails closed for normal data capability and binding operations", func(t *testing.T) {
+		if err := store.Client().Space.UpdateOneID(fixture.SpaceID).SetStatus("suspended").Exec(ctx); err != nil {
+			t.Fatalf("suspend fixture space: %v", err)
+		}
+		t.Cleanup(func() {
+			_ = store.Client().Space.UpdateOneID(fixture.SpaceID).SetStatus("active").Exec(context.Background())
+		})
+		grant := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/capability-grants", fixture.SpaceID), fixture.APIKey, capabilityGrantIssueBody(fixture, "invoice.inactive_space.approval.v1"))
+		if grant.Code != http.StatusConflict {
+			t.Fatalf("inactive grant status = %d, want 409, body=%s", grant.Code, grant.Body.String())
+		}
+		action := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/action-executions", fixture.SpaceID), fixture.APIKey, actionExecutionBeginBody(fixture, "payment.inactive_space.charge.v1"))
+		if action.Code != http.StatusConflict {
+			t.Fatalf("inactive action begin status = %d, want 409, body=%s", action.Code, action.Body.String())
+		}
+		contextBody := providerRequestContextBody(fixture)
+		contextBody["capability_grant_id"] = "grt_missing_inactive_" + fixture.Suffix
+		contextBody["capability"] = fixture.MediatedCapabilityID
+		contextBody["operation"] = "create_request"
+		context := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/provider-request-contexts", fixture.SpaceID), fixture.ProviderAPIKey, contextBody)
+		if context.Code != http.StatusConflict {
+			t.Fatalf("inactive provider context status = %d, want 409, body=%s", context.Code, context.Body.String())
+		}
+		resources := capabilityGrantJSONRequest(handler, http.MethodGet, "/api/v1/spaces/"+fixture.SpaceID+"/resources", fixture.APIKey, nil)
+		if resources.Code != http.StatusConflict {
+			t.Fatalf("inactive resources list status = %d, want 409, body=%s", resources.Code, resources.Body.String())
+		}
+		missingSpace := capabilityGrantJSONRequest(handler, http.MethodGet, "/api/v1/data/rows/"+fixture.ResourceTypeKey, fixture.APIKey, nil)
+		if missingSpace.Code != http.StatusBadRequest {
+			t.Fatalf("data console without space status = %d, want 400, body=%s", missingSpace.Code, missingSpace.Body.String())
+		}
+		dataRows := capabilityGrantJSONRequest(handler, http.MethodGet, "/api/v1/data/rows/"+fixture.ResourceTypeKey+"?space_id="+fixture.SpaceID, fixture.APIKey, nil)
+		if dataRows.Code != http.StatusConflict {
+			t.Fatalf("inactive data console list status = %d, want 409, body=%s", dataRows.Code, dataRows.Body.String())
+		}
+		binding := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/capability-provider-bindings", fixture.APIKey, map[string]any{
+			"space_id":           fixture.SpaceID,
+			"capability":         fixture.MediatedCapabilityID,
+			"operation":          "create_request",
+			"provider_plugin_id": fixture.ProviderPluginID,
+			"endpoint":           "https://workflow-inactive-" + fixture.Suffix + ".space.internal",
+			"operation_path":     "/v1/capabilities/" + strings.ReplaceAll(fixture.MediatedCapabilityID, ".", "/") + "/create_request",
+			"status":             "active",
+		})
+		if binding.Code != http.StatusBadRequest {
+			t.Fatalf("inactive active-binding status = %d, want 400, body=%s", binding.Code, binding.Body.String())
+		}
+		payload := decodeCapabilityGrantEnvelope(t, grant)
+		errorPayload := requireObjectField(t, payload, "error")
+		if errorPayload["code"] != "SPACE_NOT_ACTIVE" {
+			t.Fatalf("inactive grant error code = %#v, want SPACE_NOT_ACTIVE", errorPayload["code"])
+		}
+	})
+
 	t.Run("manages provider binding and revokes resolver path by binding status", func(t *testing.T) {
 		bindingID := "cpb_" + safeIdentifier(fixture.SpaceID+"_"+fixture.MediatedCapabilityID+"_create_request")
 		list := capabilityGrantJSONRequest(handler, http.MethodGet, "/api/v1/capability-provider-bindings?space_id="+fixture.SpaceID, fixture.APIKey, nil)
@@ -1073,7 +1129,7 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 			t.Fatalf("brokered binding status = %d, want 400, body=%s", brokeredBinding.Code, brokeredBinding.Body.String())
 		}
 		brokeredError := requireObjectField(t, decodeCapabilityGrantEnvelope(t, brokeredBinding), "error")
-		if !strings.Contains(fmt.Sprint(brokeredError["message"]), "cannot be bound for mediated provider grants") {
+		if !strings.Contains(fmt.Sprint(brokeredError["details"]), "cannot be bound for mediated provider grants") {
 			t.Fatalf("brokered binding should explain unsupported invocation mode: %#v", brokeredError)
 		}
 
@@ -1148,7 +1204,9 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 		PrincipalUserMemberID:     "um_capability_grants_" + suffix,
 		GroupID:                   "group_capability_grants_" + suffix,
 		ResourceTypeID:            "rt_capability_grants_invoice_" + suffix,
+		ResourceTypeKey:           "invoice_" + suffix,
 		ResourceActionID:          "ra_capability_grants_invoice_approve_" + suffix,
+		ResourceActionKey:         "approve_" + suffix,
 		ResourceMappingID:         "rm_capability_grants_invoice_" + suffix,
 		PermissionID:              "perm_capability_grants_invoice_approve_" + suffix,
 		RoleID:                    "role_capability_grants_approver_" + suffix,
@@ -1156,6 +1214,9 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 		MemberRoleID:              "mr_capability_grants_approver_" + suffix,
 		InvoiceResourceID:         "invoice_capability_grants_" + suffix,
 	}
+	t.Cleanup(func() {
+		cleanupCapabilityGrantFixture(context.Background(), t, client, fixture)
+	})
 
 	apiKey, err := newAPIKeyPlaintext(fixture.APIKeyID)
 	if err != nil {
@@ -1209,7 +1270,7 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 	}
 	if _, err := client.ResourceType.Create().
 		SetID(fixture.ResourceTypeID).
-		SetKey("invoice").
+		SetKey(fixture.ResourceTypeKey).
 		SetDisplayName("Invoice").
 		SetSource("test").
 		SetStatus("active").
@@ -1219,7 +1280,7 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 	if _, err := client.ResourceAction.Create().
 		SetID(fixture.ResourceActionID).
 		SetResourceTypeID(fixture.ResourceTypeID).
-		SetKey("approve").
+		SetKey(fixture.ResourceActionKey).
 		SetDisplayName("Approve").
 		SetRiskLevel("normal").
 		SetAuditDefault(true).
@@ -1242,8 +1303,8 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 	}
 	if _, err := client.Permission.Create().
 		SetID(fixture.PermissionID).
-		SetResource("invoice").
-		SetAction("approve").
+		SetResource(fixture.ResourceTypeKey).
+		SetAction(fixture.ResourceActionKey).
 		SetScope("space").
 		SetStatus("active").
 		Save(ctx); err != nil {
@@ -1276,7 +1337,7 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 	}
 	if _, err := client.Resource.Create().
 		SetID(fixture.InvoiceResourceID).
-		SetResourceType("invoice").
+		SetResourceType(fixture.ResourceTypeKey).
 		SetSpaceID(fixture.SpaceID).
 		SetGroupID(fixture.GroupID).
 		SetOwnerMemberID(fixture.PrincipalMemberID).
@@ -1292,7 +1353,7 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 		SetKeyPrefix(apiKeyPrefix(fixture.APIKeyID)).
 		SetKeyHash(apiKeyHash(apiKey)).
 		SetLevel("instance").
-		SetPermissionKeys([]string{"capabilities:invoke", "capabilities:manage", "plugins:read", "plugins:manage"}).
+		SetPermissionKeys([]string{"capabilities:invoke", "capabilities:manage", "plugins:read", "plugins:manage", "resources:read", "resources:manage", "data:read"}).
 		Save(ctx); err != nil {
 		t.Fatalf("create api key: %v", err)
 	}
@@ -1302,7 +1363,7 @@ func createCapabilityGrantFixture(t *testing.T, ctx context.Context, client *cor
 		SetKeyPrefix(apiKeyPrefix(fixture.ProviderAPIKeyID)).
 		SetKeyHash(apiKeyHash(providerAPIKey)).
 		SetLevel("instance").
-		SetPermissionKeys([]string{"capabilities:manage"}).
+		SetPermissionKeys([]string{"capabilities:invoke"}).
 		SetProviderRuntimePluginID(fixture.ProviderPluginID).
 		Save(ctx); err != nil {
 		t.Fatalf("create provider api key: %v", err)
@@ -1567,6 +1628,7 @@ func cleanupCapabilityGrantFixture(ctx context.Context, t *testing.T, client *co
 		fixture.NoRequiresRowID,
 		fixture.LocalProviderRowID,
 		fixture.LocalCallerRowID,
+		fixture.OtherBundleCallerRowID,
 		fixture.ForeignCallerRowID,
 	)).Exec(ctx)
 	ignore("plugins", err)
@@ -1621,9 +1683,9 @@ func capabilityGrantIssueBody(fixture capabilityGrantFixture, idempotencyKey str
 		},
 		"executor": map[string]any{"plugin_id": fixture.CallerPluginID},
 		"resource": map[string]any{
-			"resource_type": "invoice",
+			"resource_type": fixture.ResourceTypeKey,
 			"resource_id":   fixture.InvoiceResourceID,
-			"action":        "approve",
+			"action":        fixture.ResourceActionKey,
 		},
 		"input_summary": map[string]any{
 			"amount":   12000,
@@ -1648,9 +1710,9 @@ func actionExecutionBeginBody(fixture capabilityGrantFixture, idempotencyKey str
 		"executor": map[string]any{"plugin_id": fixture.CallerPluginID},
 		"provider": map[string]any{"plugin_id": fixture.ProviderPluginID},
 		"resource": map[string]any{
-			"resource_type": "invoice",
+			"resource_type": fixture.ResourceTypeKey,
 			"resource_id":   fixture.InvoiceResourceID,
-			"action":        "approve",
+			"action":        fixture.ResourceActionKey,
 		},
 		"input_summary": map[string]any{
 			"amount_minor": 12000,

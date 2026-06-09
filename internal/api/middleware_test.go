@@ -341,6 +341,28 @@ func TestPublicOperationalRoutesDoNotRequireBearerSession(t *testing.T) {
 	}
 }
 
+func TestProviderRuntimeCallbackRouteClassification(t *testing.T) {
+	for _, tc := range []struct {
+		method string
+		path   string
+		want   bool
+	}{
+		{method: http.MethodPost, path: "/api/v1/grants/introspect", want: true},
+		{method: http.MethodPost, path: "/api/v1/capability-outcomes", want: true},
+		{method: http.MethodPost, path: "/api/v1/provider-request-contexts", want: true},
+		{method: http.MethodPost, path: "/api/v1/action-executions/act_test/complete", want: true},
+		{method: http.MethodGet, path: "/api/v1/grants/introspect", want: false},
+		{method: http.MethodPost, path: "/api/v1/action-executions", want: false},
+		{method: http.MethodPost, path: "/api/v1/capability-grants", want: false},
+		{method: http.MethodPost, path: "/api/v1/action-executions/complete", want: false},
+	} {
+		req := httptest.NewRequest(tc.method, tc.path, nil)
+		if got := providerRuntimeCallbackRoute(req); got != tc.want {
+			t.Fatalf("%s %s providerRuntimeCallbackRoute = %v, want %v", tc.method, tc.path, got, tc.want)
+		}
+	}
+}
+
 func TestPublicMinimalAuthRoutesDoNotRequireBearerSession(t *testing.T) {
 	server := NewServer(nil, &captureAuthzStore{}, "1.0.0-test")
 	for _, path := range []string{"/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout"} {
@@ -353,6 +375,53 @@ func TestPublicMinimalAuthRoutesDoNotRequireBearerSession(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Fatalf("%s status = %d, want public route through middleware", path, rec.Code)
 		}
+	}
+}
+
+func TestValidateSpaceStatusMutationKeepsDirectCreateFailClosed(t *testing.T) {
+	cases := []struct {
+		name    string
+		current string
+		next    string
+		wantErr bool
+	}{
+		{name: "same active remains active", current: "active", next: "active"},
+		{name: "active may suspend", current: "active", next: "suspended"},
+		{name: "new provisioning allowed", current: "", next: "provisioning"},
+		{name: "provisioning cannot activate directly", current: "provisioning", next: "active", wantErr: true},
+		{name: "failed cannot activate directly", current: "failed", next: "active", wantErr: true},
+		{name: "unknown rejected", current: "active", next: "ready", wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateSpaceStatusMutation(tc.current, tc.next)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("validateSpaceStatusMutation(%q,%q) error=%v, wantErr=%v", tc.current, tc.next, err, tc.wantErr)
+			}
+		})
+	}
+}
+
+func TestSpaceProvisioningStatusTransitions(t *testing.T) {
+	cases := []struct {
+		name    string
+		current string
+		next    string
+		want    bool
+	}{
+		{name: "provisioning can activate", current: "provisioning", next: "active", want: true},
+		{name: "failed can activate after repair", current: "failed", next: "active", want: true},
+		{name: "provisioning can fail", current: "provisioning", next: "failed", want: true},
+		{name: "suspended cannot activate via provisioning", current: "suspended", next: "active"},
+		{name: "active cannot fail via provisioning", current: "active", next: "failed"},
+		{name: "unsupported target rejected", current: "provisioning", next: "archived"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := spaceProvisioningStatusTransitionAllowed(tc.current, tc.next); got != tc.want {
+				t.Fatalf("spaceProvisioningStatusTransitionAllowed(%q,%q)=%t, want %t", tc.current, tc.next, got, tc.want)
+			}
+		})
 	}
 }
 

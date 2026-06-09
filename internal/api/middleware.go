@@ -57,6 +57,24 @@ func (s *Server) requestMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		if !publicRoute(ctxReq) {
+			if providerRuntimeCallbackRoute(ctxReq) {
+				principal, err := s.providerRuntimeCredential(ctxReq.Context(), ctxReq)
+				if errors.Is(err, pgx.ErrNoRows) {
+					writeError(recorder, ctxReq, http.StatusUnauthorized, "PROVIDER_RUNTIME_API_KEY_REQUIRED", "A valid provider runtime API key is required.", nil)
+					return
+				}
+				if err != nil {
+					writeError(recorder, ctxReq, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to authenticate provider runtime API key.", err.Error())
+					return
+				}
+				if principal.CredentialType != "api_key" || principal.APIKey == nil || apiKeyProviderRuntimeID(principal.APIKey) == "" {
+					writeError(recorder, ctxReq, http.StatusForbidden, "PROVIDER_RUNTIME_API_KEY_REQUIRED", "Provider runtime callbacks require a provider-bound API key.", nil)
+					return
+				}
+				ctxReq = ctxReq.WithContext(context.WithValue(ctxReq.Context(), adminPrincipalKey, principal))
+				next.ServeHTTP(recorder, ctxReq)
+				return
+			}
 			if appDataBusinessRoute(ctxReq.URL.Path) && apiKeyTokenFromRequest(ctxReq) == "" {
 				session, err := s.sessionFromRequest(ctxReq.Context(), ctxReq)
 				if errors.Is(err, pgx.ErrNoRows) {
@@ -186,6 +204,23 @@ func publicRoute(r *http.Request) bool {
 		}
 	}
 	return r.Method == http.MethodGet && path == "/api/v1/actor/context"
+}
+
+func providerRuntimeCallbackRoute(r *http.Request) bool {
+	if r.Method != http.MethodPost {
+		return false
+	}
+	switch r.URL.Path {
+	case "/api/v1/grants/introspect", "/api/v1/capability-outcomes", "/api/v1/provider-request-contexts":
+		return true
+	}
+	parts := pathParts(r.URL.Path)
+	return len(parts) == 5 &&
+		parts[0] == "api" &&
+		parts[1] == "v1" &&
+		parts[2] == "action-executions" &&
+		parts[3] != "" &&
+		parts[4] == "complete"
 }
 
 func appDataBusinessRoute(path string) bool {

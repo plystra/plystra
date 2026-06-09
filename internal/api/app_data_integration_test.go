@@ -328,6 +328,28 @@ func TestAppDataStoreIntegration(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("inactive space fails closed for app data reads", func(t *testing.T) {
+		if err := store.Client().Space.UpdateOneID(fixture.SpaceID).SetStatus("suspended").Exec(ctx); err != nil {
+			t.Fatalf("suspend fixture space: %v", err)
+		}
+		t.Cleanup(func() {
+			_ = store.Client().Space.UpdateOneID(fixture.SpaceID).SetStatus("active").Exec(context.Background())
+		})
+		scoped := appDataJSONRequest(handler, http.MethodGet, "/api/v1/spaces/"+fixture.SpaceID+"/data/models/"+fixture.ModelKey+"/records/"+fixture.RecordID, ownerToken, nil)
+		if scoped.Code != http.StatusConflict {
+			t.Fatalf("scoped inactive app data read status = %d, want 409, body=%s", scoped.Code, scoped.Body.String())
+		}
+		generic := appDataJSONRequest(handler, http.MethodGet, "/api/v1/app-data/"+fixture.ModelKey+"/"+fixture.RecordID, ownerToken, nil)
+		if generic.Code != http.StatusConflict {
+			t.Fatalf("generic inactive app data read status = %d, want 409, body=%s", generic.Code, generic.Body.String())
+		}
+		payload := decodeAppDataPayload(t, generic)
+		errorPayload := payload["error"].(map[string]any)
+		if errorPayload["code"] != "SPACE_NOT_ACTIVE" {
+			t.Fatalf("inactive app data error code = %#v, want SPACE_NOT_ACTIVE", errorPayload["code"])
+		}
+	})
 }
 
 func appDataTestDatabaseURL() string {
