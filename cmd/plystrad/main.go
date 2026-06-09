@@ -147,6 +147,9 @@ func validateProductionConfig() error {
 	if databaseURL() == defaultDatabaseURL || strings.Contains(databaseURL(), "://plystra:plystra@") {
 		return fmt.Errorf("DATABASE_URL must not use the default development database credentials in production")
 	}
+	if databaseHostIsLocal(databaseURL()) {
+		return fmt.Errorf("DATABASE_URL must point to an external PostgreSQL instance in production")
+	}
 	sessionSecret := firstEnv("PLYSTRA_SESSION_SECRET")
 	if len(sessionSecret) < 32 || sessionSecret == defaultSessionSecret {
 		return fmt.Errorf("PLYSTRA_SESSION_SECRET must be changed and at least 32 characters in production")
@@ -259,6 +262,23 @@ func isLocalPublicURL(raw string) bool {
 	}
 	host = strings.ToLower(strings.Trim(host, "[]"))
 	return host == "localhost" || host == "127.0.0.1" || host == "::1"
+}
+
+func databaseHostIsLocal(raw string) bool {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return true
+	}
+	host := strings.ToLower(strings.Trim(parsed.Hostname(), "[]"))
+	switch host {
+	case "", "localhost", "127.0.0.1", "::1", "postgres", "db", "database", "host.docker.internal":
+		return true
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+	return ip.IsLoopback() || ip.IsLinkLocalUnicast()
 }
 
 func databaseURL() string {

@@ -46,6 +46,32 @@ func TestValidateProductionConfigRejectsUnsafeAPIKeySecret(t *testing.T) {
 	}
 }
 
+func TestValidateProductionConfigRejectsLocalProductionDatabase(t *testing.T) {
+	for _, databaseURL := range []string{
+		"postgres://prod_user:prod_password@postgres:5432/plystra?sslmode=disable",
+		"postgres://prod_user:prod_password@host.docker.internal:5432/plystra?sslmode=disable",
+	} {
+		t.Run(databaseURL, func(t *testing.T) {
+			setValidProductionEnv(t)
+			t.Setenv("DATABASE_URL", databaseURL)
+
+			err := validateProductionConfig()
+			if err == nil || !strings.Contains(err.Error(), "external PostgreSQL") {
+				t.Fatalf("validateProductionConfig error = %v, want external PostgreSQL rejection", err)
+			}
+		})
+	}
+}
+
+func TestValidateProductionConfigAllowsPrivateNetworkExternalDatabase(t *testing.T) {
+	setValidProductionEnv(t)
+	t.Setenv("DATABASE_URL", "postgres://prod_user:prod_password@10.0.0.12:5432/plystra?sslmode=require")
+
+	if err := validateProductionConfig(); err != nil {
+		t.Fatalf("validateProductionConfig error = %v, want private network managed database to pass", err)
+	}
+}
+
 func TestValidateProductionConfigRejectsSharedAPIKeySecret(t *testing.T) {
 	setValidProductionEnv(t)
 	t.Setenv("PLYSTRA_API_KEY_SECRET", "production-session-secret-at-least-32-characters")
