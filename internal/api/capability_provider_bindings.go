@@ -357,13 +357,22 @@ func (s *Server) validateCapabilityProviderBindingMutation(r *http.Request, req 
 	if !ok {
 		return fmt.Errorf("provider plugin %q does not provide %s:%s", req.ProviderPluginID, req.Capability, req.Operation)
 	}
-	if operation.Invocation.Mode == "brokered_action_gateway" && req.Status == "active" {
-		return fmt.Errorf("capability %s operation %s requires Action Gateway and cannot be bound for mediated grants", capability.ID, req.Operation)
+	if req.Status == "active" && !capabilityProviderBindingSupportsInvocationMode(operation.Invocation.Mode) {
+		return fmt.Errorf("capability %s operation %s uses invocation mode %s and cannot be bound for mediated provider grants", capability.ID, req.Operation, operation.Invocation.Mode)
 	}
 	if capabilityLocalToManifest(provider.Manifest, req.Capability) && provider.Type != "app_module" {
 		return fmt.Errorf("local capability %s must be provided by an app module", req.Capability)
 	}
 	return nil
+}
+
+func capabilityProviderBindingSupportsInvocationMode(mode string) bool {
+	switch strings.TrimSpace(mode) {
+	case "revocable_mediated_grant", "ephemeral_signed_grant", "query":
+		return true
+	default:
+		return false
+	}
 }
 
 func capabilityOperationFromManifest(manifest plugins.Manifest, capabilityID, operationName string) (plugins.CapabilityDefinition, plugins.CapabilityOperationDefinition, bool) {

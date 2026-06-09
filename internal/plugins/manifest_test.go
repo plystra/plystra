@@ -848,6 +848,47 @@ func TestValidateManifestRequiresResultUnknownReconciliationForBrokeredGateway(t
 	assertContainsError(t, errors, "result_unknown_reconciliation=required")
 }
 
+func TestValidateManifestRejectsEphemeralSignedGrantForStrongAudit(t *testing.T) {
+	manifest := Manifest{
+		ID:               "plystra.ledger",
+		Name:             "Ledger",
+		Version:          "0.0.1",
+		ManifestVersion:  "1.0",
+		PluginAPIVersion: "1.0",
+		RequiresCore:     ">=0.0.1 <0.1.0",
+		Resources: []ResourceDefinition{{
+			Key:         "ledger_entry",
+			DisplayName: "Ledger Entry",
+			Actions:     []ActionDefinition{{Key: "create", RiskLevel: "high"}},
+		}},
+		Permissions: []PermissionDefinition{{Resource: "ledger_entry", Action: "create", Scopes: []string{"space"}}},
+		Capabilities: []CapabilityDefinition{{
+			ID:      "ledger.entry",
+			Version: "0.0.1",
+			Level:   "standard",
+			Audit: CapabilityAuditDefinition{
+				Enforcement: "observed_mutation",
+				MutationJournal: &MutationJournalDefinition{
+					Atomic:               true,
+					AvailabilityCoupling: true,
+					Payload:              "minimal",
+				},
+			},
+			DataPlane: CapabilityDataPlaneDefinition{Allowed: []string{"direct_db_with_mutation_journal"}},
+			Operations: []CapabilityOperationDefinition{{
+				Name: "create",
+				Invocation: CapabilityInvocationDefinition{
+					Mode:       "ephemeral_signed_grant",
+					GrantTTLMS: 1000,
+				},
+				Delegation: CapabilityDelegationDefinition{Mode: "preserve_principal"},
+			}},
+		}},
+	}
+	errors := ValidateManifestForCore(manifest, "0.0.1")
+	assertContainsError(t, errors, "ephemeral_signed_grant cannot be used with observed_mutation")
+}
+
 func standardSendEmailOperation() CapabilityOperationDefinition {
 	return CapabilityOperationDefinition{
 		Name: "send",

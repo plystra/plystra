@@ -217,6 +217,17 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		if data["capability"] != fixture.MediatedCapabilityID || data["operation"] != "create_request" {
 			t.Fatalf("capability operation mismatch: %#v", data)
 		}
+		contextExpiresAt, err := time.Parse(time.RFC3339, requireStringField(t, data, "expires_at"))
+		if err != nil {
+			t.Fatalf("parse provider context expires_at: %v", err)
+		}
+		grantRow, err := store.Client().CapabilityGrant.Query().Where(entcapabilitygrant.ID(issuedGrantID)).Only(ctx)
+		if err != nil {
+			t.Fatalf("load issued grant: %v", err)
+		}
+		if contextExpiresAt.After(grantRow.ExpiresAt.Add(time.Second)) {
+			t.Fatalf("provider request context expires after bound grant: context=%s grant=%s", contextExpiresAt, grantRow.ExpiresAt)
+		}
 
 		wrongActor := providerRequestContextBody(fixture)
 		wrongActor["capability_grant_id"] = issuedGrantID
@@ -915,6 +926,44 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		}
 	})
 
+	t.Run("provider request context clamps to action timeout", func(t *testing.T) {
+		body := actionExecutionBeginBody(fixture, "payment.pay_context.charge.v1")
+		rec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/action-executions", fixture.SpaceID), fixture.APIKey, body)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("begin action for context status = %d, want 201, body=%s", rec.Code, rec.Body.String())
+		}
+		actionData := decodeCapabilityGrantData(t, rec)
+		actionExecutionID := requireStringField(t, actionData, "action_execution_id")
+		timeoutAt := time.Now().UTC().Add(20 * time.Second).Truncate(time.Second)
+		if err := store.Client().ActionExecution.UpdateOneID(actionExecutionID).SetTimeoutAt(timeoutAt).Exec(ctx); err != nil {
+			t.Fatalf("shorten action timeout: %v", err)
+		}
+		contextBody := providerRequestContextBody(fixture)
+		delete(contextBody, "capability")
+		delete(contextBody, "operation")
+		contextBody["action_execution_id"] = actionExecutionID
+		contextBody["ttl_ms"] = int(providerRequestContextMaxTTL / time.Millisecond)
+		contextRec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/provider-request-contexts", fixture.SpaceID), fixture.ProviderAPIKey, contextBody)
+		if contextRec.Code != http.StatusCreated {
+			t.Fatalf("provider context from action status = %d, want 201, body=%s", contextRec.Code, contextRec.Body.String())
+		}
+		contextData := decodeCapabilityGrantData(t, contextRec)
+		contextExpiresAt, err := time.Parse(time.RFC3339, requireStringField(t, contextData, "expires_at"))
+		if err != nil {
+			t.Fatalf("parse action context expires_at: %v", err)
+		}
+		if contextExpiresAt.After(timeoutAt.Add(time.Second)) {
+			t.Fatalf("provider request context expires after action timeout: context=%s timeout=%s", contextExpiresAt, timeoutAt)
+		}
+		if err := store.Client().ActionExecution.UpdateOneID(actionExecutionID).SetTimeoutAt(time.Now().UTC().Add(-time.Second)).Exec(ctx); err != nil {
+			t.Fatalf("expire action timeout: %v", err)
+		}
+		expiredRec := capabilityGrantJSONRequest(handler, http.MethodPost, capabilityGrantPath("/api/v1/provider-request-contexts", fixture.SpaceID), fixture.ProviderAPIKey, contextBody)
+		if expiredRec.Code != http.StatusForbidden {
+			t.Fatalf("expired action context status = %d, want 403, body=%s", expiredRec.Code, expiredRec.Body.String())
+		}
+	})
+
 	t.Run("manages provider binding and revokes resolver path by binding status", func(t *testing.T) {
 		bindingID := "cpb_" + safeIdentifier(fixture.SpaceID+"_"+fixture.MediatedCapabilityID+"_create_request")
 		list := capabilityGrantJSONRequest(handler, http.MethodGet, "/api/v1/capability-provider-bindings?space_id="+fixture.SpaceID, fixture.APIKey, nil)
@@ -1009,6 +1058,23 @@ func TestCapabilityGrantLedgerIntegration(t *testing.T) {
 		})
 		if bad.Code != http.StatusBadRequest {
 			t.Fatalf("credential endpoint binding status = %d, want 400, body=%s", bad.Code, bad.Body.String())
+		}
+
+		brokeredBinding := capabilityGrantJSONRequest(handler, http.MethodPost, "/api/v1/capability-provider-bindings", fixture.APIKey, map[string]any{
+			"space_id":           fixture.SpaceID,
+			"capability":         fixture.BrokeredCapabilityID,
+			"operation":          "charge",
+			"provider_plugin_id": fixture.ProviderPluginID,
+			"endpoint":           "https://workflow-brokered-" + fixture.Suffix + ".space.internal",
+			"identity":           map[string]any{"provider_id": fixture.ProviderPluginID},
+			"status":             "active",
+		})
+		if brokeredBinding.Code != http.StatusBadRequest {
+			t.Fatalf("brokered binding status = %d, want 400, body=%s", brokeredBinding.Code, brokeredBinding.Body.String())
+		}
+		brokeredError := requireObjectField(t, decodeCapabilityGrantEnvelope(t, brokeredBinding), "error")
+		if !strings.Contains(fmt.Sprint(brokeredError["message"]), "cannot be bound for mediated provider grants") {
+			t.Fatalf("brokered binding should explain unsupported invocation mode: %#v", brokeredError)
 		}
 
 		disabled := capabilityGrantJSONRequest(handler, http.MethodDelete, "/api/v1/capability-provider-bindings/"+bindingID, fixture.APIKey, nil)

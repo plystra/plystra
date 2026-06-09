@@ -767,8 +767,8 @@ func validateCapabilityInvocation(i, j int, capability CapabilityDefinition, inv
 		if invocation.GrantTTLMS == 0 || invocation.GrantTTLMS > 30000 {
 			errors = append(errors, fmt.Sprintf("capabilities[%d].operations[%d].invocation.grant_ttl_ms must be between 1 and 30000 for ephemeral_signed_grant", i, j))
 		}
-		if capability.Audit.Enforcement == "controlled_action" {
-			errors = append(errors, fmt.Sprintf("capabilities[%d].operations[%d].invocation.mode ephemeral_signed_grant cannot be used with controlled_action", i, j))
+		if capability.Audit.Enforcement == "observed_mutation" || capability.Audit.Enforcement == "controlled_action" {
+			errors = append(errors, fmt.Sprintf("capabilities[%d].operations[%d].invocation.mode ephemeral_signed_grant cannot be used with %s", i, j, capability.Audit.Enforcement))
 		}
 	case "revocable_mediated_grant":
 		if invocation.GrantTTLMS == 0 || invocation.GrantTTLMS > 300000 {

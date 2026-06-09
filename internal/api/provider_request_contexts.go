@@ -102,7 +102,7 @@ func (s *Server) handleProviderRequestContexts(w http.ResponseWriter, r *http.Re
 		return
 	}
 	now := time.Now().UTC()
-	expiresAt := now.Add(providerRequestContextTTL(req.TTLMS))
+	expiresAt := providerRequestContextExpiresAt(now, req.TTLMS, binding)
 	row, err := s.ent.ProviderRequestContext.Create().
 		SetID(newEntityID("prctx")).
 		SetTokenHash(sha256TokenHash(token)).
@@ -206,6 +206,7 @@ type providerRequestContextBinding struct {
 	CapabilityGrantID       string
 	ActionExecutionID       string
 	AuthorizationDecisionID string
+	ExpiresAt               time.Time
 }
 
 func (s *Server) validateProviderRequestContextBinding(r *http.Request, req providerRequestContextRequest, providerID string) (providerRequestContextBinding, error) {
@@ -263,6 +264,7 @@ func (s *Server) validateProviderRequestContextGrantBinding(r *http.Request, req
 		Operation:               row.Operation,
 		CapabilityGrantID:       row.ID,
 		AuthorizationDecisionID: derefString(row.DecisionID),
+		ExpiresAt:               row.ExpiresAt,
 	}, nil
 }
 
@@ -282,6 +284,10 @@ func (s *Server) validateProviderRequestContextActionBinding(r *http.Request, re
 	}
 	if row.Status != "running" && row.Status != "pending" {
 		return providerRequestContextBinding{}, errors.New("action execution is not active")
+	}
+	now := time.Now().UTC()
+	if !row.TimeoutAt.After(now) {
+		return providerRequestContextBinding{}, errors.New("action execution timed out")
 	}
 	if err := providerRequestContextActorMatchesAction(req, row); err != nil {
 		return providerRequestContextBinding{}, err
@@ -319,7 +325,16 @@ func (s *Server) validateProviderRequestContextActionBinding(r *http.Request, re
 		Operation:               row.Operation,
 		ActionExecutionID:       row.ID,
 		AuthorizationDecisionID: derefString(row.DecisionID),
+		ExpiresAt:               row.TimeoutAt,
 	}, nil
+}
+
+func providerRequestContextExpiresAt(now time.Time, ttlMS int, binding providerRequestContextBinding) time.Time {
+	expiresAt := now.UTC().Add(providerRequestContextTTL(ttlMS))
+	if !binding.ExpiresAt.IsZero() && binding.ExpiresAt.Before(expiresAt) {
+		return binding.ExpiresAt.UTC()
+	}
+	return expiresAt.UTC()
 }
 
 func providerRequestContextActorMatchesGrant(req providerRequestContextRequest, row *coreent.CapabilityGrant) error {
